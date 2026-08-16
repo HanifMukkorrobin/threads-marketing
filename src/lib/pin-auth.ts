@@ -28,10 +28,14 @@ export async function verifyPin(inputPin: string): Promise<boolean> {
     }
 
     const computedHash = hashPin(inputPin, saltConfig.value);
-    return crypto.timingSafeEqual(
-      Buffer.from(computedHash, 'hex'),
-      Buffer.from(hashConfig.value, 'hex')
-    );
+    const computedBuf = Buffer.from(computedHash, 'hex');
+    const storedBuf = Buffer.from(hashConfig.value, 'hex');
+
+    if (computedBuf.length !== storedBuf.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(computedBuf, storedBuf);
   } catch (error) {
     console.error('Error verifying PIN:', error);
     return inputPin === DEFAULT_PIN;

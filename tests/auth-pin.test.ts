@@ -9,6 +9,11 @@ import {
   DEFAULT_PIN,
   SESSION_COOKIE_NAME,
 } from '@/lib/pin-auth';
+import { POST as pinLoginHandler } from '@/app/api/auth/pin/route';
+import { POST as logoutHandler } from '@/app/api/auth/logout/route';
+import { GET as statusHandler } from '@/app/api/auth/status/route';
+import { POST as changePinHandler } from '@/app/api/auth/change-pin/route';
+import { NextRequest } from 'next/server';
 
 describe('PIN Auth Security Utility', () => {
   beforeEach(async () => {
@@ -79,5 +84,165 @@ describe('PIN Auth Security Utility', () => {
 
     const isBogusValid = verifySessionToken('invalid.token.here');
     expect(isBogusValid).toBe(false);
+  });
+});
+
+describe('Auth API Routes', () => {
+  beforeEach(async () => {
+    await prisma.systemConfig.deleteMany({
+      where: {
+        key: { in: ['ADMIN_PIN_HASH', 'ADMIN_PIN_SALT'] },
+      },
+    });
+  });
+
+  it('POST /api/auth/pin rejects invalid format or wrong PIN', async () => {
+    // Missing pin
+    const req1 = new NextRequest('http://localhost:3000/api/auth/pin', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    const res1 = await pinLoginHandler(req1);
+    expect(res1.status).toBe(400);
+
+    // Wrong pin
+    const req2 = new NextRequest('http://localhost:3000/api/auth/pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin: '000000' }),
+    });
+    const res2 = await pinLoginHandler(req2);
+    expect(res2.status).toBe(401);
+  });
+
+  it('POST /api/auth/pin sets session cookie on correct PIN', async () => {
+    const req = new NextRequest('http://localhost:3000/api/auth/pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin: '123456' }),
+    });
+    const res = await pinLoginHandler(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+
+    const setCookie = res.headers.get('set-cookie');
+    expect(setCookie).toContain('threads_admin_session=');
+  });
+
+  it('GET /api/auth/status correctly detects valid vs missing session', async () => {
+    // Unauthenticated
+    const reqNoCookie = new NextRequest('http://localhost:3000/api/auth/status');
+    const resNoCookie = await statusHandler(reqNoCookie);
+    const dataNoCookie = await resNoCookie.json();
+    expect(dataNoCookie.authenticated).toBe(false);
+
+    // Authenticated
+    const token = createSessionToken();
+    const reqWithCookie = new NextRequest('http://localhost:3000/api/auth/status', {
+      headers: {
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+    });
+    const resWithCookie = await statusHandler(reqWithCookie);
+    const dataWithCookie = await resWithCookie.json();
+    expect(dataWithCookie.authenticated).toBe(true);
+  });
+
+  it('POST /api/auth/change-pin requires valid session and updates PIN', async () => {
+    const token = createSessionToken();
+
+    // Unauthorized without session
+    const reqNoAuth = new NextRequest('http://localhost:3000/api/auth/change-pin', {
+      method: 'POST',
+      body: JSON.stringify({
+        currentPin: '123456',
+        newPin: '998877',
+        confirmPin: '998877',
+      }),
+    });
+    const resNoAuth = await changePinHandler(reqNoAuth);
+    expect(resNoAuth.status).toBe(401);
+
+    // With valid session and valid PINs
+    const req = new NextRequest('http://localhost:3000/api/auth/change-pin', {
+      method: 'POST',
+      headers: {
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+      body: JSON.stringify({
+        currentPin: '123456',
+        newPin: '998877',
+        confirmPin: '998877',
+      }),
+    });
+    const res = await changePinHandler(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+
+    // Verify new PIN can log in
+    const loginReq = new NextRequest('http://localhost:3000/api/auth/pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin: '998877' }),
+    });
+    const loginRes = await pinLoginHandler(loginReq);
+    expect(loginRes.status).toBe(200);
+  });
+
+  it('POST /api/auth/change-pin validates input fields and errors', async () => {
+    const token = createSessionToken();
+
+    // Missing currentPin
+    const req1 = new NextRequest('http://localhost:3000/api/auth/change-pin', {
+      method: 'POST',
+      headers: { cookie: `${SESSION_COOKIE_NAME}=${token}` },
+      body: JSON.stringify({ newPin: '112233', confirmPin: '112233' }),
+    });
+    const res1 = await changePinHandler(req1);
+    expect(res1.status).toBe(400);
+    const data1 = await res1.json();
+    expect(data1.error).toContain('PIN saat ini wajib diisi');
+
+    // Invalid newPin format
+    const req2 = new NextRequest('http://localhost:3000/api/auth/change-pin', {
+      method: 'POST',
+      headers: { cookie: `${SESSION_COOKIE_NAME}=${token}` },
+      body: JSON.stringify({ currentPin: '123456', newPin: '12345', confirmPin: '12345' }),
+    });
+    const res2 = await changePinHandler(req2);
+    expect(res2.status).toBe(400);
+    const data2 = await res2.json();
+    expect(data2.error).toContain('PIN baru harus berupa 6 digit angka');
+
+    // Confirm PIN mismatch
+    const req3 = new NextRequest('http://localhost:3000/api/auth/change-pin', {
+      method: 'POST',
+      headers: { cookie: `${SESSION_COOKIE_NAME}=${token}` },
+      body: JSON.stringify({ currentPin: '123456', newPin: '112233', confirmPin: '112244' }),
+    });
+    const res3 = await changePinHandler(req3);
+    expect(res3.status).toBe(400);
+    const data3 = await res3.json();
+    expect(data3.error).toContain('Konfirmasi PIN baru tidak cocok');
+
+    // Wrong current PIN
+    const req4 = new NextRequest('http://localhost:3000/api/auth/change-pin', {
+      method: 'POST',
+      headers: { cookie: `${SESSION_COOKIE_NAME}=${token}` },
+      body: JSON.stringify({ currentPin: '000000', newPin: '112233', confirmPin: '112233' }),
+    });
+    const res4 = await changePinHandler(req4);
+    expect(res4.status).toBe(400);
+    const data4 = await res4.json();
+    expect(data4.error).toContain('PIN saat ini salah');
+  });
+
+  it('POST /api/auth/logout clears the session cookie', async () => {
+    const req = new NextRequest('http://localhost:3000/api/auth/logout', {
+      method: 'POST',
+    });
+    const res = await logoutHandler(req);
+    expect(res.status).toBe(200);
+    const setCookie = res.headers.get('set-cookie');
+    expect(setCookie).toContain('threads_admin_session=;');
   });
 });
