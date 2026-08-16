@@ -246,3 +246,96 @@ describe('Auth API Routes', () => {
     expect(setCookie).toContain('threads_admin_session=;');
   });
 });
+
+describe('Next.js Route Protection Middleware', () => {
+  it('allows public routes (/login, /api/auth/pin, /api/auth/status, /api/hermes/*, static assets) without session', async () => {
+    const { middleware } = await import('@/middleware');
+    const publicPaths = [
+      'http://localhost:3000/login',
+      'http://localhost:3000/api/auth/pin',
+      'http://localhost:3000/api/auth/status',
+      'http://localhost:3000/api/hermes/products/active',
+      'http://localhost:3000/api/hermes/drafts/approved',
+      'http://localhost:3000/_next/static/chunk.js',
+      'http://localhost:3000/favicon.ico',
+    ];
+
+    for (const url of publicPaths) {
+      const req = new NextRequest(url);
+      const res = await middleware(req);
+      // Public route returns Next or pass-through, not redirect 307 or 401
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it('redirects unauthenticated web requests to /login', async () => {
+    const { middleware } = await import('@/middleware');
+    const protectedWebPaths = [
+      'http://localhost:3000/',
+      'http://localhost:3000/products',
+      'http://localhost:3000/drafts',
+      'http://localhost:3000/settings',
+    ];
+
+    for (const url of protectedWebPaths) {
+      const req = new NextRequest(url);
+      const res = await middleware(req);
+      expect(res.status).toBe(307);
+      expect(res.headers.get('location')).toContain('/login');
+    }
+  });
+
+  it('returns 401 JSON for unauthenticated internal API routes', async () => {
+    const { middleware } = await import('@/middleware');
+    const protectedApiPaths = [
+      'http://localhost:3000/api/products',
+      'http://localhost:3000/api/drafts',
+      'http://localhost:3000/api/settings',
+      'http://localhost:3000/api/overview',
+    ];
+
+    for (const url of protectedApiPaths) {
+      const req = new NextRequest(url);
+      const res = await middleware(req);
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('Unauthorized: Sesi login diperlukan');
+    }
+  });
+
+  it('allows authenticated web requests and internal API requests through', async () => {
+    const { middleware } = await import('@/middleware');
+    const token = createSessionToken();
+
+    const reqWeb = new NextRequest('http://localhost:3000/products', {
+      headers: {
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+    });
+    const resWeb = await middleware(reqWeb);
+    expect(resWeb.status).toBe(200);
+
+    const reqApi = new NextRequest('http://localhost:3000/api/products', {
+      headers: {
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+    });
+    const resApi = await middleware(reqApi);
+    expect(resApi.status).toBe(200);
+  });
+
+  it('redirects authenticated user from /login to /', async () => {
+    const { middleware } = await import('@/middleware');
+    const token = createSessionToken();
+    const req = new NextRequest('http://localhost:3000/login', {
+      headers: {
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+    });
+    const res = await middleware(req);
+    expect(res.status).toBe(307);
+    expect(res.headers.get('location')).toBe('http://localhost:3000/');
+  });
+});
+
