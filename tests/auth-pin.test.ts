@@ -253,6 +253,7 @@ describe('Next.js Route Protection Middleware', () => {
     const publicPaths = [
       'http://localhost:3000/login',
       'http://localhost:3000/api/auth/pin',
+      'http://localhost:3000/api/auth/logout',
       'http://localhost:3000/api/auth/status',
       'http://localhost:3000/api/hermes/products/active',
       'http://localhost:3000/api/hermes/drafts/approved',

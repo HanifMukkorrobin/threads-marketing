@@ -5,6 +5,7 @@ import { verifySessionToken, SESSION_COOKIE_NAME } from './lib/pin-auth';
 const PUBLIC_PATHS = [
   '/login',
   '/api/auth/pin',
+  '/api/auth/logout',
   '/api/auth/status',
   '/favicon.ico',
 ];
