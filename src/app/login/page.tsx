@@ -189,6 +189,7 @@ function LoginForm() {
                 ref={(el) => {
                   inputRefs.current[idx] = el;
                 }}
+                aria-label={`Digit ${idx + 1}`}
                 type={showPin ? 'text' : 'password'}
                 inputMode="numeric"
                 pattern="[0-9]*"

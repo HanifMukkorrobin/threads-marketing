@@ -23,6 +23,7 @@ import {
   Zap,
   X,
   AlertTriangle,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -76,6 +77,15 @@ export default function SettingsPage() {
   const [copiedSnippet, setCopiedSnippet] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
 
+  // PIN Management state
+  const [pinForm, setPinForm] = useState({
+    currentPin: '',
+    newPin: '',
+    confirmPin: '',
+  });
+  const [showPinFields, setShowPinFields] = useState(false);
+  const [changingPin, setChangingPin] = useState(false);
+
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -98,7 +108,7 @@ export default function SettingsPage() {
   const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/settings');
+      const res = await fetch('/api/settings', { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.settings) {
         setSettings({
@@ -168,6 +178,44 @@ export default function SettingsPage() {
       addToast(err?.message || 'Gagal meregenerasi API key', 'error');
     } finally {
       setRegenerating(false);
+    }
+  };
+
+  // Change Dashboard Access PIN
+  const handleChangePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pinForm.currentPin) {
+      addToast('Masukkan PIN saat ini', 'error');
+      return;
+    }
+    if (pinForm.newPin.length !== 6 || !/^\d{6}$/.test(pinForm.newPin)) {
+      addToast('PIN baru harus terdiri dari 6 digit angka', 'error');
+      return;
+    }
+    if (pinForm.newPin !== pinForm.confirmPin) {
+      addToast('Konfirmasi PIN baru tidak cocok', 'error');
+      return;
+    }
+
+    try {
+      setChangingPin(true);
+      const res = await fetch('/api/auth/change-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pinForm),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gagal mengubah PIN');
+      }
+
+      addToast('PIN Akses Dashboard berhasil diperbarui!', 'success');
+      setPinForm({ currentPin: '', newPin: '', confirmPin: '' });
+    } catch (err: any) {
+      addToast(err?.message || 'Gagal mengubah PIN', 'error');
+    } finally {
+      setChangingPin(false);
     }
   };
 
@@ -521,7 +569,170 @@ console.log(data);`,
           </div>
         </div>
 
-        {/* Section 2: Store Profile Configuration */}
+        {/* Section 2: Security & PIN Management */}
+        <form onSubmit={handleChangePin} className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <Lock className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-threads-text">
+                  Keamanan & PIN Akses Dashboard
+                </h2>
+                <p className="text-xs text-threads-secondary">
+                  Kelola 6-digit PIN untuk mengamankan akses ke seluruh dashboard Threads Engine.
+                </p>
+              </div>
+            </div>
+
+            <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+              <ShieldCheck className="h-3 w-3" />
+              6-Digit Protected
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Current PIN */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-threads-secondary">
+                PIN Saat Ini
+              </label>
+              <div className="relative">
+                <input
+                  type={showPinFields ? 'text' : 'password'}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={pinForm.currentPin}
+                  onChange={(e) =>
+                    setPinForm((prev) => ({
+                      ...prev,
+                      currentPin: e.target.value.replace(/\D/g, '').slice(0, 6),
+                    }))
+                  }
+                  placeholder="••••••"
+                  className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2.5 font-mono text-xs text-threads-text tracking-widest focus:border-threads-accent focus:outline-none"
+                  required
+                />
+              </div>
+              <p className="text-[11px] text-zinc-500">PIN default awal: 123456</p>
+            </div>
+
+            {/* New PIN */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-threads-secondary">
+                PIN Baru
+              </label>
+              <div className="relative">
+                <input
+                  type={showPinFields ? 'text' : 'password'}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={pinForm.newPin}
+                  onChange={(e) =>
+                    setPinForm((prev) => ({
+                      ...prev,
+                      newPin: e.target.value.replace(/\D/g, '').slice(0, 6),
+                    }))
+                  }
+                  placeholder="••••••"
+                  className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2.5 font-mono text-xs text-threads-text tracking-widest focus:border-threads-accent focus:outline-none"
+                  required
+                />
+              </div>
+              <p className="text-[11px] text-zinc-500">Wajib 6 digit angka (0-9)</p>
+            </div>
+
+            {/* Confirm New PIN */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-threads-secondary">
+                Konfirmasi PIN Baru
+              </label>
+              <div className="relative">
+                <input
+                  type={showPinFields ? 'text' : 'password'}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={pinForm.confirmPin}
+                  onChange={(e) =>
+                    setPinForm((prev) => ({
+                      ...prev,
+                      confirmPin: e.target.value.replace(/\D/g, '').slice(0, 6),
+                    }))
+                  }
+                  placeholder="••••••"
+                  className={cn(
+                    'w-full rounded-xl border bg-threads-surface px-3.5 py-2.5 font-mono text-xs text-threads-text tracking-widest focus:outline-none transition-colors',
+                    pinForm.confirmPin.length > 0 && pinForm.newPin === pinForm.confirmPin && pinForm.newPin.length === 6
+                      ? 'border-emerald-500/80 focus:border-emerald-500'
+                      : pinForm.confirmPin.length > 0 && pinForm.newPin !== pinForm.confirmPin
+                      ? 'border-rose-500/80 focus:border-rose-500'
+                      : 'border-threads-border focus:border-threads-accent'
+                  )}
+                  required
+                />
+              </div>
+              {pinForm.confirmPin.length > 0 ? (
+                <p
+                  className={cn(
+                    'text-[11px] font-medium flex items-center gap-1',
+                    pinForm.newPin === pinForm.confirmPin && pinForm.newPin.length === 6
+                      ? 'text-emerald-400'
+                      : 'text-rose-400'
+                  )}
+                >
+                  {pinForm.newPin === pinForm.confirmPin && pinForm.newPin.length === 6 ? (
+                    <>
+                      <Check className="h-3 w-3" />
+                      <span>PIN baru cocok</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="h-3 w-3" />
+                      <span>PIN belum cocok</span>
+                    </>
+                  )}
+                </p>
+              ) : (
+                <p className="text-[11px] text-zinc-500">Ulangi PIN baru di atas</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 border-t border-threads-border/60">
+            <button
+              type="button"
+              onClick={() => setShowPinFields((prev) => !prev)}
+              className="flex items-center gap-1.5 text-xs text-threads-secondary hover:text-threads-text transition-colors self-start sm:self-auto"
+            >
+              {showPinFields ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              <span>{showPinFields ? 'Sembunyikan Digit PIN' : 'Tampilkan Digit PIN'}</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={
+                changingPin ||
+                !pinForm.currentPin ||
+                pinForm.newPin.length !== 6 ||
+                pinForm.newPin !== pinForm.confirmPin
+              }
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-threads-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-threads-accent/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {changingPin ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Lock className="h-3.5 w-3.5" />
+              )}
+              <span>{changingPin ? 'Memperbarui PIN...' : 'Perbarui PIN Akses'}</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Section 3: Store Profile Configuration */}
         <form onSubmit={handleSaveSettings} className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
@@ -597,7 +808,7 @@ console.log(data);`,
           </div>
         </form>
 
-        {/* Section 3: Interactive Live Connection Tester */}
+        {/* Section 4: Interactive Live Connection Tester */}
         <div className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-4 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -660,7 +871,7 @@ console.log(data);`,
           )}
         </div>
 
-        {/* Section 4: Dynamic Code Snippets & API Explorer */}
+        {/* Section 5: Dynamic Code Snippets & API Explorer */}
         <div className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
