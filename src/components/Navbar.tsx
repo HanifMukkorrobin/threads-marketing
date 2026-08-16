@@ -12,12 +12,19 @@ import {
   Menu,
   X,
   Radio,
+  Lock,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  if (pathname === '/login') {
+    return null;
+  }
 
   const navItems = [
     {
@@ -45,6 +52,18 @@ export function Navbar() {
       active: pathname.startsWith('/settings'),
     },
   ];
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    } catch (err) {
+      window.location.href = '/login';
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-threads-border bg-threads-bg/90 backdrop-blur-md">
@@ -91,7 +110,7 @@ export function Navbar() {
           </nav>
         </div>
 
-        {/* Right side status / badge */}
+        {/* Right side status & lock button */}
         <div className="hidden sm:flex items-center space-x-3">
           <div className="flex items-center space-x-2 rounded-full border border-threads-border bg-threads-card px-3 py-1 text-xs text-threads-secondary">
             <span className="relative flex h-2 w-2">
@@ -101,10 +120,30 @@ export function Navbar() {
             <span className="font-mono text-[11px] text-zinc-300">Hermes API</span>
             <span className="text-[10px] text-threads-secondary">v1.0</span>
           </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            title="Kunci Dashboard / Logout"
+            className="flex items-center space-x-1.5 rounded-lg border border-threads-border bg-threads-card px-2.5 py-1.5 text-xs text-threads-secondary hover:border-zinc-700 hover:bg-threads-surface hover:text-rose-400 transition-all disabled:opacity-50"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline text-[11px] font-medium">Kunci</span>
+          </button>
         </div>
 
         {/* Mobile menu button */}
-        <div className="flex md:hidden">
+        <div className="flex items-center space-x-2 md:hidden">
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            title="Kunci Dashboard"
+            className="inline-flex items-center justify-center rounded-lg p-2 text-threads-secondary hover:bg-threads-card hover:text-rose-400 focus:outline-none"
+          >
+            <Lock className="h-5 w-5" />
+          </button>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -139,6 +178,16 @@ export function Navbar() {
                 </Link>
               );
             })}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="w-full flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Kunci Dashboard</span>
+            </button>
           </div>
           <div className="mt-4 pt-3 border-t border-threads-border flex items-center justify-between text-xs text-threads-secondary">
             <span className="flex items-center space-x-1.5">
