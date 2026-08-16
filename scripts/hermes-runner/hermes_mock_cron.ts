@@ -242,14 +242,22 @@ if (process.argv[1]?.includes('hermes_mock_cron.ts')) {
   let baseUrl = process.env.HERMES_BASE_URL || 'http://localhost:3000';
   let apiKey = process.env.HERMES_API_KEY || 'hermes-secret-key-2026';
 
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg.startsWith('--action=')) {
       const act = arg.split('=')[1] as any;
       if (['generate', 'post', 'all'].includes(act)) action = act;
+    } else if (arg === '--action' && args[i + 1]) {
+      const act = args[++i] as any;
+      if (['generate', 'post', 'all'].includes(act)) action = act;
     } else if (arg.startsWith('--base-url=')) {
       baseUrl = arg.split('=')[1];
+    } else if (arg === '--base-url' && args[i + 1]) {
+      baseUrl = args[++i];
     } else if (arg.startsWith('--api-key=')) {
       apiKey = arg.split('=')[1];
+    } else if (arg === '--api-key' && args[i + 1]) {
+      apiKey = args[++i];
     }
   }
 
