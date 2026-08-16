@@ -124,9 +124,11 @@ export function DraftCard({
         </div>
 
         {/* Title */}
-        <h3 className="text-base font-semibold tracking-tight text-threads-text line-clamp-1 group-hover:text-threads-accent transition-colors">
-          {draft.title}
-        </h3>
+        <Link href={`/drafts/${draft.id}`} className="block group/title">
+          <h3 className="text-base font-semibold tracking-tight text-threads-text line-clamp-1 group-hover/title:text-threads-accent transition-colors">
+            {draft.title}
+          </h3>
+        </Link>
 
         {/* Post Preview Snippet */}
         <div className="rounded-lg border border-threads-border/80 bg-threads-bg/80 p-3.5 space-y-2">
@@ -206,16 +208,13 @@ export function DraftCard({
       <div className="mt-5 flex items-center justify-between gap-2 border-t border-threads-border pt-4">
         {/* Left side actions: Edit & Quick status */}
         <div className="flex items-center gap-2">
-          {onEdit && (
-            <button
-              type="button"
-              onClick={() => onEdit(draft)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-threads-border bg-threads-surface px-3 py-1.5 text-xs font-medium text-threads-text transition-colors hover:bg-threads-border"
-            >
-              <Edit3 className="h-3.5 w-3.5 text-threads-secondary" />
-              Review & Edit
-            </button>
-          )}
+          <Link
+            href={`/drafts/${draft.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-threads-border bg-threads-surface px-3 py-1.5 text-xs font-medium text-threads-text transition-colors hover:bg-threads-border"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-threads-secondary" />
+            Editor Live
+          </Link>
 
           {draft.status === 'PENDING_REVIEW' && onApprove && (
             <button
