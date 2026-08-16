@@ -1,0 +1,72 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Product {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String         @unique
+  category       String
+  description    String?
+  variants       String         // JSON array: [{ name, price, duration }]
+  usp            String         // JSON array: ["USP 1", "USP 2"]
+  targetAudience String?
+  toneOfVoice    String?
+  ctaTemplate    String?
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  drafts         ContentDraft[]
+}
+
+model ContentDraft {
+  id            String          @id @default(cuid())
+  productId     String?
+  product       Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  title         String
+  type          String          @default("SINGLE") // "SINGLE" | "THREAD_CHAIN"
+  status        String          @default("PENDING_REVIEW") // "PENDING_REVIEW" | "APPROVED" | "SCHEDULED" | "PUBLISHED" | "FAILED"
+
+  hookAngle     String?
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+
+  threadPostId  String?
+  threadPostUrl String?
+  errorMessage  String?
+
+  source        String          @default("HERMES_AI") // "HERMES_AI" | "MANUAL"
+  metadata      String?
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  posts         DraftPostItem[]
+}
+
+model DraftPostItem {
+  id          String        @id @default(cuid())
+  draftId     String
+  draft       ContentDraft  @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  orderIndex  Int
+  content     String
+  mediaUrl    String?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model SystemConfig {
+  key         String        @id
+  value       String
+  description String?
+  updatedAt   DateTime      @updatedAt
+}
