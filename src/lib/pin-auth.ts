@@ -1,9 +1,14 @@
 import crypto from 'crypto';
 import { prisma } from './prisma';
+import { DEFAULT_PIN } from './session';
 
-export const DEFAULT_PIN = '123456';
-export const SESSION_COOKIE_NAME = 'threads_admin_session';
-export const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
+export {
+  DEFAULT_PIN,
+  SESSION_COOKIE_NAME,
+  SESSION_MAX_AGE_SECONDS,
+  createSessionToken,
+  verifySessionToken,
+} from './session';
 
 const SECRET_SALT_KEY = process.env.PIN_SECRET_KEY || 'threads-marketing-secret-salt-2026';
 
@@ -84,48 +89,5 @@ export async function updatePin(
   } catch (error: any) {
     console.error('Error updating PIN in database:', error);
     return { success: false, error: error?.message || 'Gagal menyimpan PIN baru ke database.' };
-  }
-}
-
-export function createSessionToken(): string {
-  const expiresAt = Date.now() + SESSION_MAX_AGE_SECONDS * 1000;
-  const payload = `admin:${expiresAt}`;
-  const signature = crypto
-    .createHmac('sha256', SECRET_SALT_KEY)
-    .update(payload)
-    .digest('hex');
-  return Buffer.from(`${payload}:${signature}`).toString('base64url');
-}
-
-export function verifySessionToken(token: string): boolean {
-  if (!token || typeof token !== 'string') return false;
-
-  try {
-    const decoded = Buffer.from(token, 'base64url').toString('utf-8');
-    const parts = decoded.split(':');
-    if (parts.length !== 3) return false;
-
-    const [role, expiresAtStr, signature] = parts;
-    if (role !== 'admin') return false;
-
-    const expiresAt = parseInt(expiresAtStr, 10);
-    if (isNaN(expiresAt) || Date.now() > expiresAt) {
-      return false; // Expired
-    }
-
-    const payload = `${role}:${expiresAtStr}`;
-    const expectedSig = crypto
-      .createHmac('sha256', SECRET_SALT_KEY)
-      .update(payload)
-      .digest('hex');
-
-    if (signature.length !== expectedSig.length) return false;
-
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, 'hex'),
-      Buffer.from(expectedSig, 'hex')
-    );
-  } catch {
-    return false;
   }
 }

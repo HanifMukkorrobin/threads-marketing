@@ -71,18 +71,18 @@ describe('PIN Auth Security Utility', () => {
     }
   });
 
-  it('generates and validates session token', () => {
-    const token = createSessionToken();
+  it('generates and validates session token', async () => {
+    const token = await createSessionToken();
     expect(typeof token).toBe('string');
     expect(token.length).toBeGreaterThan(20);
 
-    const isValid = verifySessionToken(token);
+    const isValid = await verifySessionToken(token);
     expect(isValid).toBe(true);
 
-    const isTamperedValid = verifySessionToken(token + 'tampered');
+    const isTamperedValid = await verifySessionToken(token + 'tampered');
     expect(isTamperedValid).toBe(false);
 
-    const isBogusValid = verifySessionToken('invalid.token.here');
+    const isBogusValid = await verifySessionToken('invalid.token.here');
     expect(isBogusValid).toBe(false);
   });
 });
@@ -136,7 +136,7 @@ describe('Auth API Routes', () => {
     expect(dataNoCookie.authenticated).toBe(false);
 
     // Authenticated
-    const token = createSessionToken();
+    const token = await createSessionToken();
     const reqWithCookie = new NextRequest('http://localhost:3000/api/auth/status', {
       headers: {
         cookie: `${SESSION_COOKIE_NAME}=${token}`,
@@ -148,7 +148,7 @@ describe('Auth API Routes', () => {
   });
 
   it('POST /api/auth/change-pin requires valid session and updates PIN', async () => {
-    const token = createSessionToken();
+    const token = await createSessionToken();
 
     // Unauthorized without session
     const reqNoAuth = new NextRequest('http://localhost:3000/api/auth/change-pin', {
@@ -189,7 +189,7 @@ describe('Auth API Routes', () => {
   });
 
   it('POST /api/auth/change-pin validates input fields and errors', async () => {
-    const token = createSessionToken();
+    const token = await createSessionToken();
 
     // Missing currentPin
     const req1 = new NextRequest('http://localhost:3000/api/auth/change-pin', {
@@ -307,7 +307,7 @@ describe('Next.js Route Protection Middleware', () => {
 
   it('allows authenticated web requests and internal API requests through', async () => {
     const { middleware } = await import('@/middleware');
-    const token = createSessionToken();
+    const token = await createSessionToken();
 
     const reqWeb = new NextRequest('http://localhost:3000/products', {
       headers: {
@@ -328,7 +328,7 @@ describe('Next.js Route Protection Middleware', () => {
 
   it('redirects authenticated user from /login to /', async () => {
     const { middleware } = await import('@/middleware');
-    const token = createSessionToken();
+    const token = await createSessionToken();
     const req = new NextRequest('http://localhost:3000/login', {
       headers: {
         cookie: `${SESSION_COOKIE_NAME}=${token}`,

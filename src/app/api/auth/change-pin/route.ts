@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const cookie = req.cookies.get(SESSION_COOKIE_NAME);
     const token = cookie?.value;
-    if (!token || !verifySessionToken(token)) {
+    if (!token || !(await verifySessionToken(token))) {
       return NextResponse.json(
         { success: false, error: 'Sesi tidak valid atau telah kedaluwarsa. Silakan login kembali.' },
         { status: 401 }

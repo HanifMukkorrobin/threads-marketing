@@ -23,17 +23,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const sessionToken = createSessionToken();
+    const sessionToken = await createSessionToken();
     const response = NextResponse.json({
       success: true,
       message: 'Autentikasi PIN berhasil.',
     });
 
+    const isSecure = req.headers.get('x-forwarded-proto') === 'https' || req.nextUrl.protocol === 'https:' || process.env.COOKIE_SECURE === 'true';
+
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: sessionToken,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       path: '/',
       maxAge: SESSION_MAX_AGE_SECONDS,

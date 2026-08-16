@@ -146,9 +146,8 @@ function LoginForm() {
         return;
       }
 
-      // Success -> Redirect
-      router.push(redirectUrl);
-      router.refresh();
+      // Success -> Full page navigation to dashboard with fresh session cookie
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err?.message || 'Gagal terhubung ke server.');
     } finally {

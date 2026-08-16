@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySessionToken, SESSION_COOKIE_NAME } from './lib/pin-auth';
+import { verifySessionToken, SESSION_COOKIE_NAME } from './lib/session';
 
 // Paths that never require PIN authentication
 const PUBLIC_PATHS = [
@@ -29,7 +29,7 @@ export async function middleware(req: NextRequest) {
 
   // 3. Check session cookie
   const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const isAuthenticated = sessionCookie ? verifySessionToken(sessionCookie) : false;
+  const isAuthenticated = sessionCookie ? await verifySessionToken(sessionCookie) : false;
 
   // 4. If already authenticated and trying to visit /login, redirect to /
   if (pathname === '/login') {
