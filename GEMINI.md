@@ -10,6 +10,7 @@ Always strictly follow the **Superpowers** workflow and discipline (`superpowers
 
 2. **Skill Priority & Workflow**:
    - **New Features / UI / Functionality**: Invoke `superpowers:brainstorming` first to explore requirements and design before jumping into implementation or plans.
+   - **UI / Frontend & Visual Craft**: Pastikan selalu menggunakan skill atau plugin **`impeccable`** (atau design standards Impeccable / frontend-design) untuk setiap pengerjaan UI, styling, komponen tampilan, tata letak, responsivitas, dan micro-interactions guna menjamin standar visual kelas atas, zero visual defect, dan kepatuhan autentik pada design tokens Threads (`DESIGN.md`).
    - **Planning**: After brainstorming or receiving a clear specification, invoke `superpowers:writing-plans`.
    - **Execution**: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans`.
    - **Bug Fixes / Issues**: Always invoke `superpowers:systematic-debugging` before proposing fixes.
