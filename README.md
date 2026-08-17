@@ -30,41 +30,41 @@ Threads Marketing Engine is a high-performance marketing pipeline designed for d
 ```mermaid
 flowchart TD
     subgraph Owner["Store Owner (Web UI)"]
-        P[Product Catalog\n- Pricing & Duration\n- USPs & Features\n- Tone of Voice\n- CTA Template]
-        D[Dashboard Overview\n- Realtime KPIs\n- Pending Queue\n- Published Activity]
-        E[Thread Editor\n- Multi-Post Chain\n- Live Threads Preview\n- Character Counter]
-        Approve[Review & Approve\n- Status: APPROVED]
+        P["Product Catalog<br/>- Pricing & Duration<br/>- USPs & Features<br/>- Tone of Voice<br/>- CTA Template"]
+        D["Dashboard Overview<br/>- Realtime KPIs<br/>- Pending Queue<br/>- Published Activity"]
+        E["Thread Editor<br/>- Multi-Post Chain<br/>- Live Threads Preview<br/>- Character Counter"]
+        Approve["Review & Approve<br/>- Status: APPROVED"]
     end
 
     subgraph Database["SQLite & Prisma ORM"]
-        DB_P[(Product)]
-        DB_D[(ContentDraft & DraftPostItem)]
-        DB_S[(SystemConfig)]
+        DB_P[("Product")]
+        DB_D[("ContentDraft & DraftPostItem")]
+        DB_S[("SystemConfig")]
     end
 
     subgraph Hermes["Hermes Autonomous AI Agent"]
-        Cron[Cron Scheduler / CLI]
-        Gen[AI Copywriting Generator\n- Hook Angle\n- PAS / Cost Comparison\n- CTA Formatting]
-        Post[Threads Publisher\n- Post Chain to Threads API\n- Capture Thread Post URL]
+        Cron["Cron Scheduler / CLI"]
+        Gen["AI Copywriting Generator<br/>- Hook Angle<br/>- PAS / Cost Comparison<br/>- CTA Formatting"]
+        Post["Threads Publisher<br/>- Post Chain to Threads API<br/>- Capture Thread Post URL"]
     end
 
     subgraph Meta["Meta Threads Platform"]
-        ThreadsAPI[Threads Graph API]
+        ThreadsAPI["Threads Graph API"]
     end
 
     %% Workflow connections
-    P -->|1. Create / Update| DB_P
-    DB_P -->|2. GET /api/hermes/products/active| Gen
-    Gen -->|3. POST /api/hermes/drafts (PENDING_REVIEW)| DB_D
-    DB_D -->|4. View Queue| E
-    E -->|5. Edit & Approve| Approve
-    Approve -->|6. PATCH /api/drafts/:id| DB_D
-    DB_D -->|7. GET /api/hermes/drafts/approved| Post
-    Post -->|8. Publish Thread Chain| ThreadsAPI
-    ThreadsAPI -->|9. Post ID & URL| Post
-    Post -->|10. PATCH /api/hermes/drafts/:id/status (PUBLISHED)| DB_D
-    DB_D -->|11. Live Metrics| D
-    DB_S -.->|Auth Key Validation| Hermes
+    P -->|"1. Create / Update"| DB_P
+    DB_P -->|"2. GET /api/hermes/products/active"| Gen
+    Gen -->|"3. POST /api/hermes/drafts (PENDING_REVIEW)"| DB_D
+    DB_D -->|"4. View Queue"| E
+    E -->|"5. Edit & Approve"| Approve
+    Approve -->|"6. PATCH /api/drafts/:id"| DB_D
+    DB_D -->|"7. GET /api/hermes/drafts/approved"| Post
+    Post -->|"8. Publish Thread Chain"| ThreadsAPI
+    ThreadsAPI -->|"9. Post ID & URL"| Post
+    Post -->|"10. PATCH /api/hermes/drafts/:id/status (PUBLISHED)"| DB_D
+    DB_D -->|"11. Live Metrics"| D
+    DB_S -.->|"Auth Key Validation"| Hermes
 ```
 
 ---
