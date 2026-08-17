@@ -318,19 +318,49 @@ export function ProductModal({
                 <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Status Produk
                 </label>
-                <div className="flex items-center gap-3 pt-2">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isActive}
-                      onChange={(e) => setIsActive(e.target.checked)}
-                      className="sr-only peer"
+                <div
+                  onClick={() => setIsActive(!isActive)}
+                  className="flex h-[42px] items-center justify-between rounded-lg border border-threads-border bg-threads-card px-3.5 cursor-pointer transition-all hover:border-zinc-700 select-none"
+                >
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors',
+                      isActive
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : 'bg-zinc-800 text-zinc-400 border-zinc-700/60'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'h-1.5 w-1.5 rounded-full',
+                        isActive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                      )}
                     />
-                    <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:width-5 after:transition-all peer-checked:bg-threads-accent"></div>
-                    <span className="ml-3 text-xs font-medium text-zinc-300">
-                      {isActive ? 'Aktif (Digunakan AI)' : 'Non-aktif'}
-                    </span>
-                  </label>
+                    {isActive ? 'Aktif (Digunakan AI)' : 'Non-aktif'}
+                  </span>
+
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isActive}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsActive(!isActive);
+                    }}
+                    className={cn(
+                      'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-threads-accent focus:ring-offset-2 focus:ring-offset-threads-surface border',
+                      isActive
+                        ? 'bg-emerald-500 border-emerald-400/50 shadow-sm'
+                        : 'bg-zinc-800 border-zinc-700'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'pointer-events-none inline-block h-4.5 w-4.5 rounded-full bg-white shadow transform transition duration-200 ease-in-out',
+                        isActive ? 'translate-x-5' : 'translate-x-0'
+                      )}
+                    />
+                  </button>
                 </div>
               </div>
             </div>

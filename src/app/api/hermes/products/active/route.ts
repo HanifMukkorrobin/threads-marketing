@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateHermesApiKey, unauthorizedResponse } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   const isAuthorized = await validateHermesApiKey(req);
   if (!isAuthorized) {
@@ -47,11 +50,24 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    const configs = await prisma.systemConfig.findMany();
+    const configMap: Record<string, string> = {};
+    for (const c of configs) {
+      configMap[c.key] = c.value;
+    }
+
+    const store = {
+      name: configMap['STORE_NAME'] || 'Toko Digital ID',
+      username: configMap['STORE_USERNAME'] || 'tokodigital.id',
+      avatarUrl: configMap['STORE_AVATAR_URL'] || '',
+    };
+
     return NextResponse.json({
       success: true,
       count: products.length,
       products,
       data: products,
+      store,
     });
   } catch (error) {
     console.error('Error in GET /api/hermes/products/active:', error);

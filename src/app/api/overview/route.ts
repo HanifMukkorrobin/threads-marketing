@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { formatDraft } from '@/lib/drafts';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -12,8 +16,8 @@ export async function GET() {
       publishedDrafts,
       failedDrafts,
       totalDrafts,
-      recentPendingDrafts,
-      recentPublishedDrafts,
+      recentPendingDraftsRaw,
+      recentPublishedDraftsRaw,
       apiKeyConfig,
     ] = await Promise.all([
       prisma.product.count(),
@@ -51,28 +55,38 @@ export async function GET() {
       }),
     ]);
 
+    const recentPendingDrafts = recentPendingDraftsRaw.map(formatDraft);
+    const recentPublishedDrafts = recentPublishedDraftsRaw.map(formatDraft);
+
     const apiKey = apiKeyConfig?.value || process.env.HERMES_API_KEY || 'hermes-secret-key-2026';
 
-    return NextResponse.json({
-      success: true,
-      counts: {
-        totalProducts,
-        activeProducts,
-        pendingDrafts,
-        approvedDrafts,
-        scheduledDrafts,
-        publishedDrafts,
-        failedDrafts,
-        totalDrafts,
+    return NextResponse.json(
+      {
+        success: true,
+        counts: {
+          totalProducts,
+          activeProducts,
+          pendingDrafts,
+          approvedDrafts,
+          scheduledDrafts,
+          publishedDrafts,
+          failedDrafts,
+          totalDrafts,
+        },
+        recentPendingDrafts,
+        recentPublishedDrafts,
+        hermesStatus: {
+          isConfigured: Boolean(apiKey),
+          hasApiKey: Boolean(apiKey),
+          apiKeyPreview: apiKey ? `${apiKey.slice(0, 7)}...${apiKey.slice(-4)}` : null,
+        },
       },
-      recentPendingDrafts,
-      recentPublishedDrafts,
-      hermesStatus: {
-        isConfigured: Boolean(apiKey),
-        hasApiKey: Boolean(apiKey),
-        apiKeyPreview: apiKey ? `${apiKey.slice(0, 7)}...${apiKey.slice(-4)}` : null,
-      },
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        },
+      }
+    );
   } catch (err: any) {
     console.error('Error fetching dashboard overview data:', err);
     return NextResponse.json(

@@ -75,8 +75,8 @@ export default function DraftsPage() {
       setError(null);
 
       const [draftsRes, productsRes] = await Promise.all([
-        fetch('/api/drafts'),
-        fetch('/api/products'),
+        fetch('/api/drafts', { cache: 'no-store' }),
+        fetch('/api/products', { cache: 'no-store' }),
       ]);
 
       const draftsData = await draftsRes.json();

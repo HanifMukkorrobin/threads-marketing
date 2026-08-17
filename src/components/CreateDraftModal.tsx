@@ -11,7 +11,9 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
-  Info,
+  Wand2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Product } from '@/types/product';
 import { ContentDraft, CreateDraftInput, DraftStatus } from '@/types/draft';
@@ -25,14 +27,14 @@ interface CreateDraftModalProps {
   editingDraft?: ContentDraft | null;
 }
 
-const HOOK_PRESETS = [
-  'Problem & Solution',
-  'Price Comparison',
-  'Tips & Tricks',
-  'Storytelling / Curhat',
-  'Mistakes to Avoid',
-  'Feature Highlight',
-  'FOMO & Promo Limit',
+const AI_ANGLES = [
+  { id: 'contrarian', label: '💡 Contrarian / Unpopular Opinion', desc: 'Menentang anggapan umum & bongkar mitos' },
+  { id: 'micro_story', label: '📖 Micro-Story & Curhat Relate', desc: 'Cerita skenario nugas, kerjaan, atau deadline' },
+  { id: 'price_breakdown', label: '💰 Value & Coffee Comparison', desc: 'Bandingkan dengan segelas kopi harian' },
+  { id: 'productivity_hack', label: '⚡️ Productivity & Workflow Hack', desc: 'Trik hemat waktu 3x lebih cepat' },
+  { id: 'fomo_urgency', label: '🔥 FOMO & Slot Promo Terbatas', desc: 'Urgensi restock kuota terbatas' },
+  { id: 'mistakes_to_avoid', label: '⚠️ Kesalahan Fatal Pemula', desc: 'Bahaya akun ilegal vs keuntungan akun legal' },
+  { id: 'organic_tips', label: '🚀 Tips & Insight Digital Organik', desc: 'Konten edukasi non-jualan untuk engagement' },
 ];
 
 export function CreateDraftModal({
@@ -49,6 +51,13 @@ export function CreateDraftModal({
   const [posts, setPosts] = useState<{ content: string; mediaUrl: string }[]>([
     { content: '', mediaUrl: '' },
   ]);
+
+  // AI Generator Panel States
+  const [aiPanelOpen, setAiPanelOpen] = useState(true);
+  const [selectedAngle, setSelectedAngle] = useState('contrarian');
+  const [customTopic, setCustomTopic] = useState('');
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,17 +79,62 @@ export function CreateDraftModal({
       } else {
         setPosts([{ content: '', mediaUrl: '' }]);
       }
+      setAiPanelOpen(false);
     } else {
       setTitle('');
       setProductId('');
       setHookAngle('');
       setStatus('PENDING_REVIEW');
       setPosts([{ content: '', mediaUrl: '' }]);
+      setAiPanelOpen(true);
     }
     setError(null);
+    setAiSuccessMessage(null);
   }, [editingDraft, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleGenerateWithHermes = async () => {
+    try {
+      setGeneratingAi(true);
+      setError(null);
+      setAiSuccessMessage(null);
+
+      const res = await fetch('/api/drafts/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: productId || null,
+          angle: selectedAngle,
+          customTopic: customTopic.trim() || null,
+          autoSave: false,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gagal menghasilkan draft dengan Hermes AI');
+      }
+
+      const genData = data.data;
+      if (genData.title) setTitle(genData.title);
+      if (genData.hookAngle) setHookAngle(genData.hookAngle);
+      if (Array.isArray(genData.posts) && genData.posts.length > 0) {
+        setPosts(
+          genData.posts.map((p: any) => ({
+            content: p.content || '',
+            mediaUrl: p.mediaUrl || '',
+          }))
+        );
+      }
+
+      setAiSuccessMessage('Draft fresh berhasil digenerate oleh Hermes Agent! Silakan review dan sesuaikan jika perlu.');
+    } catch (err: any) {
+      setError(err?.message || 'Terjadi kesalahan saat meminta Hermes AI');
+    } finally {
+      setGeneratingAi(false);
+    }
+  };
 
   const handleAddPost = () => {
     setPosts((prev) => [...prev, { content: '', mediaUrl: '' }]);
@@ -180,7 +234,7 @@ export function CreateDraftModal({
               <p className="text-xs text-threads-secondary">
                 {editingDraft
                   ? 'Perbarui teks, hook, atau rantai postingan thread'
-                  : 'Tulis manual postingan tunggal atau rangkaian thread Threads'}
+                  : 'Tulis manual atau generate instan rangkaian thread dengan Hermes AI'}
               </p>
             </div>
           </div>
@@ -199,6 +253,101 @@ export function CreateDraftModal({
             <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300">
               <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {aiSuccessMessage && (
+            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-300">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+              <span>{aiSuccessMessage}</span>
+            </div>
+          )}
+
+          {/* AI Generator Panel (Available when creating new draft) */}
+          {!editingDraft && (
+            <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/5 p-4 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                    <Wand2 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-threads-text flex items-center gap-1.5">
+                      <span>Hermes AI Content Generator</span>
+                      <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold text-indigo-300">
+                        Fresh & Anti-Klise
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-threads-secondary">
+                      Racik hook & thread berkonversi tinggi secara otomatis berdasarkan sudut pandang pilihan
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAiPanelOpen(!aiPanelOpen)}
+                  className="rounded-lg p-1 text-threads-secondary hover:text-threads-text hover:bg-threads-surface transition-colors"
+                >
+                  {aiPanelOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {aiPanelOpen && (
+                <div className="pt-2 space-y-3 border-t border-indigo-500/20">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Angle Selector */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-threads-text">
+                        Sudut Pandang / Angle
+                      </label>
+                      <select
+                        value={selectedAngle}
+                        onChange={(e) => setSelectedAngle(e.target.value)}
+                        className="w-full rounded-lg border border-threads-border bg-threads-bg px-2.5 py-1.5 text-xs text-threads-text focus:border-indigo-400 focus:outline-none"
+                      >
+                        {AI_ANGLES.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Custom Topic/Scenario */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-threads-text">
+                        Topik / Skenario Spesifik (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        value={customTopic}
+                        onChange={(e) => setCustomTopic(e.target.value)}
+                        placeholder="Misal: nugas skripsi jam 2 pagi, meeting klien..."
+                        className="w-full rounded-lg border border-threads-border bg-threads-bg px-2.5 py-1.5 text-xs text-threads-text placeholder-threads-muted focus:border-indigo-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateWithHermes}
+                    disabled={generatingAi}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-indigo-600/25 transition-all hover:opacity-95 disabled:opacity-50"
+                  >
+                    {generatingAi ? (
+                      <>
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        <span>Hermes AI Sedang Meracik Konten Fresh...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        <span>Generate Rangkaian Thread dengan Hermes AI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -230,7 +379,7 @@ export function CreateDraftModal({
                 onChange={(e) => setProductId(e.target.value)}
                 className="w-full rounded-xl border border-threads-border bg-threads-bg px-3 py-2.5 text-sm text-threads-text focus:border-threads-accent focus:outline-none"
               >
-                <option value="">-- Umum / Tanpa Produk Spesifik --</option>
+                <option value="">-- Umum / Tanpa Produk Spesifik (Organik) --</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} ({p.category})
@@ -247,17 +396,11 @@ export function CreateDraftModal({
               </label>
               <input
                 type="text"
-                list="hook-presets"
                 value={hookAngle}
                 onChange={(e) => setHookAngle(e.target.value)}
                 placeholder="Pilih atau ketik angle..."
                 className="w-full rounded-xl border border-threads-border bg-threads-bg px-3.5 py-2.5 text-sm text-threads-text placeholder-threads-muted focus:border-threads-accent focus:outline-none"
               />
-              <datalist id="hook-presets">
-                {HOOK_PRESETS.map((angle) => (
-                  <option key={angle} value={angle} />
-                ))}
-              </datalist>
             </div>
           </div>
 

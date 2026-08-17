@@ -6,7 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:push:prod": "DATABASE_URL=\"file:./prod.db\" prisma db push",
+    "db:push:dev": "DATABASE_URL=\"file:./dev.db\" prisma db push",
+    "db:push:test": "DATABASE_URL=\"file:./test.db\" prisma db push",
+    "seed:dev": "DATABASE_URL=\"file:./dev.db\" tsx prisma/seed.ts",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:restart": "pm2 restart threads-marketing",
+    "pm2:stop": "pm2 stop threads-marketing",
+    "pm2:logs": "pm2 logs threads-marketing"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

@@ -24,6 +24,8 @@ import {
   X,
   AlertTriangle,
   Lock,
+  Share2,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +35,8 @@ interface SettingsState {
   STORE_USERNAME: string;
   STORE_AVATAR_URL: string;
   DEFAULT_SCHEDULE_DELAY_MINS: string;
+  THREADS_ACCESS_TOKEN: string;
+  THREADS_USER_ID: string;
 }
 
 interface Toast {
@@ -59,17 +63,24 @@ export default function SettingsPage() {
     STORE_USERNAME: '',
     STORE_AVATAR_URL: '',
     DEFAULT_SCHEDULE_DELAY_MINS: '30',
+    THREADS_ACCESS_TOKEN: '',
+    THREADS_USER_ID: '',
   });
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const [showThreadsToken, setShowThreadsToken] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [confirmRegenerateOpen, setConfirmRegenerateOpen] = useState(false);
 
   // Test Connection
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+
+  // Threads API Test Connection
+  const [testingThreads, setTestingThreads] = useState(false);
+  const [threadsAccountInfo, setThreadsAccountInfo] = useState<{ id?: string; username?: string; name?: string } | null>(null);
 
   // Code Snippet state
   const [codeLang, setCodeLang] = useState<CodeLang>('curl');
@@ -117,6 +128,8 @@ export default function SettingsPage() {
           STORE_USERNAME: data.settings.STORE_USERNAME || 'tokodigital.id',
           STORE_AVATAR_URL: data.settings.STORE_AVATAR_URL || '',
           DEFAULT_SCHEDULE_DELAY_MINS: data.settings.DEFAULT_SCHEDULE_DELAY_MINS || '30',
+          THREADS_ACCESS_TOKEN: data.settings.THREADS_ACCESS_TOKEN || '',
+          THREADS_USER_ID: data.settings.THREADS_USER_ID || '',
         });
       } else {
         throw new Error(data.error || 'Gagal memuat pengaturan');
@@ -258,6 +271,45 @@ export default function SettingsPage() {
       addToast(err?.message || 'Gagal melakukan tes koneksi', 'error');
     } finally {
       setTesting(false);
+    }
+  };
+
+  // Live Test Threads Token Connection
+  const handleTestThreadsConnection = async () => {
+    if (!settings.THREADS_ACCESS_TOKEN) {
+      addToast('Masukkan Threads Access Token terlebih dahulu', 'error');
+      return;
+    }
+    try {
+      setTestingThreads(true);
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify-threads-token',
+          token: settings.THREADS_ACCESS_TOKEN,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setThreadsAccountInfo(data.account);
+        if (data.account?.username) {
+          setSettings((prev) => ({
+            ...prev,
+            STORE_USERNAME: data.account.username,
+            THREADS_USER_ID: data.account.id || prev.THREADS_USER_ID,
+            STORE_AVATAR_URL: data.account.threads_profile_picture_url || prev.STORE_AVATAR_URL,
+          }));
+        }
+        addToast(data.message || 'Token Threads valid & terhubung!', 'success');
+      } else {
+        throw new Error(data.error || 'Token Threads tidak valid');
+      }
+    } catch (err: any) {
+      addToast(err.message || 'Gagal memverifikasi token Threads', 'error');
+    } finally {
+      setTestingThreads(false);
     }
   };
 
@@ -569,7 +621,129 @@ console.log(data);`,
           </div>
         </div>
 
-        {/* Section 2: Security & PIN Management */}
+        {/* Section 2: Meta Threads Graph API Integration */}
+        <form onSubmit={handleSaveSettings} className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <Share2 className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-threads-text">
+                  Meta Threads Graph API Integration
+                </h2>
+                <p className="text-xs text-threads-secondary">
+                  Konfigurasi otentikasi resmi Meta Threads Graph API agar publikasi thread chains terbit langsung ke akun Threads Anda.
+                </p>
+              </div>
+            </div>
+
+            <span className={cn(
+              "hidden sm:inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
+              settings.THREADS_ACCESS_TOKEN
+                ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                : "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+            )}>
+              <ShieldCheck className="h-3 w-3" />
+              {settings.THREADS_ACCESS_TOKEN ? 'Connected / Live API' : 'Simulated / No Token'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* THREADS_ACCESS_TOKEN */}
+            <div className="sm:col-span-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-medium text-threads-secondary">
+                  Meta Threads Long-Lived User Access Token
+                </label>
+                <span className="text-[11px] text-zinc-500">
+                  Dikelola otomatis oleh auto-refresher
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type={showThreadsToken ? 'text' : 'password'}
+                  value={settings.THREADS_ACCESS_TOKEN}
+                  onChange={(e) => setSettings({ ...settings, THREADS_ACCESS_TOKEN: e.target.value })}
+                  placeholder="THAA..."
+                  className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2.5 pr-10 font-mono text-xs text-threads-text focus:border-threads-accent focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowThreadsToken(!showThreadsToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-threads-secondary hover:text-threads-text"
+                  title={showThreadsToken ? 'Sembunyikan Token' : 'Tampilkan Token'}
+                >
+                  {showThreadsToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* THREADS_USER_ID */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-threads-secondary">
+                Threads User ID (Meta Account ID)
+              </label>
+              <input
+                type="text"
+                value={settings.THREADS_USER_ID}
+                onChange={(e) => setSettings({ ...settings, THREADS_USER_ID: e.target.value })}
+                placeholder="27679443961726029"
+                className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2 text-xs font-mono text-threads-text focus:border-threads-accent focus:outline-none"
+              />
+            </div>
+
+            {/* Account Info Preview */}
+            <div className="flex items-center gap-3 rounded-xl border border-threads-border/70 bg-threads-surface/50 p-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-threads-card border border-threads-border overflow-hidden shrink-0">
+                {settings.STORE_AVATAR_URL ? (
+                  <img src={settings.STORE_AVATAR_URL} alt="Avatar" className="h-full w-full object-cover" />
+                ) : (
+                  <Globe className="h-4 w-4 text-threads-secondary" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-threads-text truncate">
+                  @{settings.STORE_USERNAME || 'belum terhubung'}
+                </p>
+                <p className="text-[11px] text-threads-secondary truncate">
+                  {threadsAccountInfo?.name || settings.STORE_NAME || 'Akun Threads'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-threads-border/60">
+            <button
+              type="button"
+              onClick={handleTestThreadsConnection}
+              disabled={testingThreads || !settings.THREADS_ACCESS_TOKEN}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2 text-xs font-semibold text-blue-300 hover:bg-blue-500/20 transition-all disabled:opacity-50"
+            >
+              {testingThreads ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-300 border-t-transparent" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              <span>{testingThreads ? 'Memverifikasi...' : 'Verifikasi Akun Threads (@me)'}</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex items-center justify-center gap-1.5 rounded-xl bg-threads-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-threads-accent/20 hover:opacity-90 transition-all disabled:opacity-50"
+            >
+              {saving ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              <span>Simpan Kredensial Threads</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Section 3: Security & PIN Management */}
         <form onSubmit={handleChangePin} className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

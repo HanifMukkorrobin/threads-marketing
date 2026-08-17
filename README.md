@@ -185,35 +185,43 @@ python3 scripts/hermes-runner/hermes_mock_cron.py --action all
 
 ---
 
-### Automated Crontab Scheduling
+### Hermes CLI & Gateway Cron Scheduling (`hermes cron`)
 
-To run Hermes automatically on your server:
+The runner integrates natively with the **Hermes Gateway Service** (`hermes cron`):
 
 ```bash
-# Open server crontab editor
-crontab -e
+# Check Hermes cron scheduler status
+hermes cron status
+
+# List active scheduled jobs
+hermes cron list
 ```
 
-Add the following schedule entries:
-
-```cron
-# 1. Generate new content drafts every 4 hours (at minute 0)
-0 */4 * * * cd /path/to/threads-marketing && HERMES_BASE_URL="http://localhost:3000" HERMES_API_KEY="hermes-secret-key-2026" /usr/bin/python3 scripts/hermes-runner/hermes_mock_cron.py --action generate >> /var/log/hermes-generate.log 2>&1
-
-# 2. Check and publish approved drafts every 15 minutes
-*/15 * * * * cd /path/to/threads-marketing && HERMES_BASE_URL="http://localhost:3000" HERMES_API_KEY="hermes-secret-key-2026" /usr/bin/python3 scripts/hermes-runner/hermes_mock_cron.py --action post >> /var/log/hermes-post.log 2>&1
-```
+#### Active Hermes Scheduled Jobs:
+1. **`threads-marketing-post`** (`every 1m`): Fetches `APPROVED` drafts and publishes them to Threads.
+2. **`threads-marketing-generate`** (`every 120m`): Generates new product promos and organic threads to `PENDING_REVIEW`.
+3. **`threads-token-refresh`** (`every 21600m`): Automatically refreshes long-lived Meta Threads access tokens.
 
 ---
 
-### Hermes Copywriting Frameworks
+### Hermes Copywriting Framework (`/ecommerce-copy-humanizer-id`)
 
-When generating threads, Hermes leverages psychological persuasion frameworks:
+When generating threads, Hermes adheres strictly to the Indonesian e-commerce copywriting standard:
 
-1. **Problem-Agitate-Solve (PAS)**: Focuses on everyday pain points (high subscription costs, account reset risks) and presents the verified product as the immediate solution.
-2. **Cost Comparison**: Juxtaposes official retail prices vs store discount pricing with legal guarantees.
-3. **Secret Lifehacks & Productivity**: Educational tips on leveraging the tool's advanced features.
-4. **Value Stacking CTA**: Direct instruction inviting users to comment a trigger word or click the link in bio.
+1. **🎭 Storytelling & Curhat Relate**: Relatable daily friction (e.g. ad interruptions, account limits) solved by affordable subscriptions.
+2. **💡 Solusi Cerdas & Anti-Boncos**: Price-to-value comparisons with warranty highlights and savings calculation.
+3. **⚡️ Productivity & Feature Hack**: Workflow enhancement tips showcasing premium capabilities in action.
+4. **🔥 FOMO & Slot Terbatas**: Scarcity-driven urgency for flash deals and limited activation slots.
+5. **🌱 Organic & Non-Product Content (`productId: null`)**: High-value tips, tech insights, and AI prompting formulas that drive bookmarks, shares, and brand authority.
+
+---
+
+### ✨ Interactive AI Copilot Revision Engine
+
+Store owners can interactively refine drafts directly within the web editor:
+- **Targeted Part Revision**: Instruction like `"ubah post 3 jadi ajak DM admin"` selectively updates only post 3.
+- **Tone & Style Shifts**: Prompt `"bikin gaya FOMO kuota terbatas"` or `"buat lebih santai"` reformulates the entire thread chain.
+- **Dynamic Store Customization**: Automatically injects your configured store name and handle (e.g. `@hades.zshrc`) into all generated CTAs and bio references.
 
 ---
 

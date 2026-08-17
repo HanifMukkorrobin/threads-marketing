@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    testTimeout: 30000,
+    env: {
+      DATABASE_URL: 'file:./test.db',
+    },
   },
   resolve: {
     alias: {

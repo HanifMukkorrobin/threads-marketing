@@ -108,8 +108,8 @@ export default function DashboardOverviewPage() {
       setError(null);
 
       const [overviewRes, productsRes] = await Promise.all([
-        fetch('/api/overview'),
-        fetch('/api/products'),
+        fetch('/api/overview', { cache: 'no-store' }),
+        fetch('/api/products', { cache: 'no-store' }),
       ]);
 
       const overviewData = await overviewRes.json();

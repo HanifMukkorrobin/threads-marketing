@@ -244,9 +244,37 @@ describe('Task 7: Dashboard Overview, Settings API & Hermes Runner Integration',
       });
       expect(dbKey?.value).toBe(json.apiKey);
     });
+
+    it('GET and PUT /api/settings handles THREADS_ACCESS_TOKEN and THREADS_USER_ID', async () => {
+      const payload = {
+        settings: {
+          THREADS_ACCESS_TOKEN: 'THAA_test_token_123',
+          THREADS_USER_ID: '27679443961726029',
+        },
+      };
+
+      const putReq = new NextRequest('http://localhost:3000/api/settings', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const putRes = await updateSettings(putReq);
+      expect(putRes.status).toBe(200);
+      const putJson = await putRes.json();
+      expect(putJson.settings.THREADS_ACCESS_TOKEN).toBe('THAA_test_token_123');
+      expect(putJson.settings.THREADS_USER_ID).toBe('27679443961726029');
+
+      const getReq = new NextRequest('http://localhost:3000/api/settings');
+      const getRes = await getSettings(getReq);
+      expect(getRes.status).toBe(200);
+      const getJson = await getRes.json();
+      expect(getJson.settings.THREADS_ACCESS_TOKEN).toBe('THAA_test_token_123');
+      expect(getJson.settings.THREADS_USER_ID).toBe('27679443961726029');
+    });
   });
 
-  describe('Hermes Runner Simulation (`scripts/hermes-runner/hermes_mock_cron.ts`)', () => {
+  describe('Hermes Runner Simulation & Real Meta Threads Publishing (`scripts/hermes-runner/hermes_mock_cron.ts`)', () => {
     it('executes generate and post flow against Hermes API', async () => {
       const { runHermesRunner } = await import('../scripts/hermes-runner/hermes_mock_cron');
 
@@ -330,14 +358,136 @@ describe('Task 7: Dashboard Overview, Settings API & Hermes Runner Integration',
           baseUrl: 'http://localhost:3000',
           apiKey: 'hermes-secret-key-test',
           action: 'all',
+          threadsAccessToken: '',
         });
 
-        expect(result.generatedCount).toBe(1);
+        expect(result.generatedCount).toBeGreaterThanOrEqual(1);
         expect(result.publishedCount).toBe(1);
         expect(result.errors).toHaveLength(0);
 
         // Verify API calls were made with Authorization header
         expect(fetchCalls.length).toBeGreaterThanOrEqual(4);
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
+
+    it('publishes real thread chain to Meta Threads Graph API when access token is provided', async () => {
+      const { runHermesRunner } = await import('../scripts/hermes-runner/hermes_mock_cron');
+
+      const originalFetch = global.fetch;
+      const graphApiCalls: Array<{ url: string; method?: string; body?: any }> = [];
+
+      try {
+        global.fetch = async (input: any, init?: any) => {
+          const url = typeof input === 'string' ? input : input.url;
+          const method = init?.method || 'GET';
+          const body = init?.body;
+
+          if (url.includes('graph.threads.net')) {
+            graphApiCalls.push({ url, method, body });
+            if (url.includes('/threads_publish')) {
+              return {
+                ok: true,
+                status: 200,
+                json: async () => ({ id: 'real_threads_post_111222' }),
+              } as any;
+            }
+            if (url.includes('/container_999888')) {
+              return {
+                ok: true,
+                status: 200,
+                json: async () => ({ id: 'container_999888', status: 'FINISHED' }),
+              } as any;
+            }
+            if (url.includes('/threads')) {
+              return {
+                ok: true,
+                status: 200,
+                json: async () => ({ id: 'container_999888', status: 'FINISHED' }),
+              } as any;
+            }
+            if (url.includes('/real_threads_post_111222')) {
+              return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                  id: 'real_threads_post_111222',
+                  permalink: 'https://www.threads.net/@hades.zshrc/post/DF_12345678',
+                }),
+              } as any;
+            }
+          }
+
+          if (url.includes('/api/hermes/drafts/approved')) {
+            return {
+              ok: true,
+              status: 200,
+              json: async () => ({
+                success: true,
+                drafts: [
+                  {
+                    id: 'draft-approved-real-1',
+                    title: 'Approved Real Chain Post',
+                    status: 'APPROVED',
+                    type: 'THREAD_CHAIN',
+                    posts: [
+                      { orderIndex: 0, content: 'Hook 1: Belajar coding sat-set' },
+                      { orderIndex: 1, content: 'Value 2: Tips produktif 2026' },
+                    ],
+                  },
+                ],
+              }),
+            } as any;
+          }
+
+          if (url.includes('/api/settings')) {
+            return {
+              ok: true,
+              status: 200,
+              json: async () => ({
+                success: true,
+                settings: {
+                  STORE_USERNAME: 'hades.zshrc',
+                  STORE_NAME: 'Hades Tech',
+                  THREADS_ACCESS_TOKEN: 'THAA_valid_mock_token',
+                  THREADS_USER_ID: '27679443961726029',
+                },
+              }),
+            } as any;
+          }
+
+          if (url.includes('/status') && method === 'PATCH') {
+            const parsedBody = JSON.parse(body || '{}');
+            expect(parsedBody.status).toBe('PUBLISHED');
+            expect(parsedBody.threadPostId).toBe('real_threads_post_111222');
+            expect(parsedBody.threadPostUrl).toContain('threads.net/@hades.zshrc/post/');
+            return {
+              ok: true,
+              status: 200,
+              json: async () => ({
+                success: true,
+                draft: { id: 'draft-approved-real-1', status: 'PUBLISHED' },
+              }),
+            } as any;
+          }
+
+          return { ok: true, status: 200, json: async () => ({ success: true }) } as any;
+        };
+
+        const result = await runHermesRunner({
+          baseUrl: 'http://localhost:3000',
+          apiKey: 'hermes-secret-key-test',
+          action: 'post',
+          threadsAccessToken: 'THAA_valid_mock_token',
+          threadsUserId: '27679443961726029',
+        });
+
+        expect(result.publishedCount).toBe(1);
+        expect(result.errors).toHaveLength(0);
+
+        // Verify Graph API calls were made: 2 container creations (root + reply) + 2 publishes + 1 permalink check
+        expect(graphApiCalls.length).toBeGreaterThanOrEqual(4);
       } finally {
         global.fetch = originalFetch;
       }

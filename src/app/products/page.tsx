@@ -62,7 +62,7 @@ export default function ProductsPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/products');
+      const res = await fetch('/api/products', { cache: 'no-store' });
       const data = await res.json();
 
       if (data.success && Array.isArray(data.data)) {
