@@ -15,18 +15,15 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
-  ExternalLink,
   ShieldCheck,
-  Send,
   Sliders,
-  Terminal,
-  Zap,
   X,
   AlertTriangle,
   Lock,
   Share2,
   Globe,
 } from 'lucide-react';
+import { ModalPortal } from '@/components/ModalPortal';
 import { cn } from '@/lib/utils';
 
 interface SettingsState {
@@ -78,10 +75,6 @@ export default function SettingsPage() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
-  // Threads API Test Connection
-  const [testingThreads, setTestingThreads] = useState(false);
-  const [threadsAccountInfo, setThreadsAccountInfo] = useState<{ id?: string; username?: string; name?: string } | null>(null);
-
   // Code Snippet state
   const [codeLang, setCodeLang] = useState<CodeLang>('curl');
   const [endpointTab, setEndpointTab] = useState<EndpointTab>('products');
@@ -115,27 +108,26 @@ export default function SettingsPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Fetch settings on mount
+  // Fetch settings from API
   const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/settings', { cache: 'no-store' });
       const data = await res.json();
+
       if (data.success && data.settings) {
         setSettings({
-          HERMES_API_KEY: data.settings.HERMES_API_KEY || 'hermes-secret-key-2026',
-          STORE_NAME: data.settings.STORE_NAME || 'Digital Store ID',
+          HERMES_API_KEY: data.settings.HERMES_API_KEY || '',
+          STORE_NAME: data.settings.STORE_NAME || 'Toko Digital ID',
           STORE_USERNAME: data.settings.STORE_USERNAME || 'tokodigital.id',
           STORE_AVATAR_URL: data.settings.STORE_AVATAR_URL || '',
           DEFAULT_SCHEDULE_DELAY_MINS: data.settings.DEFAULT_SCHEDULE_DELAY_MINS || '30',
           THREADS_ACCESS_TOKEN: data.settings.THREADS_ACCESS_TOKEN || '',
           THREADS_USER_ID: data.settings.THREADS_USER_ID || '',
         });
-      } else {
-        throw new Error(data.error || 'Gagal memuat pengaturan');
       }
-    } catch (err: any) {
-      addToast(err?.message || 'Gagal memuat konfigurasi', 'error');
+    } catch {
+      addToast('Gagal memuat konfigurasi sistem', 'error');
     } finally {
       setLoading(false);
     }
@@ -145,13 +137,13 @@ export default function SettingsPage() {
     fetchSettings();
   }, [fetchSettings]);
 
-  // Save Settings
-  const handleSaveSettings = async (e?: React.FormEvent) => {
+  // Save all settings
+  const handleSaveAll = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     try {
       setSaving(true);
       const res = await fetch('/api/settings', {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings }),
       });
@@ -161,11 +153,23 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Gagal menyimpan pengaturan');
       }
 
-      addToast('Pengaturan sistem berhasil disimpan!', 'success');
+      addToast('Konfigurasi sistem berhasil disimpan!', 'success');
     } catch (err: any) {
       addToast(err?.message || 'Gagal menyimpan pengaturan', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Copy API Key
+  const handleCopyApiKey = async () => {
+    try {
+      await navigator.clipboard.writeText(settings.HERMES_API_KEY);
+      setCopiedKey(true);
+      addToast('HERMES_API_KEY berhasil disalin!', 'success');
+      setTimeout(() => setCopiedKey(false), 2000);
+    } catch {
+      addToast('Gagal menyalin API Key', 'error');
     }
   };
 
@@ -176,37 +180,37 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'regenerate-key' }),
+        body: JSON.stringify({ action: 'regenerate_key' }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Gagal meregenerasi key');
+        throw new Error(data.error || 'Gagal memperbarui API Key');
       }
 
-      setSettings((prev) => ({ ...prev, HERMES_API_KEY: data.apiKey }));
+      setSettings((prev) => ({
+        ...prev,
+        HERMES_API_KEY: data.apiKey,
+      }));
+
       setConfirmRegenerateOpen(false);
-      addToast('API Key Hermes baru berhasil digenerate & disimpan!', 'success');
+      addToast('API Key baru berhasil digenerate!', 'success');
     } catch (err: any) {
-      addToast(err?.message || 'Gagal meregenerasi API key', 'error');
+      addToast(err?.message || 'Gagal meregenerasi API Key', 'error');
     } finally {
       setRegenerating(false);
     }
   };
 
-  // Change Dashboard Access PIN
+  // Change PIN
   const handleChangePin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pinForm.currentPin) {
-      addToast('Masukkan PIN saat ini', 'error');
-      return;
-    }
-    if (pinForm.newPin.length !== 6 || !/^\d{6}$/.test(pinForm.newPin)) {
-      addToast('PIN baru harus terdiri dari 6 digit angka', 'error');
+    if (pinForm.newPin.length !== 6) {
+      addToast('PIN baru harus 6 digit angka', 'error');
       return;
     }
     if (pinForm.newPin !== pinForm.confirmPin) {
-      addToast('Konfirmasi PIN baru tidak cocok', 'error');
+      addToast('Konfirmasi PIN tidak cocok', 'error');
       return;
     }
 
@@ -215,7 +219,11 @@ export default function SettingsPage() {
       const res = await fetch('/api/auth/change-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pinForm),
+        body: JSON.stringify({
+          currentPin: pinForm.currentPin,
+          newPin: pinForm.newPin,
+          confirmPin: pinForm.confirmPin,
+        }),
       });
 
       const data = await res.json();
@@ -223,8 +231,9 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Gagal mengubah PIN');
       }
 
-      addToast('PIN Akses Dashboard berhasil diperbarui!', 'success');
+      addToast('PIN Akses Dashboard berhasil diubah!', 'success');
       setPinForm({ currentPin: '', newPin: '', confirmPin: '' });
+      setShowPinFields(false);
     } catch (err: any) {
       addToast(err?.message || 'Gagal mengubah PIN', 'error');
     } finally {
@@ -232,12 +241,12 @@ export default function SettingsPage() {
     }
   };
 
-  // Live Test Connection
+  // Test Hermes Connection
   const handleTestConnection = async () => {
     try {
       setTesting(true);
       setTestResult(null);
-      const start = performance.now();
+      const startTime = performance.now();
 
       const res = await fetch('/api/hermes/products/active', {
         headers: {
@@ -245,927 +254,597 @@ export default function SettingsPage() {
         },
       });
 
-      const latencyMs = Math.round(performance.now() - start);
+      const latencyMs = Math.round(performance.now() - startTime);
       const data = await res.json();
 
       setTestResult({
         status: res.status,
-        statusText: res.statusText,
+        statusText: res.statusText || (res.ok ? 'OK' : 'Error'),
         latencyMs,
         data,
       });
 
-      if (res.ok && data.success) {
-        addToast(`Koneksi Hermes Berhasil! Latency: ${latencyMs}ms`, 'success');
+      if (res.ok) {
+        addToast(`Koneksi Hermes Valid (${latencyMs}ms)`, 'success');
       } else {
-        addToast(`Koneksi Gagal (HTTP ${res.status}): ${data.error || 'Unauthorized'}`, 'error');
+        addToast(`Koneksi Gagal: HTTP ${res.status}`, 'error');
       }
     } catch (err: any) {
       setTestResult({
-        status: 500,
-        statusText: 'Fetch Error',
+        status: 0,
+        statusText: 'Network Error',
         latencyMs: 0,
         data: null,
-        error: err?.message || 'Network error',
+        error: err?.message || 'Gagal menghubungi server lokal',
       });
-      addToast(err?.message || 'Gagal melakukan tes koneksi', 'error');
+      addToast('Koneksi endpoint gagal', 'error');
     } finally {
       setTesting(false);
     }
   };
 
-  // Live Test Threads Token Connection
-  const handleTestThreadsConnection = async () => {
-    if (!settings.THREADS_ACCESS_TOKEN) {
-      addToast('Masukkan Threads Access Token terlebih dahulu', 'error');
-      return;
-    }
-    try {
-      setTestingThreads(true);
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'verify-threads-token',
-          token: settings.THREADS_ACCESS_TOKEN,
-        }),
-      });
+  const getOrigin = () => {
+    if (typeof window !== 'undefined') return window.location.origin;
+    return 'https://threads.hadestech.web.id';
+  };
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setThreadsAccountInfo(data.account);
-        if (data.account?.username) {
-          setSettings((prev) => ({
-            ...prev,
-            STORE_USERNAME: data.account.username,
-            THREADS_USER_ID: data.account.id || prev.THREADS_USER_ID,
-            STORE_AVATAR_URL: data.account.threads_profile_picture_url || prev.STORE_AVATAR_URL,
-          }));
-        }
-        addToast(data.message || 'Token Threads valid & terhubung!', 'success');
-      } else {
-        throw new Error(data.error || 'Token Threads tidak valid');
+  const getCodeSnippet = () => {
+    const origin = getOrigin();
+    const key = settings.HERMES_API_KEY || '<HERMES_API_KEY>';
+
+    if (codeLang === 'curl') {
+      switch (endpointTab) {
+        case 'products':
+          return `curl -X GET "${origin}/api/hermes/products/active" \\\n  -H "Authorization: Bearer ${key}"`;
+        case 'create_draft':
+          return `curl -X POST "${origin}/api/hermes/drafts" \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "title": "Promo Canva Pro Edu",\n    "productId": "<PRODUCT_ID>",\n    "hookAngle": "Price Comparison",\n    "posts": [\n      {"orderIndex": 0, "content": "Ngapain bayar 100rb kalau ada yang 25rb? 🧵👇"},\n      {"orderIndex": 1, "content": "Fitur lengkap Canva Pro garansi 30 hari."},\n      {"orderIndex": 2, "content": "DM admin @tokodigital.id sekarang!"}\n    ]\n  }'`;
+        case 'approved_drafts':
+          return `curl -X GET "${origin}/api/hermes/drafts/approved" \\\n  -H "Authorization: Bearer ${key}"`;
+        case 'update_status':
+          return `curl -X PATCH "${origin}/api/hermes/drafts/<DRAFT_ID>/status" \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "status": "PUBLISHED",\n    "threadPostId": "18012345678",\n    "threadPostUrl": "https://www.threads.net/@tokodigital.id/post/18012345678"\n  }'`;
       }
-    } catch (err: any) {
-      addToast(err.message || 'Gagal memverifikasi token Threads', 'error');
-    } finally {
-      setTestingThreads(false);
     }
+
+    if (codeLang === 'typescript') {
+      return `import axios from 'axios';\n\nconst API_BASE = '${origin}';\nconst API_KEY = '${key}';\n\n// 1. Fetch Active Products\nexport async function getActiveProducts() {\n  const res = await axios.get(\`\${API_BASE}/api/hermes/products/active\`, {\n    headers: { Authorization: \`Bearer \${API_KEY}\` },\n  });\n  return res.data;\n}`;
+    }
+
+    if (codeLang === 'python') {
+      return `import requests\n\nAPI_BASE = "${origin}"\nAPI_KEY = "${key}"\n\n# Fetch Active Products\nheaders = {"Authorization": f"Bearer {API_KEY}"}\nresponse = requests.get(f"{API_BASE}/api/hermes/products/active", headers=headers)\nprint(response.json())`;
+    }
+
+    return '';
   };
 
-  const copyToClipboard = (text: string, isSnippet = false) => {
-    navigator.clipboard.writeText(text);
-    if (isSnippet) {
+  const handleCopySnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(getCodeSnippet());
       setCopiedSnippet(true);
+      addToast('Code snippet disalin ke clipboard!', 'success');
       setTimeout(() => setCopiedSnippet(false), 2000);
-      addToast('Kode cuplikan disalin ke clipboard!', 'info');
-    } else {
-      setCopiedKey(true);
-      setTimeout(() => setCopiedKey(false), 2000);
-      addToast('API Key disalin ke clipboard!', 'info');
+    } catch {
+      addToast('Gagal menyalin snippet', 'error');
     }
   };
-
-  // Dynamic Base URL
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-  const currentKey = settings.HERMES_API_KEY || 'hermes-secret-key-2026';
-
-  // Generate Snippets
-  const getSnippets = () => {
-    if (endpointTab === 'products') {
-      return {
-        curl: `curl -X GET "${origin}/api/hermes/products/active" \\
-  -H "Authorization: Bearer ${currentKey}" \\
-  -H "Content-Type: application/json"`,
-        python: `import requests
-
-url = "${origin}/api/hermes/products/active"
-headers = {
-    "Authorization": "Bearer ${currentKey}",
-    "Content-Type": "application/json"
-}
-
-response = requests.get(url, headers=headers)
-print(response.json())`,
-        typescript: `const response = await fetch("${origin}/api/hermes/products/active", {
-  method: "GET",
-  headers: {
-    "Authorization": "Bearer ${currentKey}",
-    "Content-Type": "application/json"
-  }
-});
-const data = await response.json();
-console.log(data);`,
-      };
-    }
-
-    if (endpointTab === 'create_draft') {
-      return {
-        curl: `curl -X POST "${origin}/api/hermes/drafts" \\
-  -H "Authorization: Bearer ${currentKey}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "productId": "optional_product_id",
-    "title": "Trik Nonton Netflix 4K Legal 35rb",
-    "type": "THREAD_CHAIN",
-    "hookAngle": "Cost Comparison",
-    "posts": [
-      { "orderIndex": 0, "content": "Capek bayar 186rb sendirian? Ini trik nonton 4K cuma 35rb 🧵👇" },
-      { "orderIndex": 1, "content": "Pakai sharing resmi bergaransi 30 hari penuh, PIN profil pribadi." },
-      { "orderIndex": 2, "content": "Order via link di bio sekarang juga!" }
-    ],
-    "metadata": { "model": "hermes-3-70b" }
-  }'`,
-        python: `import requests
-
-url = "${origin}/api/hermes/drafts"
-headers = {
-    "Authorization": "Bearer ${currentKey}",
-    "Content-Type": "application/json"
-}
-payload = {
-    "productId": None,
-    "title": "Trik Nonton Netflix 4K Legal 35rb",
-    "type": "THREAD_CHAIN",
-    "hookAngle": "Cost Comparison",
-    "posts": [
-        {"orderIndex": 0, "content": "Capek bayar 186rb sendirian? Ini trik nonton 4K cuma 35rb 🧵👇"},
-        {"orderIndex": 1, "content": "Pakai sharing resmi bergaransi 30 hari penuh, PIN profil pribadi."},
-        {"orderIndex": 2, "content": "Order via link di bio sekarang juga!"}
-    ],
-    "metadata": {"model": "hermes-3-70b"}
-}
-
-response = requests.post(url, headers=headers, json=payload)
-print(response.json())`,
-        typescript: `const payload = {
-  productId: undefined,
-  title: "Trik Nonton Netflix 4K Legal 35rb",
-  type: "THREAD_CHAIN",
-  hookAngle: "Cost Comparison",
-  posts: [
-    { orderIndex: 0, content: "Capek bayar 186rb sendirian? Ini trik nonton 4K cuma 35rb 🧵👇" },
-    { orderIndex: 1, content: "Pakai sharing resmi bergaransi 30 hari penuh, PIN profil pribadi." },
-    { orderIndex: 2, content: "Order via link di bio sekarang juga!" }
-  ],
-  metadata: { model: "hermes-3-70b" }
-};
-
-const response = await fetch("${origin}/api/hermes/drafts", {
-  method: "POST",
-  headers: {
-    "Authorization": "Bearer ${currentKey}",
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(payload)
-});
-const data = await response.json();
-console.log(data);`,
-      };
-    }
-
-    if (endpointTab === 'approved_drafts') {
-      return {
-        curl: `curl -X GET "${origin}/api/hermes/drafts/approved" \\
-  -H "Authorization: Bearer ${currentKey}" \\
-  -H "Content-Type: application/json"`,
-        python: `import requests
-
-url = "${origin}/api/hermes/drafts/approved"
-headers = {
-    "Authorization": "Bearer ${currentKey}",
-    "Content-Type": "application/json"
-}
-
-response = requests.get(url, headers=headers)
-print(response.json())`,
-        typescript: `const response = await fetch("${origin}/api/hermes/drafts/approved", {
-  method: "GET",
-  headers: {
-    "Authorization": "Bearer ${currentKey}",
-    "Content-Type": "application/json"
-  }
-});
-const data = await response.json();
-console.log(data);`,
-      };
-    }
-
-    // update_status
-    return {
-      curl: `curl -X PATCH "${origin}/api/hermes/drafts/<DRAFT_ID>/status" \\
-  -H "Authorization: Bearer ${currentKey}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "status": "PUBLISHED",
-    "threadPostId": "threads_post_12345",
-    "threadPostUrl": "https://threads.net/@tokodigital.id/post/12345"
-  }'`,
-      python: `import requests
-
-draft_id = "target_draft_id_here"
-url = f"${origin}/api/hermes/drafts/{draft_id}/status"
-headers = {
-    "Authorization": "Bearer ${currentKey}",
-    "Content-Type": "application/json"
-}
-payload = {
-    "status": "PUBLISHED",
-    "threadPostId": "threads_post_12345",
-    "threadPostUrl": "https://threads.net/@tokodigital.id/post/12345"
-}
-
-response = requests.patch(url, headers=headers, json=payload)
-print(response.json())`,
-      typescript: `const draftId = "target_draft_id_here";
-const payload = {
-  status: "PUBLISHED",
-  threadPostId: "threads_post_12345",
-  threadPostUrl: "https://threads.net/@tokodigital.id/post/12345"
-};
-
-const response = await fetch(\`${origin}/api/hermes/drafts/\${draftId}/status\`, {
-  method: "PATCH",
-  headers: {
-    "Authorization": "Bearer ${currentKey}",
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(payload)
-});
-const data = await response.json();
-console.log(data);`,
-    };
-  };
-
-  const snippets = getSnippets();
-  const currentSnippet = snippets[codeLang];
 
   return (
-    <div className="min-h-screen bg-threads-bg pb-16">
-      {/* Toast Notification Container */}
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 max-w-sm pointer-events-none">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-8 animate-fadeIn">
+      {/* Toast Notifications */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={cn(
-              'pointer-events-auto flex items-center justify-between rounded-xl border p-4 shadow-xl backdrop-blur-md transition-all duration-300',
-              toast.type === 'success' && 'border-emerald-500/40 bg-zinc-900/95 text-emerald-400',
-              toast.type === 'error' && 'border-rose-500/40 bg-zinc-900/95 text-rose-400',
-              toast.type === 'info' && 'border-threads-border bg-zinc-900/95 text-threads-text'
+              'pointer-events-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-full shadow-lg text-xs font-semibold animate-scale-in transition-all',
+              toast.type === 'success' && 'bg-ink text-white border border-black',
+              toast.type === 'error' && 'bg-rose-500 text-white',
+              toast.type === 'info' && 'bg-surface text-ink border border-surface-border'
             )}
           >
-            <div className="flex items-center space-x-2.5 text-xs font-medium">
-              {toast.type === 'success' && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />}
-              {toast.type === 'error' && <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />}
-              {toast.type === 'info' && <Sparkles className="h-4 w-4 shrink-0 text-threads-accent" />}
-              <span>{toast.message}</span>
-            </div>
+            <span>{toast.message}</span>
             <button
+              type="button"
               onClick={() => removeToast(toast.id)}
-              className="ml-3 text-threads-secondary hover:text-threads-text"
+              className="text-white/60 hover:text-white"
             >
-              <X className="h-3.5 w-3.5" />
+              ✕
             </button>
           </div>
         ))}
       </div>
 
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
-        {/* Header */}
-        <div className="border-b border-threads-border pb-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-threads-surface border border-threads-border text-threads-accent shadow-sm">
-              <Sliders className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-threads-text">
-                Pengaturan Sistem & Hermes API
-              </h1>
-              <p className="text-xs text-threads-secondary mt-0.5">
-                Konfigurasi otentikasi API Key Hermes Agent, identitas toko digital, dan alat uji konektivitas REST API.
-              </p>
-            </div>
-          </div>
+      {/* Header */}
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="space-y-1.5 max-w-2xl">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-ink tracking-tight flex flex-wrap items-center gap-x-2.5 gap-y-2">
+            <span>Managing</span>
+            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-surface border border-surface-border text-ink shadow-sm">
+              <ShieldCheck className="h-4 w-4" />
+            </span>
+            <span>Your System</span>
+            <span>and</span>
+            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-lime border border-lime-dark/30 text-ink text-sm font-black shadow-sm">
+              ✦
+            </span>
+            <span>API Settings</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-ink-secondary">
+            Konfigurasi branding toko, otentikasi Hermes Autonomous Agent, integrasi Meta Threads, dan keamanan PIN.
+          </p>
         </div>
 
-        {/* Section 1: Hermes API Authentication */}
-        <div className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                <Key className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-threads-text">
-                  Hermes Agent API Authentication
-                </h2>
-                <p className="text-xs text-threads-secondary">
-                  API Key ini digunakan oleh Hermes Agent (Python / TypeScript Runner) untuk otentikasi Bearer token.
-                </p>
-              </div>
-            </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={fetchSettings}
+            disabled={loading}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface hover:bg-surface-hover border border-surface-border text-ink transition-all tap-effect"
+            title="Refresh Pengaturan"
+          >
+            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+          </button>
 
-            <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
-              <ShieldCheck className="h-3 w-3" />
-              Auth Enforced
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            <label className="block text-xs font-medium text-threads-secondary">
-              Active Hermes API Key
-            </label>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-              <div className="relative flex-1">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={settings.HERMES_API_KEY}
-                  onChange={(e) => setSettings({ ...settings, HERMES_API_KEY: e.target.value })}
-                  placeholder="hermes-secret-key-..."
-                  className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2.5 pr-10 font-mono text-xs text-threads-text focus:border-threads-accent focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-threads-secondary hover:text-threads-text"
-                  title={showKey ? 'Sembunyikan Key' : 'Tampilkan Key'}
-                >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(settings.HERMES_API_KEY)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2.5 text-xs font-medium text-threads-text hover:bg-threads-border transition-colors"
-                >
-                  {copiedKey ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-zinc-400" />}
-                  <span>{copiedKey ? 'Disalin' : 'Salin Key'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setConfirmRegenerateOpen(true)}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs font-medium text-amber-300 hover:bg-amber-500/20 transition-colors"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  <span>Regenerate Key</span>
-                </button>
-              </div>
-            </div>
-            <p className="text-[11px] text-zinc-400">
-              Header format: <code className="text-sky-400 bg-threads-surface px-1.5 py-0.5 rounded border border-threads-border font-mono">Authorization: Bearer &lt;KEY&gt;</code> atau <code className="text-sky-400 bg-threads-surface px-1.5 py-0.5 rounded border border-threads-border font-mono">x-api-key: &lt;KEY&gt;</code>
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleSaveAll()}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-ink hover:bg-zinc-800 text-white font-bold text-xs shadow-pill transition-all tap-effect disabled:opacity-50"
+          >
+            <Save className="h-4 w-4" />
+            <span>{saving ? 'Menyimpan...' : 'Simpan Semua Perubahan'}</span>
+          </button>
         </div>
+      </header>
 
-        {/* Section 2: Meta Threads Graph API Integration */}
-        <form onSubmit={handleSaveSettings} className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                <Share2 className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-threads-text">
-                  Meta Threads Graph API Integration
-                </h2>
-                <p className="text-xs text-threads-secondary">
-                  Konfigurasi otentikasi resmi Meta Threads Graph API agar publikasi thread chains terbit langsung ke akun Threads Anda.
-                </p>
-              </div>
-            </div>
-
-            <span className={cn(
-              "hidden sm:inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
-              settings.THREADS_ACCESS_TOKEN
-                ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                : "bg-amber-500/10 border border-amber-500/20 text-amber-400"
-            )}>
-              <ShieldCheck className="h-3 w-3" />
-              {settings.THREADS_ACCESS_TOKEN ? 'Connected / Live API' : 'Simulated / No Token'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* THREADS_ACCESS_TOKEN */}
-            <div className="sm:col-span-2 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-medium text-threads-secondary">
-                  Meta Threads Long-Lived User Access Token
-                </label>
-                <span className="text-[11px] text-zinc-500">
-                  Dikelola otomatis oleh auto-refresher
-                </span>
-              </div>
-              <div className="relative">
-                <input
-                  type={showThreadsToken ? 'text' : 'password'}
-                  value={settings.THREADS_ACCESS_TOKEN}
-                  onChange={(e) => setSettings({ ...settings, THREADS_ACCESS_TOKEN: e.target.value })}
-                  placeholder="THAA..."
-                  className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2.5 pr-10 font-mono text-xs text-threads-text focus:border-threads-accent focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowThreadsToken(!showThreadsToken)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-threads-secondary hover:text-threads-text"
-                  title={showThreadsToken ? 'Sembunyikan Token' : 'Tampilkan Token'}
-                >
-                  {showThreadsToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* THREADS_USER_ID */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-threads-secondary">
-                Threads User ID (Meta Account ID)
-              </label>
-              <input
-                type="text"
-                value={settings.THREADS_USER_ID}
-                onChange={(e) => setSettings({ ...settings, THREADS_USER_ID: e.target.value })}
-                placeholder="27679443961726029"
-                className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2 text-xs font-mono text-threads-text focus:border-threads-accent focus:outline-none"
-              />
-            </div>
-
-            {/* Account Info Preview */}
-            <div className="flex items-center gap-3 rounded-xl border border-threads-border/70 bg-threads-surface/50 p-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-threads-card border border-threads-border overflow-hidden shrink-0">
-                {settings.STORE_AVATAR_URL ? (
-                  <img src={settings.STORE_AVATAR_URL} alt="Avatar" className="h-full w-full object-cover" />
-                ) : (
-                  <Globe className="h-4 w-4 text-threads-secondary" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-threads-text truncate">
-                  @{settings.STORE_USERNAME || 'belum terhubung'}
-                </p>
-                <p className="text-[11px] text-threads-secondary truncate">
-                  {threadsAccountInfo?.name || settings.STORE_NAME || 'Akun Threads'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 border-t border-threads-border/60">
-            <button
-              type="button"
-              onClick={handleTestThreadsConnection}
-              disabled={testingThreads || !settings.THREADS_ACCESS_TOKEN}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2 text-xs font-semibold text-blue-300 hover:bg-blue-500/20 transition-all disabled:opacity-50"
-            >
-              {testingThreads ? (
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-300 border-t-transparent" />
-              ) : (
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              )}
-              <span>{testingThreads ? 'Memverifikasi...' : 'Verifikasi Akun Threads (@me)'}</span>
-            </button>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-threads-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-threads-accent/20 hover:opacity-90 transition-all disabled:opacity-50"
-            >
-              {saving ? (
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-              <span>Simpan Kredensial Threads</span>
-            </button>
-          </div>
-        </form>
-
-        {/* Section 3: Security & PIN Management */}
-        <form onSubmit={handleChangePin} className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Lock className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-threads-text">
-                  Keamanan & PIN Akses Dashboard
-                </h2>
-                <p className="text-xs text-threads-secondary">
-                  Kelola 6-digit PIN untuk mengamankan akses ke seluruh dashboard Threads Engine.
-                </p>
-              </div>
-            </div>
-
-            <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
-              <ShieldCheck className="h-3 w-3" />
-              6-Digit Protected
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Current PIN */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-threads-secondary">
-                PIN Saat Ini
-              </label>
-              <div className="relative">
-                <input
-                  type={showPinFields ? 'text' : 'password'}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  value={pinForm.currentPin}
-                  onChange={(e) =>
-                    setPinForm((prev) => ({
-                      ...prev,
-                      currentPin: e.target.value.replace(/\D/g, '').slice(0, 6),
-                    }))
-                  }
-                  placeholder="••••••"
-                  className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2.5 font-mono text-xs text-threads-text tracking-widest focus:border-threads-accent focus:outline-none"
-                  required
-                />
-              </div>
-              <p className="text-[11px] text-zinc-500">PIN default awal: 123456</p>
-            </div>
-
-            {/* New PIN */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-threads-secondary">
-                PIN Baru
-              </label>
-              <div className="relative">
-                <input
-                  type={showPinFields ? 'text' : 'password'}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  value={pinForm.newPin}
-                  onChange={(e) =>
-                    setPinForm((prev) => ({
-                      ...prev,
-                      newPin: e.target.value.replace(/\D/g, '').slice(0, 6),
-                    }))
-                  }
-                  placeholder="••••••"
-                  className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2.5 font-mono text-xs text-threads-text tracking-widest focus:border-threads-accent focus:outline-none"
-                  required
-                />
-              </div>
-              <p className="text-[11px] text-zinc-500">Wajib 6 digit angka (0-9)</p>
-            </div>
-
-            {/* Confirm New PIN */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-threads-secondary">
-                Konfirmasi PIN Baru
-              </label>
-              <div className="relative">
-                <input
-                  type={showPinFields ? 'text' : 'password'}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  value={pinForm.confirmPin}
-                  onChange={(e) =>
-                    setPinForm((prev) => ({
-                      ...prev,
-                      confirmPin: e.target.value.replace(/\D/g, '').slice(0, 6),
-                    }))
-                  }
-                  placeholder="••••••"
-                  className={cn(
-                    'w-full rounded-xl border bg-threads-surface px-3.5 py-2.5 font-mono text-xs text-threads-text tracking-widest focus:outline-none transition-colors',
-                    pinForm.confirmPin.length > 0 && pinForm.newPin === pinForm.confirmPin && pinForm.newPin.length === 6
-                      ? 'border-emerald-500/80 focus:border-emerald-500'
-                      : pinForm.confirmPin.length > 0 && pinForm.newPin !== pinForm.confirmPin
-                      ? 'border-rose-500/80 focus:border-rose-500'
-                      : 'border-threads-border focus:border-threads-accent'
-                  )}
-                  required
-                />
-              </div>
-              {pinForm.confirmPin.length > 0 ? (
-                <p
-                  className={cn(
-                    'text-[11px] font-medium flex items-center gap-1',
-                    pinForm.newPin === pinForm.confirmPin && pinForm.newPin.length === 6
-                      ? 'text-emerald-400'
-                      : 'text-rose-400'
-                  )}
-                >
-                  {pinForm.newPin === pinForm.confirmPin && pinForm.newPin.length === 6 ? (
-                    <>
-                      <Check className="h-3 w-3" />
-                      <span>PIN baru cocok</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-3 w-3" />
-                      <span>PIN belum cocok</span>
-                    </>
-                  )}
-                </p>
-              ) : (
-                <p className="text-[11px] text-zinc-500">Ulangi PIN baru di atas</p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1 border-t border-threads-border/60">
-            <button
-              type="button"
-              onClick={() => setShowPinFields((prev) => !prev)}
-              className="flex items-center gap-1.5 text-xs text-threads-secondary hover:text-threads-text transition-colors self-start sm:self-auto"
-            >
-              {showPinFields ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              <span>{showPinFields ? 'Sembunyikan Digit PIN' : 'Tampilkan Digit PIN'}</span>
-            </button>
-
-            <button
-              type="submit"
-              disabled={
-                changingPin ||
-                !pinForm.currentPin ||
-                pinForm.newPin.length !== 6 ||
-                pinForm.newPin !== pinForm.confirmPin
-              }
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-threads-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-threads-accent/20 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {changingPin ? (
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Lock className="h-3.5 w-3.5" />
-              )}
-              <span>{changingPin ? 'Memperbarui PIN...' : 'Perbarui PIN Akses'}</span>
-            </button>
-          </div>
-        </form>
-
-        {/* Section 3: Store Profile Configuration */}
-        <form onSubmit={handleSaveSettings} className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+      {/* Main Settings Bento Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bento Card 1: Store Branding & Identity */}
+        <div className="rounded-bento border border-surface-border bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
+          <div className="flex items-center gap-2.5 border-b border-surface-border pb-4">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-ink border border-surface-border shadow-xs">
               <Store className="h-4 w-4" />
-            </div>
+            </span>
             <div>
-              <h2 className="text-sm font-semibold text-threads-text">
-                Profil Toko Digital
+              <h2 className="text-sm font-bold text-ink tracking-tight">
+                Branding & Identitas Toko
               </h2>
-              <p className="text-xs text-threads-secondary">
-                Informasi identitas akun Threads toko Anda untuk disematkan pada CTA dan template copy otomatis.
+              <p className="text-[11px] text-ink-secondary">
+                Informasi ini otomatis disematkan oleh AI pada CTA dan Simulator Threads.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-threads-secondary">
-                Nama Brand / Toko
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1.5">
+                Nama Toko / Brand
               </label>
               <input
                 type="text"
                 value={settings.STORE_NAME}
-                onChange={(e) => setSettings({ ...settings, STORE_NAME: e.target.value })}
-                placeholder="Digital Store ID"
-                className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2 text-xs text-threads-text focus:border-threads-accent focus:outline-none"
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, STORE_NAME: e.target.value }))
+                }
+                placeholder="Toko Digital ID"
+                className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs font-semibold"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-threads-secondary">
-                Username Akun Threads
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1.5">
+                Threads Handle / Username
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-threads-secondary text-xs">@</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-ink-muted">
+                  @
+                </span>
                 <input
                   type="text"
                   value={settings.STORE_USERNAME.replace(/^@/, '')}
-                  onChange={(e) => setSettings({ ...settings, STORE_USERNAME: e.target.value.replace(/^@/, '') })}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      STORE_USERNAME: e.target.value.replace(/^@/, ''),
+                    }))
+                  }
                   placeholder="tokodigital.id"
-                  className="w-full rounded-xl border border-threads-border bg-threads-surface pl-8 pr-3.5 py-2 text-xs text-threads-text focus:border-threads-accent focus:outline-none"
+                  className="w-full rounded-full bg-white border border-surface-border pl-8 pr-4 py-2 text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs font-mono font-semibold"
                 />
               </div>
             </div>
 
-            <div className="sm:col-span-2 space-y-1.5">
-              <label className="block text-xs font-medium text-threads-secondary">
-                URL Foto Profil / Logo Toko (Opsional)
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1.5">
+                URL Avatar Toko (Opsional)
               </label>
               <input
                 type="url"
                 value={settings.STORE_AVATAR_URL}
-                onChange={(e) => setSettings({ ...settings, STORE_AVATAR_URL: e.target.value })}
-                placeholder="https://example.com/logo.png"
-                className="w-full rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2 text-xs text-threads-text focus:border-threads-accent focus:outline-none"
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, STORE_AVATAR_URL: e.target.value }))
+                }
+                placeholder="https://example.com/avatar.jpg"
+                className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs font-mono"
               />
             </div>
           </div>
-
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-1.5 rounded-xl bg-threads-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-threads-accent/20 hover:opacity-90 transition-all disabled:opacity-50"
-            >
-              {saving ? (
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-              <span>Simpan Pengaturan</span>
-            </button>
-          </div>
-        </form>
-
-        {/* Section 4: Interactive Live Connection Tester */}
-        <div className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Zap className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-threads-text">
-                  Live Endpoint Connection Tester
-                </h2>
-                <p className="text-xs text-threads-secondary">
-                  Uji konektivitas otentikasi secara langsung ke endpoint <code className="text-sky-400">/api/hermes/products/active</code>.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleTestConnection}
-              disabled={testing}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 transition-all disabled:opacity-50 active:scale-95"
-            >
-              {testing ? (
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <Radio className="h-3.5 w-3.5" />
-              )}
-              <span>{testing ? 'Menguji...' : 'Test Connection'}</span>
-            </button>
-          </div>
-
-          {/* Test Result Display */}
-          {testResult && (
-            <div className="rounded-xl border border-threads-border bg-threads-bg p-4 space-y-3 font-mono text-xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      'rounded-md px-2 py-0.5 text-[11px] font-semibold',
-                      testResult.status === 200
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                    )}
-                  >
-                    HTTP {testResult.status} {testResult.statusText}
-                  </span>
-                  <span className="text-threads-secondary text-[11px]">
-                    Latency: <strong className="text-threads-text">{testResult.latencyMs}ms</strong>
-                  </span>
-                </div>
-                <span className="text-[11px] text-zinc-500">
-                  Endpoint: /api/hermes/products/active
-                </span>
-              </div>
-
-              <div className="max-h-56 overflow-y-auto rounded-lg bg-black/40 p-3 text-[11px] text-zinc-300 whitespace-pre-wrap">
-                {JSON.stringify(testResult.data || { error: testResult.error }, null, 2)}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Section 5: Dynamic Code Snippets & API Explorer */}
-        <div className="rounded-2xl border border-threads-border bg-threads-card p-6 space-y-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <Code2 className="h-4 w-4" />
-            </div>
+        {/* Bento Card 2: Hermes Autonomous Agent Gateway */}
+        <div className="rounded-bento border border-surface-border bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
+          <div className="flex items-center gap-2.5 border-b border-surface-border pb-4">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lime text-ink border border-lime-dark/30 shadow-xs font-bold">
+              ⚡
+            </span>
             <div>
-              <h2 className="text-sm font-semibold text-threads-text">
-                Hermes API Explorer & Code Snippets
+              <h2 className="text-sm font-bold text-ink tracking-tight">
+                Hermes Autonomous API Key
               </h2>
-              <p className="text-xs text-threads-secondary">
-                Salin cuplikan kode siap pakai dengan injeksi otomatis API Key aktif untuk skrip Python, TS, atau curl.
+              <p className="text-[11px] text-ink-secondary">
+                Kunci otentikasi Bearer Token untuk script background scheduler Hermes di VPS.
               </p>
             </div>
           </div>
 
-          {/* Endpoint Tabs */}
-          <div className="flex overflow-x-auto gap-2 border-b border-threads-border pb-2 scrollbar-none">
-            {[
-              { id: 'products', label: '1. GET Produk Aktif' },
-              { id: 'create_draft', label: '2. POST Generate Draft' },
-              { id: 'approved_drafts', label: '3. GET Draft Approved' },
-              { id: 'update_status', label: '4. PATCH Publish Status' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setEndpointTab(tab.id as EndpointTab)}
-                className={cn(
-                  'whitespace-nowrap rounded-xl px-3.5 py-1.5 text-xs font-medium transition-all',
-                  endpointTab === tab.id
-                    ? 'bg-threads-surface border border-threads-border text-threads-text font-semibold shadow-sm'
-                    : 'text-threads-secondary hover:text-threads-text'
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Code Viewer */}
-          <div className="rounded-xl border border-threads-border bg-black/60 overflow-hidden">
-            <div className="flex items-center justify-between border-b border-threads-border bg-threads-surface/80 px-4 py-2">
-              <div className="flex items-center gap-1.5">
-                {(['curl', 'python', 'typescript'] as CodeLang[]).map((lang) => (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1.5">
+                HERMES_API_KEY (Bearer Secret)
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  value={settings.HERMES_API_KEY}
+                  readOnly
+                  className="w-full rounded-full bg-white border border-surface-border pl-4 pr-24 py-2 text-xs text-ink font-mono font-bold shadow-xs select-all focus:outline-none"
+                />
+                <div className="absolute right-2 flex items-center gap-1">
                   <button
-                    key={lang}
                     type="button"
-                    onClick={() => setCodeLang(lang)}
-                    className={cn(
-                      'rounded-lg px-2.5 py-1 text-[11px] font-mono transition-colors',
-                      codeLang === lang
-                        ? 'bg-threads-accent text-white font-semibold'
-                        : 'text-threads-secondary hover:text-threads-text'
-                    )}
+                    onClick={() => setShowKey(!showKey)}
+                    className="p-1.5 rounded-full text-ink-muted hover:text-ink transition-colors"
+                    title={showKey ? 'Sembunyikan' : 'Tampilkan'}
                   >
-                    {lang === 'typescript' ? 'TypeScript / Node' : lang.toUpperCase()}
+                    {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={handleCopyApiKey}
+                    className="p-1.5 rounded-full bg-surface hover:bg-surface-hover text-ink border border-surface-border shadow-xs"
+                    title="Salin API Key"
+                  >
+                    {copiedKey ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={() => setConfirmRegenerateOpen(true)}
+                className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline"
+              >
+                Regenerate API Key Baru
+              </button>
 
               <button
                 type="button"
-                onClick={() => copyToClipboard(currentSnippet, true)}
-                className="flex items-center gap-1 text-[11px] font-medium text-threads-secondary hover:text-threads-text"
+                onClick={handleTestConnection}
+                disabled={testing}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white hover:bg-surface-hover text-ink text-xs font-bold border border-surface-border shadow-xs tap-effect"
               >
-                {copiedSnippet ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                <span>{copiedSnippet ? 'Tersalin!' : 'Copy Snippet'}</span>
+                {testing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5 text-emerald-600" />}
+                <span>Uji Koneksi API</span>
               </button>
             </div>
 
-            <pre className="p-4 text-xs font-mono text-emerald-400 overflow-x-auto leading-relaxed">
-              <code>{currentSnippet}</code>
-            </pre>
+            {testResult && (
+              <div
+                className={cn(
+                  'rounded-2xl p-3.5 border text-xs font-mono space-y-1 animate-scale-in',
+                  testResult.status === 200
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                )}
+              >
+                <div className="flex items-center justify-between font-bold">
+                  <span>Status: HTTP {testResult.status} ({testResult.statusText})</span>
+                  <span>{testResult.latencyMs}ms</span>
+                </div>
+                {testResult.error && <p className="text-[11px] text-rose-700">{testResult.error}</p>}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Bento Card 3: Threads Graph API Token */}
+        <div className="rounded-bento border border-surface-border bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
+          <div className="flex items-center gap-2.5 border-b border-surface-border pb-4">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-ink border border-surface-border shadow-xs font-bold">
+              @
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-ink tracking-tight">
+                Meta Threads Graph API
+              </h2>
+              <p className="text-[11px] text-ink-secondary">
+                Token akses resmi untuk auto-publishing langsung ke platform Threads Meta.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1.5">
+                Threads Access Token
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  type={showThreadsToken ? 'text' : 'password'}
+                  value={settings.THREADS_ACCESS_TOKEN}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      THREADS_ACCESS_TOKEN: e.target.value,
+                    }))
+                  }
+                  placeholder="THQW..."
+                  className="w-full rounded-full bg-white border border-surface-border pl-4 pr-12 py-2 text-xs text-ink font-mono shadow-xs focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowThreadsToken(!showThreadsToken)}
+                  className="absolute right-3 p-1 text-ink-muted hover:text-ink"
+                >
+                  {showThreadsToken ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-ink mb-1.5">
+                Threads User ID
+              </label>
+              <input
+                type="text"
+                value={settings.THREADS_USER_ID}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    THREADS_USER_ID: e.target.value,
+                  }))
+                }
+                placeholder="178414..."
+                className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink font-mono shadow-xs focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bento Card 4: Security & PIN Management */}
+        <div className="rounded-bento border border-surface-border bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
+          <div className="flex items-center gap-2.5 border-b border-surface-border pb-4">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-ink border border-surface-border shadow-xs">
+              <Lock className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-ink tracking-tight">
+                Keamanan & PIN Akses
+              </h2>
+              <p className="text-[11px] text-ink-secondary">
+                PIN 6-digit untuk mengunci dashboard admin dari akses publik yang tidak berwenang.
+              </p>
+            </div>
+          </div>
+
+          {!showPinFields ? (
+            <div className="flex items-center justify-between pt-2">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-ink">PIN Akses Aktif</span>
+                <p className="text-[11px] text-ink-muted">Terproteksi dengan enkripsi SHA-256 session cookie.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPinFields(true)}
+                className="px-4 py-2 rounded-full bg-white hover:bg-surface-hover text-ink text-xs font-bold border border-surface-border shadow-xs tap-effect"
+              >
+                Ganti PIN
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleChangePin} className="space-y-3 pt-1">
+              <div>
+                <label className="block text-[11px] font-bold text-ink mb-1">
+                  PIN Saat Ini
+                </label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  value={pinForm.currentPin}
+                  onChange={(e) =>
+                    setPinForm((p) => ({ ...p, currentPin: e.target.value.replace(/\D/g, '') }))
+                  }
+                  placeholder="******"
+                  className="w-full rounded-full bg-white border border-surface-border px-4 py-1.5 text-xs text-ink font-mono text-center shadow-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-ink mb-1">
+                    PIN Baru (6 Digit)
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    value={pinForm.newPin}
+                    onChange={(e) =>
+                      setPinForm((p) => ({ ...p, newPin: e.target.value.replace(/\D/g, '') }))
+                    }
+                    placeholder="******"
+                    className="w-full rounded-full bg-white border border-surface-border px-4 py-1.5 text-xs text-ink font-mono text-center shadow-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-ink mb-1">
+                    Ulangi PIN Baru
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    value={pinForm.confirmPin}
+                    onChange={(e) =>
+                      setPinForm((p) => ({ ...p, confirmPin: e.target.value.replace(/\D/g, '') }))
+                    }
+                    placeholder="******"
+                    className="w-full rounded-full bg-white border border-surface-border px-4 py-1.5 text-xs text-ink font-mono text-center shadow-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPinFields(false)}
+                  className="px-3.5 py-1.5 rounded-full border border-surface-border text-xs font-semibold text-ink hover:bg-surface"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={changingPin || pinForm.newPin.length !== 6}
+                  className="px-4 py-1.5 rounded-full bg-ink text-white text-xs font-bold shadow-pill tap-effect disabled:opacity-50"
+                >
+                  {changingPin ? 'Menyimpan...' : 'Perbarui PIN'}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
 
-      {/* Confirmation Modal for Regenerating API Key */}
-      {confirmRegenerateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm"
-            onClick={() => setConfirmRegenerateOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-md rounded-2xl border border-amber-500/30 bg-threads-card p-6 shadow-2xl space-y-4">
-            <div className="flex items-center space-x-3 text-amber-400">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-semibold text-threads-text">
-                Regenerasi API Key Hermes?
-              </h3>
-            </div>
-            <p className="text-xs text-threads-secondary leading-relaxed">
-              Tindakan ini akan membatalkan API Key yang sedang aktif saat ini. Semua skrip cron atau agent eksternal yang masih menggunakan key lama akan ditolak hingga Anda memperbarui konfigurasi di skrip tersebut.
-            </p>
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setConfirmRegenerateOpen(false)}
-                disabled={regenerating}
-                className="rounded-xl border border-threads-border bg-threads-surface px-4 py-2 text-xs font-medium text-threads-text hover:bg-threads-border"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleRegenerateKey}
-                disabled={regenerating}
-                className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-500 disabled:opacity-50"
-              >
-                {regenerating && (
-                  <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                )}
-                <span>Ya, Generate Key Baru</span>
-              </button>
+      {/* Bento Card 5: Hermes Agent API Documentation & Snippets */}
+      <div className="rounded-bento border border-black/10 bg-ink p-6 sm:p-8 text-white space-y-6 shadow-dock">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lime text-ink text-sm font-black shadow-xs">
+              <Code2 className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-white tracking-tight">
+                Hermes Autonomous API Reference
+              </h2>
+              <p className="text-xs text-zinc-400">
+                Gunakan REST endpoint ini pada script daemon Python / TS runner di cron Hermes.
+              </p>
             </div>
           </div>
+
+          {/* Lang switcher */}
+          <div className="flex items-center rounded-full bg-zinc-900 p-1 border border-zinc-800">
+            {(['curl', 'typescript', 'python'] as const).map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setCodeLang(lang)}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider transition-all tap-effect',
+                  codeLang === lang
+                    ? 'bg-lime text-ink shadow-xs'
+                    : 'text-zinc-400 hover:text-white'
+                )}
+              >
+                {lang}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* Endpoint Selector Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {[
+            { key: 'products', label: '1. GET Active Products' },
+            { key: 'create_draft', label: '2. POST AI Draft' },
+            { key: 'approved_drafts', label: '3. GET Approved Queue' },
+            { key: 'update_status', label: '4. PATCH Post Status' },
+          ].map((ep) => (
+            <button
+              key={ep.key}
+              type="button"
+              onClick={() => setEndpointTab(ep.key as EndpointTab)}
+              className={cn(
+                'rounded-full px-4 py-1.5 text-xs font-semibold border transition-all tap-effect shrink-0',
+                endpointTab === ep.key
+                  ? 'bg-zinc-800 text-white border-zinc-600 shadow-xs'
+                  : 'bg-transparent text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700'
+              )}
+            >
+              {ep.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Code Snippet Box */}
+        <div className="relative rounded-2xl bg-zinc-950 p-4 border border-zinc-800">
+          <button
+            type="button"
+            onClick={handleCopySnippet}
+            className="absolute right-4 top-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold border border-zinc-700 shadow-xs tap-effect"
+          >
+            {copiedSnippet ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            <span>{copiedSnippet ? 'Tersalin' : 'Salin Snippet'}</span>
+          </button>
+
+          <pre className="text-xs font-mono text-zinc-300 overflow-x-auto pt-8 pb-2 leading-relaxed selection:bg-lime selection:text-ink">
+            <code>{getCodeSnippet()}</code>
+          </pre>
+        </div>
+      </div>
+
+      {/* Confirm Regenerate Modal */}
+      <ModalPortal
+        isOpen={confirmRegenerateOpen}
+        onClose={() => setConfirmRegenerateOpen(false)}
+        maxWidth="sm"
+      >
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-bold text-ink">Regenerate API Key?</h3>
+              <p className="text-xs text-ink-muted">Kunci lama akan langsung tidak berlaku.</p>
+            </div>
+          </div>
+
+          <p className="text-xs text-ink-secondary leading-relaxed">
+            Semua background script atau runner Hermes di VPS yang masih menggunakan key lama akan terputus sampai Anda memperbarui tokennya.
+          </p>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setConfirmRegenerateOpen(false)}
+              disabled={regenerating}
+              className="px-4 py-2 rounded-full border border-surface-border text-xs font-semibold text-ink hover:bg-surface"
+            >
+              Batal
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRegenerateKey}
+              disabled={regenerating}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all tap-effect"
+            >
+              {regenerating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Key className="h-3.5 w-3.5" />}
+              <span>Regenerate Sekarang</span>
+            </button>
+          </div>
+        </div>
+      </ModalPortal>
     </div>
   );
 }

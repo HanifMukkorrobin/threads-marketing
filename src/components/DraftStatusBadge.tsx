@@ -28,15 +28,15 @@ export function DraftStatusBadge({
       return (
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border font-medium transition-colors',
-            'border-amber-500/30 bg-amber-500/10 text-amber-400',
-            size === 'xs' && 'px-2 py-0.5 text-[10px]',
-            size === 'sm' && 'px-2.5 py-1 text-xs',
-            size === 'md' && 'px-3 py-1.5 text-sm',
+            'inline-flex items-center gap-1.5 rounded-full font-semibold transition-all',
+            'bg-amber-50 text-amber-800 border border-amber-200/80 shadow-pill',
+            size === 'xs' && 'px-2.5 py-0.5 text-[10px]',
+            size === 'sm' && 'px-3 py-1 text-xs',
+            size === 'md' && 'px-3.5 py-1.5 text-sm',
             className
           )}
         >
-          {showIcon && <Clock className={size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5 text-amber-400'} />}
+          {showIcon && <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />}
           <span>Menunggu Review</span>
         </span>
       );
@@ -45,15 +45,15 @@ export function DraftStatusBadge({
       return (
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border font-medium transition-colors',
-            'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
-            size === 'xs' && 'px-2 py-0.5 text-[10px]',
-            size === 'sm' && 'px-2.5 py-1 text-xs',
-            size === 'md' && 'px-3 py-1.5 text-sm',
+            'inline-flex items-center gap-1.5 rounded-full font-bold transition-all',
+            'bg-lime text-ink border border-lime-dark/30 shadow-pill',
+            size === 'xs' && 'px-2.5 py-0.5 text-[10px]',
+            size === 'sm' && 'px-3 py-1 text-xs',
+            size === 'md' && 'px-3.5 py-1.5 text-sm',
             className
           )}
         >
-          {showIcon && <CheckCircle2 className={size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5 text-emerald-400'} />}
+          {showIcon && <span className="h-1.5 w-1.5 rounded-full bg-ink" />}
           <span>Siap Diposting</span>
         </span>
       );
@@ -62,15 +62,15 @@ export function DraftStatusBadge({
       return (
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border font-medium transition-colors',
-            'border-indigo-500/30 bg-indigo-500/10 text-indigo-400',
-            size === 'xs' && 'px-2 py-0.5 text-[10px]',
-            size === 'sm' && 'px-2.5 py-1 text-xs',
-            size === 'md' && 'px-3 py-1.5 text-sm',
+            'inline-flex items-center gap-1.5 rounded-full font-semibold transition-all',
+            'bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-pill',
+            size === 'xs' && 'px-2.5 py-0.5 text-[10px]',
+            size === 'sm' && 'px-3 py-1 text-xs',
+            size === 'md' && 'px-3.5 py-1.5 text-sm',
             className
           )}
         >
-          {showIcon && <Calendar className={size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5 text-indigo-400'} />}
+          {showIcon && <Calendar className={size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5 text-indigo-600'} />}
           <span>Dijadwalkan</span>
         </span>
       );
@@ -79,16 +79,16 @@ export function DraftStatusBadge({
       return (
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border font-medium transition-colors',
-            'border-sky-500/30 bg-sky-500/10 text-sky-400',
-            size === 'xs' && 'px-2 py-0.5 text-[10px]',
-            size === 'sm' && 'px-2.5 py-1 text-xs',
-            size === 'md' && 'px-3 py-1.5 text-sm',
+            'inline-flex items-center gap-1.5 rounded-full font-semibold transition-all',
+            'bg-[#121214] text-white border border-black shadow-pill',
+            size === 'xs' && 'px-2.5 py-0.5 text-[10px]',
+            size === 'sm' && 'px-3 py-1 text-xs',
+            size === 'md' && 'px-3.5 py-1.5 text-sm',
             className
           )}
         >
-          {showIcon && <ExternalLink className={size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5 text-sky-400'} />}
-          <span>Terpublikasi</span>
+          {showIcon && <span className="h-1.5 w-1.5 rounded-full bg-lime" />}
+          <span>Live Threads ↗</span>
         </span>
       );
 
@@ -96,16 +96,16 @@ export function DraftStatusBadge({
       return (
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border font-medium transition-colors',
-            'border-rose-500/30 bg-rose-500/10 text-rose-400',
-            size === 'xs' && 'px-2 py-0.5 text-[10px]',
-            size === 'sm' && 'px-2.5 py-1 text-xs',
-            size === 'md' && 'px-3 py-1.5 text-sm',
+            'inline-flex items-center gap-1.5 rounded-full font-semibold transition-all',
+            'bg-rose-50 text-rose-700 border border-rose-200/80 shadow-pill',
+            size === 'xs' && 'px-2.5 py-0.5 text-[10px]',
+            size === 'sm' && 'px-3 py-1 text-xs',
+            size === 'md' && 'px-3.5 py-1.5 text-sm',
             className
           )}
         >
-          {showIcon && <AlertTriangle className={size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5 text-rose-400'} />}
-          <span>Gagal Diposting</span>
+          {showIcon && <AlertTriangle className={size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5 text-rose-500'} />}
+          <span>Gagal Terbit</span>
         </span>
       );
 
@@ -113,17 +113,55 @@ export function DraftStatusBadge({
       return (
         <span
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border font-medium transition-colors',
-            'border-threads-border bg-threads-card text-threads-secondary',
-            size === 'xs' && 'px-2 py-0.5 text-[10px]',
-            size === 'sm' && 'px-2.5 py-1 text-xs',
-            size === 'md' && 'px-3 py-1.5 text-sm',
+            'inline-flex items-center gap-1.5 rounded-full font-medium transition-all',
+            'bg-surface text-ink-secondary border border-surface-border',
+            size === 'xs' && 'px-2.5 py-0.5 text-[10px]',
+            size === 'sm' && 'px-3 py-1 text-xs',
+            size === 'md' && 'px-3.5 py-1.5 text-sm',
             className
           )}
         >
-          {showIcon && <FileEdit className="h-3.5 w-3.5 text-threads-secondary" />}
-          <span>{status || 'Draft'}</span>
+          {showIcon && <FileEdit className={size === 'xs' ? 'h-3 w-3' : 'h-3.5 w-3.5'} />}
+          <span>{status}</span>
         </span>
       );
   }
+}
+
+/**
+ * Capsule Pill Battery Meter (as seen in the reference image)
+ * Renders a row of rounded pills representing capacity/percentage
+ */
+export function BatteryCapacityDots({
+  current = 3,
+  total = 8,
+  variant = 'dark',
+  className,
+}: {
+  current?: number;
+  total?: number;
+  variant?: 'dark' | 'lime' | 'light';
+  className?: string;
+}) {
+  const dots = Array.from({ length: total }, (_, i) => i < current);
+
+  return (
+    <div className={cn('flex items-center gap-1.5', className)}>
+      {dots.map((filled, idx) => (
+        <span
+          key={idx}
+          className={cn(
+            'h-6 w-3 rounded-full transition-all duration-300',
+            filled
+              ? variant === 'lime'
+                ? 'bg-ink'
+                : 'bg-ink'
+              : variant === 'lime'
+              ? 'border-2 border-dashed border-ink/30 bg-transparent'
+              : 'border-2 border-dashed border-zinc-300 bg-transparent'
+          )}
+        />
+      ))}
+    </div>
+  );
 }

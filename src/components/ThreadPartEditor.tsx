@@ -9,8 +9,6 @@ import {
   AlertCircle,
   Link as LinkIcon,
   X,
-  Sparkles,
-  Layers,
 } from 'lucide-react';
 import {
   ThreadPartState,
@@ -57,29 +55,29 @@ export function ThreadPartEditor({
   return (
     <div
       className={cn(
-        'group relative rounded-xl border border-threads-border bg-threads-card p-4 sm:p-5 transition-all duration-200 shadow-sm',
-        !charStatus.isValid && 'border-rose-500/60 ring-1 ring-rose-500/30',
-        charStatus.status === 'amber' && 'border-amber-500/40',
-        charStatus.status === 'green' && 'hover:border-threads-secondary/60'
+        'group relative rounded-bento border bg-surface p-5 sm:p-6 transition-all duration-200 shadow-xs',
+        !charStatus.isValid && 'border-rose-300 ring-2 ring-rose-400/20 bg-rose-50/20',
+        charStatus.status === 'amber' && 'border-amber-300',
+        charStatus.status === 'green' && 'border-surface-border hover:border-zinc-400'
       )}
     >
       {/* Header Bar */}
-      <div className="flex items-center justify-between gap-3 border-b border-threads-border/70 pb-3 mb-3.5">
+      <div className="flex items-center justify-between gap-3 border-b border-surface-border pb-3.5 mb-4">
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              'flex items-center justify-center rounded-lg px-2.5 py-1 text-xs font-semibold tracking-tight border',
+              'flex items-center justify-center rounded-full px-3 py-1 text-xs font-bold shadow-xs',
               isFirst
-                ? 'bg-threads-accent/15 text-threads-accent border-threads-accent/30'
-                : 'bg-threads-surface text-threads-text border-threads-border'
+                ? 'bg-ink text-white'
+                : 'bg-white text-ink border border-surface-border'
             )}
           >
-            {isFirst ? 'Post #1 (Utama / Hook)' : `Post #${index + 1} (Reply Thread)`}
+            {isFirst ? 'Post #01 (Hook Utama)' : `Post #${String(index + 1).padStart(2, '0')}`}
           </span>
 
           {part.mediaUrl && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-300 border border-threads-border">
-              <ImageIcon className="h-3 w-3 text-sky-400" />
+            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-sky-600 border border-surface-border">
+              <ImageIcon className="h-3 w-3" />
               Gambar
             </span>
           )}
@@ -92,15 +90,14 @@ export function ThreadPartEditor({
             onClick={() => onMoveUp(index)}
             disabled={disabled || isFirst}
             className={cn(
-              'rounded-lg p-1.5 text-threads-secondary transition-colors',
+              'h-7 w-7 rounded-full flex items-center justify-center text-ink-muted bg-white border border-surface-border transition-all tap-effect',
               isFirst || disabled
                 ? 'opacity-30 cursor-not-allowed'
-                : 'hover:bg-threads-surface hover:text-threads-text active:scale-95'
+                : 'hover:text-ink hover:border-ink shadow-xs'
             )}
             title="Pindah ke Atas"
-            aria-label="Pindah ke Atas"
           >
-            <ArrowUp className="h-4 w-4" />
+            <ArrowUp className="h-3.5 w-3.5" />
           </button>
 
           <button
@@ -108,182 +105,132 @@ export function ThreadPartEditor({
             onClick={() => onMoveDown(index)}
             disabled={disabled || isLast}
             className={cn(
-              'rounded-lg p-1.5 text-threads-secondary transition-colors',
+              'h-7 w-7 rounded-full flex items-center justify-center text-ink-muted bg-white border border-surface-border transition-all tap-effect',
               isLast || disabled
                 ? 'opacity-30 cursor-not-allowed'
-                : 'hover:bg-threads-surface hover:text-threads-text active:scale-95'
+                : 'hover:text-ink hover:border-ink shadow-xs'
             )}
             title="Pindah ke Bawah"
-            aria-label="Pindah ke Bawah"
           >
-            <ArrowDown className="h-4 w-4" />
+            <ArrowDown className="h-3.5 w-3.5" />
           </button>
 
-          <div className="h-4 w-px bg-threads-border mx-1" />
-
-          <button
-            type="button"
-            onClick={() => onRemove(index)}
-            disabled={disabled || totalParts <= 1}
-            className={cn(
-              'rounded-lg p-1.5 text-threads-secondary transition-colors',
-              totalParts <= 1 || disabled
-                ? 'opacity-30 cursor-not-allowed'
-                : 'hover:bg-rose-500/15 hover:text-rose-400 active:scale-95'
-            )}
-            title={totalParts <= 1 ? 'Minimal 1 post' : 'Hapus Post Part'}
-            aria-label="Hapus Post Part"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {totalParts > 1 && (
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              disabled={disabled}
+              className="h-7 w-7 rounded-full flex items-center justify-center text-rose-500 bg-white border border-surface-border hover:bg-rose-50 hover:border-rose-300 transition-all tap-effect ml-1 shadow-xs"
+              title="Hapus Bagian Post Ini"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Content Textarea */}
-      <div className="space-y-2">
+      {/* Content Textarea */}
+      <div className="space-y-3">
         <textarea
           value={part.content}
           onChange={(e) => onContentChange(index, e.target.value)}
           disabled={disabled}
           placeholder={
             isFirst
-              ? 'Tulis kalimat pembuka (hook) yang menarik audiens di Threads...'
-              : 'Tulis lanjutan poin, penjelasan, atau call-to-action untuk thread ini...'
+              ? 'Tulis hook utama thread yang memikat pembaca dalam 2 detik pertama (akhiri dengan 🧵👇)...'
+              : `Tulis poin penjelasan post #${index + 1}...`
           }
           rows={4}
-          className={cn(
-            'w-full resize-y rounded-xl border border-threads-border/90 bg-threads-bg px-3.5 py-3 text-sm leading-relaxed text-threads-text placeholder-threads-muted/70 transition-colors',
-            'focus:border-threads-accent focus:outline-none focus:ring-1 focus:ring-threads-accent/50',
-            disabled && 'opacity-60 cursor-not-allowed',
-            !charStatus.isValid && 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/40'
-          )}
+          className="w-full rounded-2xl bg-white border border-surface-border p-4 text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-ink focus:ring-1 focus:ring-ink focus:outline-none transition-all resize-y leading-relaxed font-sans shadow-xs"
         />
 
-        {/* Visual Progress Bar */}
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-threads-surface">
-          <div
-            className={cn(
-              'h-full transition-all duration-200 rounded-full',
-              charStatus.status === 'green' && 'bg-emerald-500',
-              charStatus.status === 'amber' && 'bg-amber-500',
-              charStatus.status === 'red' && 'bg-rose-500'
-            )}
-            style={{ width: `${charStatus.progressPercentage}%` }}
-          />
-        </div>
-
-        {/* Live Character Counter & Status Bar */}
+        {/* Bottom Status Row: Character Counter & Media Toggle */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          {/* Status Indicator */}
+          {/* Media attachment toggle */}
+          <button
+            type="button"
+            onClick={() => setShowMediaInput(!showMediaInput)}
+            disabled={disabled}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-all tap-effect',
+              showMediaInput || part.mediaUrl
+                ? 'bg-ink text-white border-black'
+                : 'bg-white text-ink-secondary border-surface-border hover:bg-surface-hover'
+            )}
+          >
+            <ImageIcon className="h-3.5 w-3.5" />
+            <span>{part.mediaUrl ? 'Ganti Media' : '+ Lampirkan Media'}</span>
+          </button>
+
+          {/* Character Count Badge */}
           <div className="flex items-center gap-2">
-            {!charStatus.isValid ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-400">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                Melebihi batas {MAX_THREAD_CHAR_COUNT} karakter!
-              </span>
-            ) : charStatus.status === 'amber' ? (
-              <span className="text-[11px] font-medium text-amber-400">
-                Mendekati batas maksimal ({charStatus.remaining} tersisa)
-              </span>
-            ) : (
-              <span className="text-[11px] text-threads-secondary">
-                Panjang konten ideal
+            {!charStatus.isValid && (
+              <span className="flex items-center gap-1 text-[11px] font-bold text-rose-600">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>Melebihi limit {Math.abs(charStatus.remaining)} karakter!</span>
               </span>
             )}
-          </div>
 
-          {/* Numerical Counter */}
-          <div className="flex items-center gap-2">
-            <span
+            <div
               className={cn(
-                'font-mono text-xs font-semibold tabular-nums',
-                charStatus.status === 'green' && 'text-emerald-400',
-                charStatus.status === 'amber' && 'text-amber-400',
-                charStatus.status === 'red' && 'text-rose-400 font-bold'
+                'rounded-full px-3 py-1 text-xs font-bold font-mono border shadow-xs',
+                charStatus.status === 'green' && 'bg-white text-ink border-surface-border',
+                charStatus.status === 'amber' && 'bg-amber-100 text-amber-800 border-amber-300',
+                charStatus.status === 'red' && 'bg-rose-100 text-rose-800 border-rose-300'
               )}
             >
               {charStatus.count} / {MAX_THREAD_CHAR_COUNT}
-            </span>
-
-            {/* Media toggle button */}
-            <button
-              type="button"
-              onClick={() => setShowMediaInput(!showMediaInput)}
-              className={cn(
-                'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors',
-                part.mediaUrl || showMediaInput
-                  ? 'border-threads-accent/40 bg-threads-accent/10 text-threads-accent'
-                  : 'border-threads-border bg-threads-surface text-threads-secondary hover:text-threads-text'
-              )}
-            >
-              <ImageIcon className="h-3 w-3" />
-              <span>{part.mediaUrl ? 'Edit Gambar' : '+ Gambar/Media'}</span>
-            </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Media URL Input Section */}
-      {showMediaInput && (
-        <div className="mt-3.5 space-y-2 rounded-xl border border-threads-border/80 bg-threads-surface/50 p-3">
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-1.5 text-xs font-medium text-zinc-300">
-              <LinkIcon className="h-3.5 w-3.5 text-sky-400" />
-              URL Gambar Lampiran (Opsional)
-            </label>
-            {part.mediaUrl && (
+        {/* Media URL Input Box */}
+        {showMediaInput && (
+          <div className="rounded-2xl bg-white p-3.5 border border-surface-border space-y-2 mt-2 shadow-xs animate-scale-in">
+            <div className="flex items-center justify-between text-xs font-bold text-ink">
+              <span className="flex items-center gap-1.5">
+                <LinkIcon className="h-3.5 w-3.5 text-ink-muted" />
+                URL Gambar / Media
+              </span>
               <button
                 type="button"
-                onClick={() => handleMediaUrlChange('')}
-                className="text-[11px] text-rose-400 hover:underline"
+                onClick={() => {
+                  setShowMediaInput(false);
+                  onMediaChange(index, null);
+                }}
+                className="text-ink-muted hover:text-ink"
               >
-                Hapus Lampiran
+                <X className="h-3.5 w-3.5" />
               </button>
-            )}
-          </div>
+            </div>
 
-          <div className="relative flex items-center">
             <input
               type="url"
               value={part.mediaUrl || ''}
               onChange={(e) => handleMediaUrlChange(e.target.value)}
-              disabled={disabled}
-              placeholder="https://example.com/banner-canva.jpg"
-              className="w-full rounded-lg border border-threads-border bg-threads-bg px-3 py-1.5 text-xs text-threads-text placeholder-threads-muted focus:border-threads-accent focus:outline-none"
+              placeholder="https://images.unsplash.com/photo-..."
+              className="w-full rounded-xl bg-surface border border-surface-border px-3 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none transition-colors font-mono"
             />
-            {part.mediaUrl && (
-              <button
-                type="button"
-                onClick={() => handleMediaUrlChange('')}
-                className="absolute right-2.5 text-threads-secondary hover:text-threads-text"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+
+            {part.mediaUrl && !imageError && (
+              <div className="relative rounded-xl overflow-hidden border border-surface-border max-h-32 mt-2">
+                <img
+                  src={part.mediaUrl}
+                  alt="Preview"
+                  className="w-full h-32 object-cover"
+                  onError={() => setImageError(true)}
+                />
+              </div>
+            )}
+
+            {imageError && (
+              <p className="text-[11px] text-rose-600 font-medium">
+                URL gambar tidak valid atau gagal dimuat.
+              </p>
             )}
           </div>
-
-          {/* Media Preview thumbnail */}
-          {part.mediaUrl && (
-            <div className="pt-2">
-              {!imageError ? (
-                <div className="relative overflow-hidden rounded-lg border border-threads-border bg-black max-h-48 flex items-center justify-center">
-                  <img
-                    src={part.mediaUrl}
-                    alt={`Preview media post #${index + 1}`}
-                    className="max-h-48 w-auto object-contain"
-                    onError={() => setImageError(true)}
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-300">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>Gambar tidak dapat dimuat dari URL yang diberikan.</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

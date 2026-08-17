@@ -15,6 +15,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { Product } from '@/types/product';
+import { ModalPortal } from '@/components/ModalPortal';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -98,221 +99,191 @@ export function ProductCard({
   return (
     <div
       className={cn(
-        'group relative flex flex-col justify-between rounded-xl border bg-threads-card p-5 transition-all duration-200 hover:border-zinc-700 hover:shadow-lg',
+        'group relative flex flex-col justify-between rounded-bento border bg-surface p-6 transition-all duration-200 bento-card',
         product.isActive
-          ? 'border-threads-border'
-          : 'border-zinc-800/80 opacity-75'
+          ? 'border-surface-border'
+          : 'opacity-70 border-dashed border-zinc-300 bg-zinc-50'
       )}
     >
-      {/* Card Header: Category & Active status */}
-      <div>
-        <div className="flex items-center justify-between gap-2 pb-3">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-threads-surface px-2.5 py-1 text-xs font-medium text-zinc-300 border border-threads-border">
-            <Tag className="h-3 w-3 text-threads-accent" />
-            {product.category}
+      <div className="space-y-4">
+        {/* Header: Category + Active Status Pill */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-ink border border-surface-border shadow-xs">
+            <Tag className="h-3 w-3 text-ink-secondary" />
+            <span>{product.category}</span>
           </span>
 
           <button
             type="button"
             onClick={handleToggle}
             disabled={isToggling}
-            title={product.isActive ? 'Klik untuk non-aktifkan' : 'Klik untuk aktifkan'}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-150',
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold border transition-all tap-effect',
               product.isActive
-                ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 hover:bg-emerald-900/60'
-                : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700'
+                ? 'bg-lime text-ink border-lime-dark/30 shadow-xs'
+                : 'bg-zinc-200 text-zinc-600 border-zinc-300'
             )}
+            title="Klik untuk mengubah status aktif"
           >
             <span
               className={cn(
                 'h-1.5 w-1.5 rounded-full',
-                product.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                product.isActive ? 'bg-ink animate-pulse' : 'bg-zinc-400'
               )}
             />
-            {product.isActive ? 'Aktif' : 'Non-aktif'}
+            <span>{product.isActive ? 'Aktif' : 'Non-Aktif'}</span>
           </button>
         </div>
 
-        {/* Product Title & Slug */}
-        <h3 className="text-base font-semibold text-threads-text tracking-tight group-hover:text-white">
-          {product.name}
-        </h3>
-        <p className="font-mono text-[11px] text-threads-secondary">
-          slug: /{product.slug}
-        </p>
-
-        {/* Product Description */}
-        {product.description && (
-          <p className="mt-2 text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+        {/* Product Name & Description */}
+        <div className="space-y-1">
+          <h3 className="text-base font-bold text-ink tracking-tight line-clamp-1">
+            {product.name}
+          </h3>
+          <p className="text-xs text-ink-secondary leading-relaxed line-clamp-2">
             {product.description}
           </p>
-        )}
+        </div>
 
-        {/* Variants & Pricing */}
+        {/* Pricing Variants Box */}
         {product.variants && product.variants.length > 0 && (
-          <div className="mt-4 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-              <Layers className="h-3.5 w-3.5 text-threads-accent" />
-              <span>Varian & Harga</span>
-            </div>
+          <div className="rounded-2xl bg-white p-3.5 border border-surface-border/80 space-y-2 shadow-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1">
+              <Layers className="h-3 w-3" />
+              Varian & Harga Resmi
+            </span>
             <div className="flex flex-wrap gap-1.5">
-              {product.variants.map((variant, index) => (
+              {product.variants.map((v, idx) => (
                 <div
-                  key={index}
-                  className="flex items-center gap-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 px-2.5 py-1 text-xs text-zinc-200"
+                  key={idx}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-surface border border-surface-border px-2.5 py-1 text-xs text-ink font-medium"
                 >
-                  <span className="font-medium text-zinc-300">{variant.name}:</span>
-                  <span className="font-semibold text-threads-accent">
-                    {formatIDR(variant.price)}
-                  </span>
-                  {variant.duration && (
-                    <span className="text-[10px] text-zinc-500">
-                      ({variant.duration})
-                    </span>
-                  )}
+                  <span className="font-semibold">{v.name}:</span>
+                  <span className="font-bold text-ink">{formatIDR(v.price)}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* USP Tags */}
+        {/* USPs Pill Tags */}
         {product.usp && product.usp.length > 0 && (
-          <div className="mt-3.5 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-              <span>Selling Points (USP)</span>
-            </div>
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-amber-500" />
+              Keunggulan Utama (USP)
+            </span>
             <div className="flex flex-wrap gap-1.5">
-              {product.usp.map((tag, index) => (
+              {product.usp.map((item, idx) => (
                 <span
-                  key={index}
-                  className="inline-flex items-center rounded-md bg-zinc-800/80 px-2 py-0.5 text-[11px] text-zinc-300 border border-zinc-700/60"
+                  key={idx}
+                  className="rounded-full bg-white border border-surface-border px-2.5 py-0.5 text-[11px] font-medium text-ink-secondary"
                 >
-                  {tag}
+                  ✓ {item}
                 </span>
               ))}
             </div>
           </div>
         )}
 
-        {/* Audience & Tone Context */}
-        <div className="mt-3.5 space-y-1.5 border-t border-zinc-800/60 pt-3 text-xs">
+        {/* Target Audience & Tone */}
+        <div className="grid grid-cols-2 gap-2 pt-1">
           {product.targetAudience && (
-            <div className="flex items-start gap-1.5 text-zinc-400">
-              <Users className="h-3.5 w-3.5 mt-0.5 text-zinc-500 shrink-0" />
-              <span className="text-[11px]">
-                <strong className="text-zinc-300 font-normal">Audience: </strong>
-                {product.targetAudience}
+            <div className="rounded-xl bg-white p-2.5 border border-surface-border/70 text-[11px] space-y-0.5">
+              <span className="text-[10px] font-bold text-ink-muted flex items-center gap-1">
+                <Users className="h-3 w-3" /> Target
               </span>
+              <p className="text-ink font-semibold truncate">{product.targetAudience}</p>
             </div>
           )}
+
           {product.toneOfVoice && (
-            <div className="flex items-start gap-1.5 text-zinc-400">
-              <MessageSquareQuote className="h-3.5 w-3.5 mt-0.5 text-zinc-500 shrink-0" />
-              <span className="text-[11px]">
-                <strong className="text-zinc-300 font-normal">Tone: </strong>
-                {product.toneOfVoice}
+            <div className="rounded-xl bg-white p-2.5 border border-surface-border/70 text-[11px] space-y-0.5">
+              <span className="text-[10px] font-bold text-ink-muted flex items-center gap-1">
+                <MessageSquareQuote className="h-3 w-3" /> Tone
               </span>
-            </div>
-          )}
-          {product.ctaTemplate && (
-            <div className="flex items-start gap-1.5 text-zinc-400">
-              <Megaphone className="h-3.5 w-3.5 mt-0.5 text-zinc-500 shrink-0" />
-              <span className="text-[11px] italic text-zinc-400 line-clamp-1">
-                &ldquo;{product.ctaTemplate}&rdquo;
-              </span>
+              <p className="text-ink font-semibold truncate">{product.toneOfVoice}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Card Actions Footer */}
-      <div className="mt-5 pt-3 border-t border-threads-border">
-        {showDeleteConfirm ? (
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-red-950/40 p-2 border border-red-900/50">
-            <span className="text-xs text-red-300 font-medium">Hapus produk ini?</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-500 transition-colors"
-              >
-                {isDeleting ? '...' : 'Ya'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
-              >
-                Batal
-              </button>
+      {/* Footer Action Bar */}
+      <div className="pt-5 mt-5 border-t border-surface-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleCopyContext}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white hover:bg-surface-hover text-ink text-xs font-semibold border border-surface-border transition-all tap-effect shadow-xs"
+            title="Salin Context JSON untuk LLM"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+            <span>{copied ? 'Disalin' : 'Copy AI Context'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onEdit(product)}
+            className="p-2 rounded-full bg-white hover:bg-surface-hover text-ink border border-surface-border transition-all tap-effect shadow-xs"
+            title="Edit Produk"
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="p-2 rounded-full text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors tap-effect"
+          title="Hapus Produk"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Delete Modal Confirmation */}
+      <ModalPortal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        maxWidth="sm"
+      >
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-bold text-ink">Hapus Produk Ini?</h3>
+              <p className="text-xs text-ink-muted">Tindakan ini permanen.</p>
             </div>
           </div>
-        ) : (
-          <div className="flex items-center justify-between gap-2">
-            {/* Copy AI Context button */}
+
+          <p className="text-xs text-ink-secondary bg-surface p-3 rounded-xl border border-surface-border/80 font-medium">
+            &quot;{product.name}&quot;
+          </p>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={handleCopyContext}
-              title="Salin JSON context produk untuk prompt AI"
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-150',
-                copied
-                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                  : 'bg-threads-surface text-threads-text border border-threads-border hover:bg-zinc-800 hover:border-zinc-700'
-              )}
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+              className="px-4 py-2 rounded-full border border-surface-border text-xs font-semibold text-ink hover:bg-surface transition-colors"
             >
-              {copied ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>Context Tersalin</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3.5 w-3.5 text-threads-accent" />
-                  <span>Copy AI Context</span>
-                </>
-              )}
+              Batal
             </button>
 
-            <div className="flex items-center gap-1">
-              {/* Quick toggle active */}
-              <button
-                type="button"
-                onClick={handleToggle}
-                disabled={isToggling}
-                title={product.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-threads-surface hover:text-zinc-200 transition-colors"
-              >
-                <Power className={cn('h-4 w-4', product.isActive ? 'text-emerald-400' : 'text-zinc-500')} />
-              </button>
-
-              {/* Edit button */}
-              <button
-                type="button"
-                onClick={() => onEdit(product)}
-                title="Edit Produk"
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-threads-surface hover:text-threads-accent transition-colors"
-              >
-                <Edit3 className="h-4 w-4" />
-              </button>
-
-              {/* Delete trigger */}
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                title="Hapus Produk"
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-950/60 hover:text-red-400 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all tap-effect"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>{isDeleting ? 'Menghapus...' : 'Hapus Sekarang'}</span>
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      </ModalPortal>
     </div>
   );
 }

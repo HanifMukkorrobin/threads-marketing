@@ -3,31 +3,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Sparkles,
   Package,
-  Clock,
-  CheckCircle2,
-  Send,
-  ExternalLink,
   Plus,
   RefreshCw,
   AlertCircle,
-  Radio,
   Copy,
   Check,
   ChevronRight,
-  Edit3,
-  Flame,
-  Layers,
+  Sliders,
+  ExternalLink,
+  Bot,
+  Zap,
+  CheckCircle2,
+  Clock,
+  Sparkles,
   ArrowUpRight,
+  Radio,
+  FileText,
+  Play,
   Terminal,
-  ShieldCheck,
-  X,
 } from 'lucide-react';
 import { ContentDraft } from '@/types/draft';
 import { Product, CreateProductInput } from '@/types/product';
 import { CreateDraftModal } from '@/components/CreateDraftModal';
 import { ProductModal } from '@/components/ProductModal';
+import { DraftStatusBadge, BatteryCapacityDots } from '@/components/DraftStatusBadge';
 import { cn } from '@/lib/utils';
 
 interface OverviewCounts {
@@ -75,6 +75,9 @@ export default function DashboardOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Active navigation tab filter in dashboard
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'approved' | 'published'>('all');
+
   // Modals
   const [createDraftModalOpen, setCreateDraftModalOpen] = useState(false);
   const [createProductModalOpen, setCreateProductModalOpen] = useState(false);
@@ -117,15 +120,21 @@ export default function DashboardOverviewPage() {
 
       if (overviewData.success) {
         setCounts(overviewData.counts || {});
-        setRecentPendingDrafts(overviewData.recentPendingDrafts || []);
-        setRecentPublishedDrafts(overviewData.recentPublishedDrafts || []);
-        setHermesStatus(overviewData.hermesStatus || {});
+        setRecentPendingDrafts(overviewData.recentPending || []);
+        setRecentPublishedDrafts(overviewData.recentPublished || []);
+        setHermesStatus(
+          overviewData.hermesStatus || {
+            isConfigured: false,
+            hasApiKey: false,
+            apiKeyPreview: null,
+          }
+        );
       } else {
-        throw new Error(overviewData.error || 'Gagal mengambil data ringkasan');
+        throw new Error(overviewData.error || 'Gagal memuat ringkasan data');
       }
 
-      if (productsData.success && Array.isArray(productsData.data)) {
-        setProducts(productsData.data);
+      if (productsData.success) {
+        setProducts(productsData.data || []);
       }
     } catch (err: any) {
       setError(err?.message || 'Terjadi kesalahan saat memuat dashboard');
@@ -138,598 +147,602 @@ export default function DashboardOverviewPage() {
     fetchOverviewData();
   }, [fetchOverviewData]);
 
-  // Quick Approve Action from Dashboard
-  const handleQuickApprove = async (draftId: string, title: string) => {
+  const handleQuickApprove = async (draftId: string) => {
     try {
       setApprovingId(draftId);
-      const res = await fetch(`/api/drafts/${draftId}`, {
+      const res = await fetch(`/api/drafts/${draftId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'APPROVED' }),
       });
-
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Gagal menyetujui draft');
       }
 
-      // Optimistically update counts and remove from pending queue
+      addToast('Draft disetujui & masuk antrean posting!', 'success');
       setRecentPendingDrafts((prev) => prev.filter((d) => d.id !== draftId));
       setCounts((prev) => ({
         ...prev,
         pendingDrafts: Math.max(0, prev.pendingDrafts - 1),
         approvedDrafts: prev.approvedDrafts + 1,
       }));
-
-      addToast(`Draft "${title}" disetujui! Siap diposting oleh Hermes Agent.`, 'success');
     } catch (err: any) {
-      addToast(err?.message || 'Gagal mengubah status draft', 'error');
+      addToast(err?.message || 'Terjadi kesalahan', 'error');
     } finally {
       setApprovingId(null);
     }
   };
 
-  const handleSaveProduct = async (productData: CreateProductInput) => {
-    try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(productData),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Gagal menambah produk');
-      }
+  const handleSaveProduct = async (productData: CreateProductInput, id?: string) => {
+    const isEdit = !!id;
+    const url = isEdit ? `/api/products/${id}` : '/api/products';
+    const method = isEdit ? 'PUT' : 'POST';
 
-      addToast(`Produk "${productData.name}" berhasil ditambahkan!`, 'success');
-      setCreateProductModalOpen(false);
-      fetchOverviewData();
-    } catch (err: any) {
-      addToast(err?.message || 'Gagal menyimpan produk', 'error');
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(productData),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Gagal menyimpan produk');
     }
+
+    await fetchOverviewData();
+    addToast('Produk baru berhasil disimpan!', 'success');
   };
 
-  const handleDraftSaved = (savedDraft: ContentDraft) => {
-    addToast(
-      editingDraft
-        ? 'Perubahan draft berhasil disimpan!'
-        : 'Draft konten baru berhasil dibuat!',
-      'success'
-    );
-    setCreateDraftModalOpen(false);
-    setEditingDraft(null);
-    fetchOverviewData();
-  };
-
-  const copyHermesSnippet = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopyCliCommand = () => {
+    const cmd = `npx tsx scripts/hermes-runner/hermes_mock_cron.ts --action=all --base-url=http://localhost:3000 --api-key=${hermesStatus.apiKeyPreview || 'hermes-secret-key-2026'}`;
+    navigator.clipboard.writeText(cmd);
     setCopiedKey(true);
-    addToast('Perintah runner disalin ke clipboard!', 'info');
-    setTimeout(() => setCopiedKey(false), 2000);
+    addToast('Perintah runner Hermes berhasil disalin!', 'success');
+    setTimeout(() => setCopiedKey(false), 2500);
   };
+
+  const approvalRate = counts.totalDrafts > 0
+    ? Math.round(((counts.approvedDrafts + counts.publishedDrafts) / counts.totalDrafts) * 100)
+    : 0;
+
+  const batteryApproved = counts.totalDrafts > 0
+    ? Math.min(8, Math.max(1, Math.round((counts.approvedDrafts / counts.totalDrafts) * 8)))
+    : 0;
+
+  const batteryTotal = counts.totalDrafts > 0
+    ? Math.min(8, Math.max(1, Math.round((counts.totalDrafts / 50) * 8)))
+    : 4;
 
   return (
-    <div className="min-h-screen bg-threads-bg pb-16">
-      {/* Toast Notification Container */}
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 max-w-sm pointer-events-none">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-8 animate-fadeIn">
+      {/* Toast Notifications */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={cn(
-              'pointer-events-auto flex items-center justify-between rounded-xl border p-4 shadow-xl backdrop-blur-md transition-all duration-300',
-              toast.type === 'success' && 'border-emerald-500/40 bg-zinc-900/95 text-emerald-400',
-              toast.type === 'error' && 'border-rose-500/40 bg-zinc-900/95 text-rose-400',
-              toast.type === 'info' && 'border-threads-border bg-zinc-900/95 text-threads-text'
+              'pointer-events-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-full shadow-lg text-xs font-semibold animate-scale-in transition-all',
+              toast.type === 'success' && 'bg-ink text-white border border-black',
+              toast.type === 'error' && 'bg-rose-500 text-white',
+              toast.type === 'info' && 'bg-surface text-ink border border-surface-border'
             )}
           >
-            <div className="flex items-center space-x-2.5 text-xs font-medium">
-              {toast.type === 'success' && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />}
-              {toast.type === 'error' && <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />}
-              {toast.type === 'info' && <Sparkles className="h-4 w-4 shrink-0 text-threads-accent" />}
-              <span>{toast.message}</span>
-            </div>
+            <span>{toast.message}</span>
             <button
+              type="button"
               onClick={() => removeToast(toast.id)}
-              className="ml-3 text-threads-secondary hover:text-threads-text"
+              className="text-white/60 hover:text-white"
             >
-              <X className="h-3.5 w-3.5" />
+              ✕
             </button>
           </div>
         ))}
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
-        {/* Top Header Banner & Quick Actions */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-threads-border pb-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-threads-success opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-threads-success"></span>
-              </span>
-              <span className="font-mono text-[11px] uppercase tracking-wider text-threads-success font-semibold">
-                Autonomous Engine Active
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-threads-text">
-              Dashboard Operasional Threads
-            </h1>
-            <p className="text-xs text-threads-secondary">
-              Pantau funnel konversi konten, triage review antrean draft AI, dan status publishing Threads secara real-time.
-            </p>
-          </div>
+      {/* Top Header: Expressive Headline with Inline Sticker Badges */}
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="space-y-1.5 max-w-2xl">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-ink tracking-tight flex flex-wrap items-center gap-x-2.5 gap-y-2">
+            <span>Managing</span>
+            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-surface border border-surface-border text-ink shadow-sm">
+              <Bot className="h-4 w-4" />
+            </span>
+            <span>Your Content</span>
+            <span>and</span>
+            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-lime border border-lime-dark/30 text-ink text-sm font-black shadow-sm">
+              ✦
+            </span>
+            <span>Workflows</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-ink-secondary">
+            Pusat kendali konten autopilot Threads, katalog produk, dan antrean posting mandiri.
+          </p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+        {/* Right Action Bar */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <Link
+            href="/settings"
+            title="Settings"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface hover:bg-surface-hover border border-surface-border text-ink transition-all tap-effect"
+          >
+            <Sliders className="h-4 w-4" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => {
+              setEditingDraft(null);
+              setCreateDraftModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink hover:bg-zinc-800 text-white font-bold text-xs shadow-pill transition-all tap-effect"
+          >
+            <Plus className="h-4 w-4 stroke-[2.5]" />
+            <span>+ Create a New Draft</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Segmented Pill Navigation Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setActiveTab('all')}
+          className={cn(
+            'px-5 py-2 rounded-full text-xs font-semibold transition-all tap-effect shrink-0',
+            activeTab === 'all'
+              ? 'bg-ink text-white shadow-pill'
+              : 'bg-surface text-ink-secondary border border-surface-border hover:bg-surface-hover'
+          )}
+        >
+          Overview
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('pending')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all tap-effect shrink-0',
+            activeTab === 'pending'
+              ? 'bg-ink text-white shadow-pill'
+              : 'bg-surface text-ink-secondary border border-surface-border hover:bg-surface-hover'
+          )}
+        >
+          <span>Menunggu Review</span>
+          <span className="rounded-full bg-amber-500/20 px-2 py-0.2 text-[10px] font-bold text-amber-700">
+            {counts.pendingDrafts}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('approved')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all tap-effect shrink-0',
+            activeTab === 'approved'
+              ? 'bg-ink text-white shadow-pill'
+              : 'bg-surface text-ink-secondary border border-surface-border hover:bg-surface-hover'
+          )}
+        >
+          <span>Siap Posting</span>
+          <span className="rounded-full bg-lime px-2 py-0.2 text-[10px] font-bold text-ink">
+            {counts.approvedDrafts}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('published')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all tap-effect shrink-0',
+            activeTab === 'published'
+              ? 'bg-ink text-white shadow-pill'
+              : 'bg-surface text-ink-secondary border border-surface-border hover:bg-surface-hover'
+          )}
+        >
+          <span>Live Threads</span>
+          <span className="rounded-full bg-sky-100 px-2 py-0.2 text-[10px] font-bold text-sky-800">
+            {counts.publishedDrafts}
+          </span>
+        </button>
+
+        <Link
+          href="/products"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface text-ink-secondary border border-surface-border hover:bg-surface-hover text-xs font-medium transition-all tap-effect shrink-0"
+        >
+          <span>Katalog Produk</span>
+          <span className="rounded-full bg-zinc-200 px-2 py-0.2 text-[10px] font-bold text-zinc-700">
+            {counts.activeProducts}
+          </span>
+        </Link>
+      </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-rose-600" />
+            <span>{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={fetchOverviewData}
+            className="flex items-center gap-1 rounded-full bg-rose-600 px-3 py-1 text-white font-medium hover:bg-rose-700"
+          >
+            <RefreshCw className="h-3 w-3" />
+            <span>Coba Lagi</span>
+          </button>
+        </div>
+      )}
+
+      {/* Top Bento Metric Cards Grid (3 Columns like Reference) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Card 1: Neutral Operations KPI */}
+        <div className="rounded-bento bg-surface border border-surface-border p-6 flex flex-col justify-between space-y-6 bento-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-surface-border text-ink">
+                <FileText className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-xs font-bold text-ink">Total Drafts</span>
+            </div>
             <button
               type="button"
               onClick={fetchOverviewData}
-              disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2 text-xs font-medium text-threads-text transition-colors hover:bg-threads-border disabled:opacity-50"
-              title="Refresh Dashboard"
+              title="Refresh"
+              className="p-1 text-zinc-400 hover:text-ink transition-colors"
             >
-              <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
-              <span>Refresh</span>
+              <RefreshCw className="h-3.5 w-3.5" />
             </button>
+          </div>
 
+          <div className="space-y-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-ink tracking-tight">
+                {counts.totalDrafts}
+              </span>
+              <span className="text-xs font-semibold text-ink-muted">
+                / {counts.activeProducts} Produk Aktif
+              </span>
+              <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-0.5 text-[11px] font-bold text-ink border border-surface-border">
+                {counts.totalDrafts > 0 ? `${counts.totalDrafts * 3} Posts` : '0 Posts'} ◯
+              </span>
+            </div>
+
+            {/* Battery Capacity Dots */}
+            <BatteryCapacityDots current={batteryTotal} total={8} variant="dark" />
+          </div>
+        </div>
+
+        {/* Card 2: Electric Lime Highlight Card */}
+        <div className="rounded-bento bg-lime border border-lime-dark/30 p-6 flex flex-col justify-between space-y-6 bento-card text-ink shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-lime">
+                <Zap className="h-3.5 w-3.5 fill-lime" />
+              </div>
+              <span className="text-xs font-extrabold tracking-tight text-ink uppercase">
+                Siap Diposting
+              </span>
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-full bg-ink/10 px-2.5 py-0.5 text-[11px] font-bold text-ink border border-ink/10">
+              {approvalRate}% ◯
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black text-ink tracking-tight">
+                {counts.approvedDrafts}
+              </span>
+              <span className="text-xs font-bold text-ink/70">
+                / Antrean Terjadwal
+              </span>
+            </div>
+
+            {/* Battery Dots on Lime */}
+            <BatteryCapacityDots current={batteryApproved} total={8} variant="lime" />
+          </div>
+        </div>
+
+        {/* Card 3: Pitch Black Hero Action Card */}
+        <div className="rounded-bento bg-dock p-6 flex flex-col justify-between space-y-6 text-white bento-card relative overflow-hidden group">
+          <div className="space-y-2 relative z-10">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-lime/20 text-lime px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase">
+                <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse" />
+                Hermes Engine
+              </span>
+              <Link href="/settings" className="text-zinc-400 hover:text-white text-xs">
+                CLI ↗
+              </Link>
+            </div>
+
+            <h3 className="text-base sm:text-lg font-bold text-white leading-snug">
+              Take Your Automation ↗ to the Next Level
+            </h3>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Generate ratusan hook viral dan posting otomatis ke Threads tanpa intervensi manual.
+            </p>
+          </div>
+
+          <div className="relative z-10 pt-2">
             <button
               type="button"
-              onClick={() => setCreateProductModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2 text-xs font-medium text-threads-text transition-colors hover:bg-threads-border hover:text-threads-text"
+              onClick={handleCopyCliCommand}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 font-bold text-xs text-ink transition-all hover:bg-lime tap-effect shadow-md"
             >
-              <Package className="h-3.5 w-3.5 text-threads-accent" />
-              <span>+ Tambah Produk</span>
+              {copiedKey ? (
+                <>
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Perintah CLI Disalin!</span>
+                </>
+              ) : (
+                <>
+                  <span>Salin Perintah Runner</span>
+                  <span className="text-[10px]">▷</span>
+                </>
+              )}
             </button>
+          </div>
 
+          {/* Ambient Glow */}
+          <div className="absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-lime/10 blur-2xl pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Middle Split Section: Statistics Visualizer & Quick Action Directory */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Cols: Interactive Statistics & Capsule Bar Schedule Chart */}
+        <div className="lg:col-span-2 rounded-bento bg-surface border border-surface-border p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                <span>Statistics</span>
+                <span className="text-xs font-normal text-ink-muted">// Pipeline Performance</span>
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-medium text-ink-secondary">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-ink" />
+                <span>Drafts Active</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-lime" />
+                <span>Approved / Live</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Capsule Pill Double-Bar Chart Visualizer */}
+          <div className="pt-4 pb-2">
+            <div className="grid grid-cols-7 gap-3 sm:gap-6 items-end h-48 border-b border-surface-border pb-4">
+              {[
+                { day: 'Sen', draftVal: 70, liveVal: 40, pill: '87%' },
+                { day: 'Sel', draftVal: 50, liveVal: 25, pill: null },
+                { day: 'Rab', draftVal: 85, liveVal: 60, pill: null },
+                { day: 'Kam', draftVal: 30, liveVal: 15, pill: null },
+                { day: 'Jum', draftVal: 95, liveVal: 75, pill: '92%' },
+                { day: 'Sab', draftVal: 60, liveVal: 45, pill: null },
+                { day: 'Min', draftVal: 75, liveVal: 50, pill: '68%' },
+              ].map((bar, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end group">
+                  {bar.pill && (
+                    <span className="rounded-full bg-ink px-2 py-0.5 text-[9px] font-bold text-white shadow-sm mb-1 animate-pulse-subtle">
+                      {bar.pill}
+                    </span>
+                  )}
+                  <div className="relative w-6 sm:w-8 flex flex-col justify-end items-center h-36 bg-surface-muted rounded-full p-1">
+                    {/* Dark Upper Capsule */}
+                    <div
+                      style={{ height: `${bar.draftVal}%` }}
+                      className="w-full bg-ink rounded-full transition-all duration-500 relative group-hover:bg-zinc-800"
+                    >
+                      {/* Lime Lower Capsule Overlay */}
+                      <div
+                        style={{ height: `${(bar.liveVal / bar.draftVal) * 100}%` }}
+                        className="w-full absolute bottom-0 bg-lime rounded-full"
+                      />
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-semibold text-ink-secondary">
+                    {bar.day}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right 1 Col: Quick Directory Navigation Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/products"
+            className="rounded-2xl bg-surface border border-surface-border p-4 flex flex-col justify-between hover:border-ink/30 transition-all bento-card group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-surface-border text-ink">
+                <Package className="h-4 w-4" />
+              </div>
+              <ArrowUpRight className="h-3.5 w-3.5 text-zinc-400 group-hover:text-ink transition-colors" />
+            </div>
+            <div className="pt-4 space-y-0.5">
+              <h4 className="text-xs font-bold text-ink">Produk</h4>
+              <p className="text-[10px] text-ink-muted">Kelola katalog & harga</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/drafts"
+            className="rounded-2xl bg-surface border border-surface-border p-4 flex flex-col justify-between hover:border-ink/30 transition-all bento-card group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-surface-border text-ink">
+                <FileText className="h-4 w-4" />
+              </div>
+              <ArrowUpRight className="h-3.5 w-3.5 text-zinc-400 group-hover:text-ink transition-colors" />
+            </div>
+            <div className="pt-4 space-y-0.5">
+              <h4 className="text-xs font-bold text-ink">Drafts Hub</h4>
+              <p className="text-[10px] text-ink-muted">Semua status thread</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/settings"
+            className="rounded-2xl bg-surface border border-surface-border p-4 flex flex-col justify-between hover:border-ink/30 transition-all bento-card group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-surface-border text-ink">
+                <Sliders className="h-4 w-4" />
+              </div>
+              <ArrowUpRight className="h-3.5 w-3.5 text-zinc-400 group-hover:text-ink transition-colors" />
+            </div>
+            <div className="pt-4 space-y-0.5">
+              <h4 className="text-xs font-bold text-ink">Integrasi</h4>
+              <p className="text-[10px] text-ink-muted">Hermes & Meta API</p>
+            </div>
+          </Link>
+
+          <div
+            onClick={handleCopyCliCommand}
+            className="rounded-2xl bg-surface border border-surface-border p-4 flex flex-col justify-between hover:border-ink/30 transition-all bento-card cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-lime text-ink">
+                <Terminal className="h-4 w-4" />
+              </div>
+              <span className="text-[10px] font-bold text-ink">CLI</span>
+            </div>
+            <div className="pt-4 space-y-0.5">
+              <h4 className="text-xs font-bold text-ink">Runner Cron</h4>
+              <p className="text-[10px] text-ink-muted">Salin perintah terminal</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Triage & Review Queue Section */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <h3 className="text-base font-bold text-ink flex items-center gap-2">
+              <span>Antrean Triage Review Konten</span>
+              {recentPendingDrafts.length > 0 && (
+                <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                  {recentPendingDrafts.length} butuh review
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-ink-secondary">
+              Review draft yang diracik Hermes AI sebelum dipublikasikan secara otomatis ke Threads
+            </p>
+          </div>
+
+          <Link
+            href="/drafts"
+            className="flex items-center gap-1 text-xs font-bold text-ink hover:underline"
+          >
+            <span>Lihat Semua Draft</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {recentPendingDrafts.length === 0 ? (
+          <div className="rounded-bento border border-dashed border-surface-border p-8 text-center bg-surface/50">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white border border-surface-border text-emerald-600 mb-3">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <h4 className="text-xs font-bold text-ink">Semua Draft Sudah Bersih & Disetujui!</h4>
+            <p className="text-[11px] text-ink-muted mt-1 max-w-sm mx-auto">
+              Tidak ada draft yang menumpuk di antrean review. Anda dapat memicu Hermes AI untuk membuat rangkaian thread baru.
+            </p>
             <button
               type="button"
               onClick={() => {
                 setEditingDraft(null);
                 setCreateDraftModalOpen(true);
               }}
-              className="flex items-center gap-1.5 rounded-xl bg-threads-accent px-4 py-2 text-xs font-semibold text-white shadow-md shadow-threads-accent/20 transition-all hover:opacity-90 active:scale-[0.98]"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-ink text-white text-xs font-bold tap-effect"
             >
-              <Plus className="h-4 w-4" />
-              <span>+ Buat Draft</span>
+              <Sparkles className="h-3.5 w-3.5 text-lime" />
+              <span>Generate Draft Baru</span>
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentPendingDrafts.slice(0, 3).map((draft) => (
+              <div
+                key={draft.id}
+                className="rounded-2xl border border-surface-border bg-surface p-5 flex flex-col justify-between space-y-4 bento-card"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <DraftStatusBadge status={draft.status} size="xs" />
+                    {draft.product && (
+                      <span className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-semibold text-ink border border-surface-border">
+                        {draft.product.name}
+                      </span>
+                    )}
+                  </div>
 
-        {/* Error Alert if any */}
-        {error && (
-          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 flex items-center justify-between text-xs text-rose-300">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-              <span>{error}</span>
-            </div>
-            <button
-              onClick={fetchOverviewData}
-              className="underline font-semibold hover:text-white"
-            >
-              Coba lagi
-            </button>
+                  <h4 className="text-xs font-bold text-ink line-clamp-1">
+                    {draft.title}
+                  </h4>
+
+                  <p className="text-xs text-ink-secondary line-clamp-3 bg-white p-3 rounded-xl border border-surface-border/60">
+                    {draft.posts && draft.posts[0]
+                      ? draft.posts[0].content
+                      : 'Draft tanpa konten'}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-surface-border">
+                  <Link
+                    href={`/drafts/${draft.id}`}
+                    className="text-xs font-semibold text-ink hover:underline"
+                  >
+                    Edit & Simulator ↗
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickApprove(draft.id)}
+                    disabled={approvingId === draft.id}
+                    className="flex items-center gap-1 rounded-full bg-lime hover:bg-lime-hover px-3.5 py-1.5 text-xs font-bold text-ink transition-all tap-effect shadow-sm"
+                  >
+                    {approvingId === draft.id ? (
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Check className="h-3 w-3 stroke-[2.5]" />
+                    )}
+                    <span>Setujui</span>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
+      </section>
 
-        {/* 4 Primary Metric Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Total Active Products */}
-          <Link
-            href="/products"
-            className="group relative rounded-2xl border border-threads-border bg-threads-card p-5 transition-all duration-200 hover:border-threads-border/80 hover:bg-threads-card/80 hover:shadow-lg"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
-                <Package className="h-5 w-5" />
-              </div>
-              <span className="flex items-center text-[11px] font-medium text-threads-secondary group-hover:text-threads-text transition-colors">
-                Kelola Produk <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
-              </span>
-            </div>
-            <div className="mt-4">
-              <p className="text-xs font-medium text-threads-secondary">Produk Aktif</p>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-threads-text">
-                  {counts.activeProducts}
-                </span>
-                <span className="text-xs text-threads-secondary">
-                  / {counts.totalProducts} total katalog
-                </span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 2: Drafts Pending Review (with pulse beacon) */}
-          <Link
-            href="/drafts"
-            className={cn(
-              'group relative rounded-2xl border p-5 transition-all duration-200 hover:shadow-lg',
-              counts.pendingDrafts > 0
-                ? 'border-amber-500/40 bg-gradient-to-b from-amber-500/10 to-threads-card'
-                : 'border-threads-border bg-threads-card hover:border-threads-border/80'
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
-                <Clock className="h-5 w-5" />
-              </div>
-              {counts.pendingDrafts > 0 ? (
-                <span className="flex items-center gap-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300 animate-pulse">
-                  <Flame className="h-3 w-3" /> Butuh Review
-                </span>
-              ) : (
-                <span className="text-[11px] text-emerald-400 font-medium flex items-center">
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Antrean Bersih
-                </span>
-              )}
-            </div>
-            <div className="mt-4">
-              <p className="text-xs font-medium text-threads-secondary">Menunggu Review</p>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-amber-300">
-                  {counts.pendingDrafts}
-                </span>
-                <span className="text-xs text-threads-secondary">draft siap di-triage</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 3: Ready to Post (Approved) */}
-          <Link
-            href="/drafts"
-            className="group relative rounded-2xl border border-threads-border bg-threads-card p-5 transition-all duration-200 hover:border-threads-border/80 hover:bg-threads-card/80 hover:shadow-lg"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <span className="rounded-full bg-emerald-500/15 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-400">
-                Siap Diposting
-              </span>
-            </div>
-            <div className="mt-4">
-              <p className="text-xs font-medium text-threads-secondary">Draft Approved</p>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-emerald-400">
-                  {counts.approvedDrafts}
-                </span>
-                <span className="text-xs text-threads-secondary">siap cron publisher</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 4: Published Posts */}
-          <div className="relative rounded-2xl border border-threads-border bg-threads-card p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                <Send className="h-5 w-5" />
-              </div>
-              <span className="rounded-full bg-indigo-500/15 border border-indigo-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-indigo-400">
-                Live di Threads
-              </span>
-            </div>
-            <div className="mt-4">
-              <p className="text-xs font-medium text-threads-secondary">Postingan Terbit</p>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-bold tracking-tight text-threads-text">
-                  {counts.publishedDrafts}
-                </span>
-                <span className="text-xs text-threads-secondary">
-                  {counts.failedDrafts > 0 ? `(${counts.failedDrafts} gagal)` : '100% success rate'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Hermes Agent Integration Status Card */}
-        <div className="rounded-2xl border border-threads-border bg-threads-card p-5 sm:p-6 shadow-sm">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-threads-surface border border-threads-border text-threads-accent shadow-inner">
-                <Radio className="h-5 w-5 text-threads-accent" />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-threads-text">
-                    Hermes Agent Connection Hub
-                  </h3>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                    <ShieldCheck className="h-3 w-3" />
-                    Autonomous Ready
-                  </span>
-                </div>
-                <p className="text-xs text-threads-secondary max-w-2xl">
-                  Hermes Agent berkomunikasi melalui REST API dengan otentikasi Bearer token untuk mengambil katalog produk, generate draft multi-post, dan mengeksekusi publikasi otomatis.
-                </p>
-                <div className="flex items-center gap-3 pt-1 text-xs text-zinc-400 font-mono">
-                  <span>API Key: <span className="text-threads-text bg-threads-surface px-2 py-0.5 rounded border border-threads-border">{hermesStatus.apiKeyPreview || '••••••••'}</span></span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 pt-2 lg:pt-0">
-              <button
-                type="button"
-                onClick={() => copyHermesSnippet('npx tsx scripts/hermes-runner/hermes_mock_cron.ts --action=all')}
-                className="flex items-center gap-1.5 rounded-xl border border-threads-border bg-threads-surface px-3.5 py-2 text-xs font-medium text-threads-text hover:bg-threads-border transition-colors"
-                title="Salin CLI Runner Command"
-              >
-                {copiedKey ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Terminal className="h-3.5 w-3.5 text-zinc-400" />}
-                <span>Salin Runner CLI</span>
-              </button>
-
-              <Link
-                href="/settings"
-                className="flex items-center gap-1.5 rounded-xl bg-threads-surface border border-threads-border px-3.5 py-2 text-xs font-semibold text-threads-text hover:border-threads-accent hover:text-threads-accent transition-colors"
-              >
-                <span>Kelola API & Integrasi</span>
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Section 1: Quick Review Queue ("Antrean Review Cepat") */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold tracking-tight text-threads-text">
-                  Antrean Review Cepat (Triage)
-                </h2>
-                {recentPendingDrafts.length > 0 && (
-                  <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
-                    {recentPendingDrafts.length} Menunggu
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-threads-secondary">
-                1-klik untuk menyetujui draft sebelum diposting otomatis oleh cron runner Hermes Agent.
-              </p>
-            </div>
-
-            <Link
-              href="/drafts"
-              className="text-xs font-medium text-threads-accent hover:underline flex items-center"
-            >
-              Lihat Semua ({counts.totalDrafts}) <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map((n) => (
-                <div
-                  key={n}
-                  className="h-48 rounded-2xl border border-threads-border bg-threads-card/40 animate-pulse p-5 space-y-3"
-                >
-                  <div className="h-4 w-1/3 bg-threads-surface rounded" />
-                  <div className="h-4 w-3/4 bg-threads-surface rounded" />
-                  <div className="h-16 bg-threads-bg/60 rounded-xl" />
-                  <div className="h-8 bg-threads-surface rounded-xl" />
-                </div>
-              ))}
-            </div>
-          ) : recentPendingDrafts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-threads-border bg-threads-card/30 p-8 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-3">
-                <CheckCircle2 className="h-6 w-6" />
-              </div>
-              <h3 className="text-sm font-semibold text-threads-text">
-                Semua Draft Sudah Direview!
-              </h3>
-              <p className="text-xs text-threads-secondary mt-1 max-w-md mx-auto">
-                Antrean review bersih. Draft baru akan muncul di sini secara otomatis saat dihasilkan oleh Hermes AI Agent.
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingDraft(null);
-                    setCreateDraftModalOpen(true);
-                  }}
-                  className="rounded-xl border border-threads-border bg-threads-surface px-3.5 py-1.5 text-xs font-medium text-threads-text hover:bg-threads-border"
-                >
-                  + Buat Draft Manual
-                </button>
-                <Link
-                  href="/settings"
-                  className="rounded-xl bg-threads-accent px-3.5 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                >
-                  Jalankan Hermes Agent
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentPendingDrafts.map((draft) => {
-                const firstPost = draft.posts?.[0]?.content || 'Tidak ada konten';
-                const isApproving = approvingId === draft.id;
-
-                return (
-                  <div
-                    key={draft.id}
-                    className="flex flex-col justify-between rounded-2xl border border-threads-border bg-threads-card p-5 transition-all duration-200 hover:border-threads-border/90 hover:shadow-md"
-                  >
-                    <div className="space-y-3">
-                      {/* Header tags */}
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate rounded-md bg-threads-surface border border-threads-border px-2 py-0.5 text-[10px] font-medium text-threads-accent">
-                          {draft.product?.name || 'Umum / Toko'}
-                        </span>
-                        {draft.hookAngle && (
-                          <span className="rounded-md bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-300">
-                            {draft.hookAngle}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Title */}
-                      <h3 className="text-sm font-semibold text-threads-text line-clamp-1">
-                        {draft.title}
-                      </h3>
-
-                      {/* Snippet box */}
-                      <div className="rounded-xl border border-threads-border bg-threads-bg/70 p-3 text-xs text-zinc-300 whitespace-pre-wrap line-clamp-3 leading-relaxed font-sans">
-                        {firstPost}
-                      </div>
-
-                      {/* Posts chain count */}
-                      <div className="flex items-center gap-1.5 text-[11px] text-threads-secondary">
-                        <Layers className="h-3.5 w-3.5 text-zinc-500" />
-                        <span>{draft.posts?.length || 1} Bagian Thread</span>
-                        <span className="text-zinc-600">•</span>
-                        <span className="text-zinc-400 capitalize">{draft.source?.toLowerCase().replace('_', ' ')}</span>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="mt-4 pt-3 border-t border-threads-border flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingDraft(draft);
-                          setCreateDraftModalOpen(true);
-                        }}
-                        className="flex items-center gap-1 rounded-xl border border-threads-border bg-threads-surface px-3 py-1.5 text-xs font-medium text-threads-text hover:bg-threads-border transition-colors"
-                      >
-                        <Edit3 className="h-3 w-3 text-zinc-400" />
-                        <span>Edit</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleQuickApprove(draft.id, draft.title)}
-                        disabled={isApproving}
-                        className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500 transition-all disabled:opacity-50 active:scale-95"
-                      >
-                        {isApproving ? (
-                          <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        ) : (
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        )}
-                        <span>Setujui (Approve)</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Section 2: Live Threads Publication History */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <h2 className="text-lg font-bold tracking-tight text-threads-text">
-                Riwayat Postingan Live
-              </h2>
-              <p className="text-xs text-threads-secondary">
-                Daftar thread yang telah berhasil dipublikasikan ke platform Threads.
-              </p>
-            </div>
-
-            <span className="rounded-full bg-threads-surface border border-threads-border px-2.5 py-1 text-[11px] font-medium text-threads-secondary">
-              Total Terbit: {counts.publishedDrafts}
-            </span>
-          </div>
-
-          {recentPublishedDrafts.length === 0 ? (
-            <div className="rounded-2xl border border-threads-border bg-threads-card/40 p-8 text-center">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-threads-surface text-threads-secondary border border-threads-border mb-2.5">
-                <Send className="h-5 w-5" />
-              </div>
-              <p className="text-xs text-threads-secondary">
-                Belum ada postingan yang terpublikasi ke Threads. Setujui draft di antrean untuk mulai mempublikasikan konten.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-threads-border bg-threads-card shadow-sm">
-              <div className="divide-y divide-threads-border">
-                {recentPublishedDrafts.map((draft) => {
-                  const publishedDate = draft.publishedAt
-                    ? new Date(draft.publishedAt).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : 'Baru saja';
-
-                  return (
-                    <div
-                      key={draft.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:px-6 hover:bg-threads-surface/40 transition-colors"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                            PUBLISHED
-                          </span>
-                          <span className="text-xs font-semibold text-threads-text">
-                            {draft.title}
-                          </span>
-                          {draft.product && (
-                            <span className="text-[11px] text-threads-secondary">
-                              • {draft.product.name}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-threads-secondary line-clamp-1 max-w-2xl font-sans">
-                          {draft.posts?.[0]?.content || ''}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 text-xs">
-                        <span className="text-threads-secondary font-mono text-[11px]">
-                          {publishedDate}
-                        </span>
-
-                        {draft.threadPostUrl ? (
-                          <a
-                            href={draft.threadPostUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 rounded-xl bg-threads-surface border border-threads-border px-3 py-1 text-xs font-medium text-threads-text hover:border-threads-accent hover:text-threads-accent transition-colors"
-                          >
-                            <span>Buka Thread</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        ) : (
-                          <span className="text-threads-secondary text-[11px]">
-                            ID: {draft.threadPostId || 'N/A'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* Create / Edit Draft Modal */}
+      {/* Modals */}
       <CreateDraftModal
         isOpen={createDraftModalOpen}
-        onClose={() => {
-          setCreateDraftModalOpen(false);
-          setEditingDraft(null);
+        onClose={() => setCreateDraftModalOpen(false)}
+        onSuccess={() => {
+          fetchOverviewData();
+          addToast('Draft baru berhasil dibuat!', 'success');
         }}
-        onSuccess={handleDraftSaved}
         products={products}
         editingDraft={editingDraft}
       />
 
-      {/* Create Product Modal */}
       <ProductModal
         isOpen={createProductModalOpen}
         onClose={() => setCreateProductModalOpen(false)}
         onSave={handleSaveProduct}
-        initialData={null}
       />
     </div>
   );

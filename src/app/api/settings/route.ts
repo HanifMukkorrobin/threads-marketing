@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   THREADS_USER_ID: '',
 };
 
-export async function GET() {
+export async function GET(req: Request | NextRequest) {
   try {
     const configs = await prisma.systemConfig.findMany();
     const configMap: Record<string, string> = { ...DEFAULT_SETTINGS };
