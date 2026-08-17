@@ -8,12 +8,12 @@ import {
   Package,
   FileText,
   Settings,
-  Sparkles,
   Menu,
   X,
   Radio,
   Lock,
   LogOut,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,7 +28,7 @@ export function Navbar() {
 
   const navItems = [
     {
-      label: 'Dashboard',
+      label: 'Overview',
       href: '/',
       icon: LayoutDashboard,
       active: pathname === '/',
@@ -40,13 +40,13 @@ export function Navbar() {
       active: pathname.startsWith('/products'),
     },
     {
-      label: 'Draft Konten',
+      label: 'Draft Threads',
       href: '/drafts',
       icon: FileText,
       active: pathname.startsWith('/drafts'),
     },
     {
-      label: 'Pengaturan',
+      label: 'Konfigurasi',
       href: '/settings',
       icon: Settings,
       active: pathname.startsWith('/settings'),
@@ -66,23 +66,23 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-threads-border bg-threads-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Brand / Logo */}
+    <header className="sticky top-0 z-40 w-full border-b border-threads-border bg-[#0A0A0A]/90 backdrop-blur-md">
+      <div className="mx-auto flex h-15 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Brand / Logo (Swiss Minimalist Editorial) */}
         <div className="flex items-center space-x-6">
           <Link
             href="/"
-            className="group flex items-center space-x-2.5 transition-opacity hover:opacity-90"
+            className="group flex items-center space-x-2.5 transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-threads-accent to-sky-400 font-bold text-white shadow-sm shadow-threads-accent/20">
-              <Sparkles className="h-5 w-5" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-black font-bold text-sm tracking-tighter shadow-sm transition-transform duration-200 group-hover:scale-105">
+              @
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold tracking-tight text-threads-text">
-                Threads Engine
+              <span className="text-sm font-bold tracking-tight text-white flex items-center gap-1">
+                THREADS <span className="text-zinc-400 font-normal">STUDIO</span>
               </span>
-              <span className="text-[10px] font-medium text-threads-secondary">
-                Marketing & Copy Automation
+              <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-400">
+                Marketing Engine
               </span>
             </div>
           </Link>
@@ -96,13 +96,13 @@ export function Navbar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex items-center space-x-2 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-150',
+                    'relative flex items-center space-x-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-150 active:scale-[0.97]',
                     item.active
-                      ? 'bg-threads-surface text-threads-text border border-threads-border shadow-sm'
-                      : 'text-threads-secondary hover:bg-threads-card hover:text-threads-text'
+                      ? 'bg-[#181818] text-white border border-[#282828] shadow-xs'
+                      : 'text-zinc-400 hover:bg-[#141414] hover:text-zinc-200'
                   )}
                 >
-                  <Icon className={cn('h-4 w-4', item.active ? 'text-threads-accent' : 'text-threads-secondary')} />
+                  <Icon className={cn('h-3.5 w-3.5', item.active ? 'text-white' : 'text-zinc-400')} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -112,13 +112,13 @@ export function Navbar() {
 
         {/* Right side status & lock button */}
         <div className="hidden sm:flex items-center space-x-3">
-          <div className="flex items-center space-x-2 rounded-full border border-threads-border bg-threads-card px-3 py-1 text-xs text-threads-secondary">
+          <div className="flex items-center space-x-2 rounded-full border border-threads-border bg-[#121212] px-3 py-1 text-xs text-zinc-400">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-threads-success opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-threads-success"></span>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
             </span>
-            <span className="font-mono text-[11px] text-zinc-300">Hermes API</span>
-            <span className="text-[10px] text-threads-secondary">v1.0</span>
+            <span className="font-mono text-[11px] text-zinc-300 font-medium">Hermes AI</span>
+            <span className="font-mono text-[10px] text-zinc-400 border-l border-zinc-800 pl-1.5">v1.0</span>
           </div>
 
           <button
@@ -126,7 +126,7 @@ export function Navbar() {
             onClick={handleLogout}
             disabled={loggingOut}
             title="Kunci Dashboard / Logout"
-            className="flex items-center space-x-1.5 rounded-lg border border-threads-border bg-threads-card px-2.5 py-1.5 text-xs text-threads-secondary hover:border-zinc-700 hover:bg-threads-surface hover:text-rose-400 transition-all disabled:opacity-50"
+            className="flex items-center space-x-1.5 rounded-lg border border-threads-border bg-[#121212] px-3 py-1.5 text-xs text-zinc-400 hover:border-zinc-700 hover:bg-[#181818] hover:text-zinc-200 transition-all duration-150 active:scale-[0.96] disabled:opacity-50"
           >
             <Lock className="h-3.5 w-3.5" />
             <span className="hidden lg:inline text-[11px] font-medium">Kunci</span>
@@ -140,24 +140,24 @@ export function Navbar() {
             onClick={handleLogout}
             disabled={loggingOut}
             title="Kunci Dashboard"
-            className="inline-flex items-center justify-center rounded-lg p-2 text-threads-secondary hover:bg-threads-card hover:text-rose-400 focus:outline-none"
+            className="inline-flex items-center justify-center rounded-lg p-2 text-zinc-400 hover:bg-[#141414] hover:text-zinc-200 focus:outline-none"
           >
-            <Lock className="h-5 w-5" />
+            <Lock className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="inline-flex items-center justify-center rounded-lg p-2 text-threads-secondary hover:bg-threads-card hover:text-threads-text focus:outline-none"
+            className="inline-flex items-center justify-center rounded-lg p-2 text-zinc-400 hover:bg-[#141414] hover:text-white focus:outline-none"
             aria-label="Toggle navigation menu"
           >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
-        <div className="border-b border-threads-border bg-threads-card px-4 pt-2 pb-4 md:hidden">
+        <div className="border-b border-threads-border bg-[#121212] px-4 pt-2 pb-4 md:hidden animate-fadeIn">
           <div className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -167,13 +167,13 @@ export function Navbar() {
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
-                    'flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     item.active
-                      ? 'bg-threads-surface text-threads-text border border-threads-border'
-                      : 'text-threads-secondary hover:bg-threads-surface hover:text-threads-text'
+                      ? 'bg-[#181818] text-white border border-[#282828]'
+                      : 'text-zinc-400 hover:bg-[#181818] hover:text-white'
                   )}
                 >
-                  <Icon className={cn('h-5 w-5', item.active ? 'text-threads-accent' : 'text-threads-secondary')} />
+                  <Icon className={cn('h-4 w-4', item.active ? 'text-white' : 'text-zinc-400')} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -183,21 +183,22 @@ export function Navbar() {
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="w-full flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors"
+              className="w-full flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium text-rose-400 hover:bg-rose-500/10 transition-colors"
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut className="h-4 w-4" />
               <span>Kunci Dashboard</span>
             </button>
           </div>
-          <div className="mt-4 pt-3 border-t border-threads-border flex items-center justify-between text-xs text-threads-secondary">
+          <div className="mt-3 pt-3 border-t border-threads-border flex items-center justify-between text-xs text-zinc-400">
             <span className="flex items-center space-x-1.5">
-              <Radio className="h-3.5 w-3.5 text-threads-success" />
+              <Radio className="h-3 w-3 text-emerald-400" />
               <span>Hermes Engine Connected</span>
             </span>
-            <span className="font-mono text-[10px] text-zinc-500">Autonomous</span>
+            <span className="font-mono text-[10px] text-zinc-400 uppercase">Autonomous</span>
           </div>
         </div>
       )}
     </header>
   );
 }
+

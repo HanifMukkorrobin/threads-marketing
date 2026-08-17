@@ -8,12 +8,14 @@ import {
   Sparkles,
   Layers,
   CheckCircle2,
-  AlertCircle,
-  HelpCircle,
+  Tag,
+  Users,
+  MessageSquareQuote,
+  Megaphone,
 } from 'lucide-react';
 import { Product, ProductVariant, CreateProductInput } from '@/types/product';
+import { ModalPortal } from '@/components/ModalPortal';
 import { cn } from '@/lib/utils';
-import { formatIDR } from './ProductCard';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -80,7 +82,6 @@ export function ProductModal({
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Reset or fill form on open / initialData change
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
@@ -104,111 +105,59 @@ export function ProductModal({
         );
         setUspTags(initialData.usp || []);
       } else {
-        // Defaults for new product
         setName('');
-        setCategory(CATEGORY_PRESETS[0]);
+        setCategory('AI & Productivity');
         setCustomCategory('');
         setDescription('');
-        setTargetAudience('');
+        setTargetAudience('Content Creator, Mahasiswa, Freelancer');
         setToneOfVoice('Santai & Edukatif');
-        setCtaTemplate('Klik link di bio untuk order sekarang!');
+        setCtaTemplate('Klik link di bio atau DM untuk order langsung!');
         setIsActive(true);
         setVariants([{ name: '1 Bulan', price: 25000, duration: '30 hari' }]);
-        setUspTags(['Full Garansi', 'Aktivasi Instan']);
+        setUspTags(['Garansi 30 Hari', 'Aktivasi Instan', 'Legal 100%']);
       }
       setErrors({});
-      setUspInput('');
     }
   }, [isOpen, initialData]);
 
-  // Close on Escape
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!name.trim()) newErrors.name = 'Nama produk wajib diisi';
+    const finalCategory = category === 'Other' ? customCategory : category;
+    if (!finalCategory.trim()) newErrors.category = 'Kategori produk wajib diisi';
+    if (!description.trim()) newErrors.description = 'Deskripsi produk wajib diisi';
+    if (variants.length === 0) newErrors.variants = 'Minimal ada 1 varian paket harga';
+
+    for (let i = 0; i < variants.length; i++) {
+      if (!variants[i].name.trim()) {
+        newErrors[`variant_${i}_name`] = 'Nama varian wajib diisi';
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  // Variants management
-  const addVariantRow = () => {
-    setVariants([...variants, { name: '', price: 0, duration: '' }]);
-  };
-
-  const updateVariant = (index: number, field: keyof ProductVariant, value: any) => {
-    const next = [...variants];
-    next[index] = { ...next[index], [field]: value };
-    setVariants(next);
-  };
-
-  const removeVariant = (index: number) => {
-    if (variants.length <= 1) return;
-    setVariants(variants.filter((_, i) => i !== index));
-  };
-
-  // USP Tags management
-  const handleAddUsp = () => {
-    const trimmed = uspInput.trim();
-    if (!trimmed) return;
-    if (!uspTags.includes(trimmed)) {
-      setUspTags([...uspTags, trimmed]);
+      if (variants[i].price <= 0 || isNaN(variants[i].price)) {
+        newErrors[`variant_${i}_price`] = 'Harga harus lebih dari 0';
+      }
     }
-    setUspInput('');
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddPresetUsp = (tag: string) => {
-    if (!uspTags.includes(tag)) {
-      setUspTags([...uspTags, tag]);
-    }
-  };
-
-  const removeUsp = (tagToRemove: string) => {
-    setUspTags(uspTags.filter((t) => t !== tagToRemove));
-  };
-
-  // Submit & Validation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: Record<string, string> = {};
-
-    if (!name.trim()) {
-      newErrors.name = 'Nama produk wajib diisi';
-    }
-
-    const finalCategory = category === 'Other' ? customCategory.trim() : category.trim();
-    if (!finalCategory) {
-      newErrors.category = 'Kategori produk wajib diisi';
-    }
-
-    // Clean variants
-    const validVariants = variants
-      .map((v) => ({
-        name: v.name.trim(),
-        price: Number(v.price) || 0,
-        duration: v.duration?.trim() || undefined,
-      }))
-      .filter((v) => v.name.length > 0);
-
-    if (validVariants.length === 0) {
-      newErrors.variants = 'Minimal 1 varian produk dengan nama valid harus ada';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    if (!validate()) return;
 
     try {
       setIsSaving(true);
-      const payload: CreateProductInput = {
+      const finalCategory = category === 'Other' ? customCategory : category;
+
+      const productPayload: CreateProductInput = {
         name: name.trim(),
-        category: finalCategory,
-        description: description.trim() || undefined,
-        variants: validVariants,
+        category: finalCategory.trim(),
+        description: description.trim(),
+        variants: variants.map((v) => ({
+          name: v.name.trim(),
+          price: Number(v.price),
+          duration: v.duration?.trim() || undefined,
+        })),
         usp: uspTags,
         targetAudience: targetAudience.trim() || undefined,
         toneOfVoice: toneOfVoice.trim() || undefined,
@@ -216,182 +165,157 @@ export function ProductModal({
         isActive,
       };
 
-      await onSave(payload, initialData?.id);
+      await onSave(productPayload, initialData?.id);
       onClose();
-    } catch (err: any) {
-      setErrors({ general: err?.message || 'Gagal menyimpan produk' });
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsSaving(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
+  const handleAddVariant = () => {
+    setVariants([...variants, { name: '', price: 0, duration: '' }]);
+  };
 
-      {/* Modal Card */}
-      <div className="relative w-full max-w-2xl rounded-2xl border border-threads-border bg-threads-surface shadow-2xl overflow-hidden my-8 z-10">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-threads-border bg-threads-card px-6 py-4">
+  const handleRemoveVariant = (index: number) => {
+    if (variants.length <= 1) return;
+    setVariants(variants.filter((_, idx) => idx !== index));
+  };
+
+  const handleVariantChange = (
+    index: number,
+    field: keyof ProductVariant,
+    value: any
+  ) => {
+    const updated = [...variants];
+    updated[index] = { ...updated[index], [field]: value };
+    setVariants(updated);
+  };
+
+  const handleAddUsp = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || uspTags.includes(trimmed)) return;
+    setUspTags([...uspTags, trimmed]);
+    setUspInput('');
+  };
+
+  const handleRemoveUsp = (tag: string) => {
+    setUspTags(uspTags.filter((t) => t !== tag));
+  };
+
+  return (
+    <ModalPortal isOpen={isOpen} onClose={onClose} maxWidth="2xl">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-surface-border px-6 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface border border-surface-border text-ink text-sm font-black shadow-xs">
+            <Tag className="h-4 w-4" />
+          </span>
           <div>
-            <h2 className="text-lg font-semibold text-threads-text">
-              {initialData ? 'Edit Produk Digital' : 'Tambah Produk Baru'}
+            <h2 className="text-base sm:text-lg font-extrabold text-ink tracking-tight">
+              {initialData ? 'Edit Katalog Produk' : 'Tambah Produk Baru'}
             </h2>
-            <p className="text-xs text-threads-secondary">
-              Definisikan detail produk dan context persona untuk copy generator AI.
+            <p className="text-xs text-ink-secondary">
+              Data ini menjadi basis pengetahuan Hermes AI dalam meracik penawaran harga.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-threads-secondary hover:bg-threads-surface hover:text-threads-text transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="max-h-[75vh] overflow-y-auto p-6 space-y-6">
-          {errors.general && (
-            <div className="flex items-center gap-2 rounded-lg bg-red-950/60 p-3 border border-red-800 text-xs text-red-300">
-              <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
-              <span>{errors.general}</span>
-            </div>
-          )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-surface hover:bg-surface-hover text-ink-secondary hover:text-ink transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
 
-          {/* Section 1: Basic Info */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-threads-accent flex items-center gap-1.5">
-              <span>Informasi Utama</span>
+      {/* Scrollable Form Body */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+        <form id="product-form" onSubmit={handleSubmit} className="space-y-5">
+          {/* Section 1: Basic Info Bento */}
+          <div className="rounded-2xl bg-surface p-5 border border-surface-border space-y-4 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-secondary flex items-center gap-1.5">
+              <Tag className="h-3.5 w-3.5" />
+              1. Informasi Dasar Produk
             </h3>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Nama Produk <span className="text-red-400">*</span>
+              <label className="block text-xs font-bold text-ink mb-1">
+                Nama Produk <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: Netflix Premium 4K UHD Ultra"
-                className={cn(
-                  'w-full rounded-lg border bg-threads-card px-3.5 py-2.5 text-sm text-threads-text placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-threads-accent',
-                  errors.name ? 'border-red-500' : 'border-threads-border'
-                )}
+                placeholder="Contoh: Canva Pro Edu / Private Account"
+                className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs font-semibold"
               />
-              {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
+              {errors.name && <p className="text-[11px] text-rose-600 mt-1">{errors.name}</p>}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Kategori <span className="text-red-400">*</span>
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full rounded-lg border border-threads-border bg-threads-card px-3.5 py-2.5 text-sm text-threads-text focus:outline-none focus:ring-1 focus:ring-threads-accent"
-                >
-                  {CATEGORY_PRESETS.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-                {category === 'Other' && (
-                  <input
-                    type="text"
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="Ketik nama kategori..."
-                    className="mt-2 w-full rounded-lg border border-threads-border bg-threads-card px-3 py-2 text-xs text-threads-text placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-threads-accent"
-                  />
-                )}
-                {errors.category && <p className="mt-1 text-xs text-red-400">{errors.category}</p>}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Status Produk
-                </label>
-                <div
-                  onClick={() => setIsActive(!isActive)}
-                  className="flex h-[42px] items-center justify-between rounded-lg border border-threads-border bg-threads-card px-3.5 cursor-pointer transition-all hover:border-zinc-700 select-none"
-                >
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors',
-                      isActive
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        : 'bg-zinc-800 text-zinc-400 border-zinc-700/60'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'h-1.5 w-1.5 rounded-full',
-                        isActive ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
-                      )}
-                    />
-                    {isActive ? 'Aktif (Digunakan AI)' : 'Non-aktif'}
-                  </span>
-
+            {/* Category Presets */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-ink">
+                Kategori <span className="text-rose-500">*</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {CATEGORY_PRESETS.map((cat) => (
                   <button
+                    key={cat}
                     type="button"
-                    role="switch"
-                    aria-checked={isActive}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsActive(!isActive);
-                    }}
+                    onClick={() => setCategory(cat)}
                     className={cn(
-                      'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-threads-accent focus:ring-offset-2 focus:ring-offset-threads-surface border',
-                      isActive
-                        ? 'bg-emerald-500 border-emerald-400/50 shadow-sm'
-                        : 'bg-zinc-800 border-zinc-700'
+                      'rounded-full px-3 py-1 text-xs font-semibold border transition-all tap-effect',
+                      category === cat
+                        ? 'bg-ink text-white shadow-pill'
+                        : 'bg-white text-ink-secondary border-surface-border hover:bg-surface-hover'
                     )}
                   >
-                    <span
-                      className={cn(
-                        'pointer-events-none inline-block h-4.5 w-4.5 rounded-full bg-white shadow transform transition duration-200 ease-in-out',
-                        isActive ? 'translate-x-5' : 'translate-x-0'
-                      )}
-                    />
+                    {cat}
                   </button>
-                </div>
+                ))}
               </div>
+              {category === 'Other' && (
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Ketik nama kategori kustom..."
+                  className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none mt-2 shadow-xs"
+                />
+              )}
             </div>
 
+            {/* Description */}
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Deskripsi Singkat Produk
+              <label className="block text-xs font-bold text-ink mb-1">
+                Deskripsi Singkat <span className="text-rose-500">*</span>
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-                placeholder="Deskripsi keunggulan, spesifikasi akun, atau ketentuan langganan..."
-                className="w-full rounded-lg border border-threads-border bg-threads-card px-3.5 py-2.5 text-sm text-threads-text placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-threads-accent"
+                rows={3}
+                placeholder="Jelaskan apa itu produk ini, apa keuntungannya bagi pembeli..."
+                className="w-full rounded-2xl bg-white border border-surface-border p-3.5 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none leading-relaxed shadow-xs"
               />
             </div>
           </div>
 
-          {/* Section 2: Dynamic Variants & Pricing */}
-          <div className="space-y-3 pt-2 border-t border-threads-border">
+          {/* Section 2: Pricing Variants Bento */}
+          <div className="rounded-2xl bg-surface p-5 border border-surface-border space-y-4 shadow-xs">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-threads-accent flex items-center gap-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-ink-secondary flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5" />
-                <span>Varian & Penetapan Harga</span>
+                2. Varian Paket & Harga Resmi
               </h3>
               <button
                 type="button"
-                onClick={addVariantRow}
-                className="inline-flex items-center gap-1 text-xs font-medium text-threads-accent hover:text-sky-400 transition-colors"
+                onClick={handleAddVariant}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white hover:bg-surface-hover text-ink text-xs font-bold border border-surface-border shadow-xs tap-effect"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3 w-3" />
                 <span>Tambah Varian</span>
               </button>
             </div>
@@ -400,207 +324,180 @@ export function ProductModal({
               {variants.map((v, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center gap-2 rounded-xl bg-threads-card p-2.5 border border-threads-border"
+                  className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-white p-3 rounded-2xl border border-surface-border items-center shadow-xs"
                 >
-                  <div className="flex-1">
+                  <div className="sm:col-span-5">
                     <input
                       type="text"
                       value={v.name}
-                      onChange={(e) => updateVariant(idx, 'name', e.target.value)}
-                      placeholder="Nama Varian (misal: 1 Bulan)"
-                      className="w-full rounded-lg border border-zinc-700/80 bg-zinc-900 px-3 py-1.5 text-xs text-threads-text placeholder-zinc-500 focus:outline-none focus:border-threads-accent"
+                      onChange={(e) => handleVariantChange(idx, 'name', e.target.value)}
+                      placeholder="Nama Paket (e.g. 1 Bulan Sharing)"
+                      className="w-full rounded-xl bg-surface border border-surface-border px-3 py-1.5 text-xs text-ink font-semibold focus:border-ink focus:outline-none"
                     />
                   </div>
-                  <div className="w-32">
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1.5 text-[11px] text-zinc-500">Rp</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={v.price || ''}
-                        onChange={(e) => updateVariant(idx, 'price', Number(e.target.value))}
-                        placeholder="Harga"
-                        className="w-full rounded-lg border border-zinc-700/80 bg-zinc-900 pl-7 pr-2 py-1.5 text-xs text-threads-text placeholder-zinc-500 focus:outline-none focus:border-threads-accent"
-                      />
-                    </div>
+                  <div className="sm:col-span-4">
+                    <input
+                      type="number"
+                      value={v.price || ''}
+                      onChange={(e) =>
+                        handleVariantChange(idx, 'price', parseFloat(e.target.value) || 0)
+                      }
+                      placeholder="Harga Rp (e.g. 25000)"
+                      className="w-full rounded-xl bg-surface border border-surface-border px-3 py-1.5 text-xs text-ink font-bold focus:border-ink focus:outline-none"
+                    />
                   </div>
-                  <div className="w-28">
+                  <div className="sm:col-span-2">
                     <input
                       type="text"
                       value={v.duration || ''}
-                      onChange={(e) => updateVariant(idx, 'duration', e.target.value)}
+                      onChange={(e) => handleVariantChange(idx, 'duration', e.target.value)}
                       placeholder="Durasi (30 hari)"
-                      className="w-full rounded-lg border border-zinc-700/80 bg-zinc-900 px-2.5 py-1.5 text-xs text-threads-text placeholder-zinc-500 focus:outline-none focus:border-threads-accent"
+                      className="w-full rounded-xl bg-surface border border-surface-border px-3 py-1.5 text-xs text-ink-secondary focus:border-ink focus:outline-none"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeVariant(idx)}
-                    disabled={variants.length <= 1}
-                    className="p-1.5 text-zinc-500 hover:text-red-400 disabled:opacity-30 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="sm:col-span-1 flex justify-center">
+                    {variants.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariant(idx)}
+                        className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-full"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
-            {errors.variants && <p className="text-xs text-red-400">{errors.variants}</p>}
           </div>
 
-          {/* Section 3: Dynamic USP Tags */}
-          <div className="space-y-3 pt-2 border-t border-threads-border">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Unique Selling Points (USP / Fitur Kunci)</span>
+          {/* Section 3: AI Copywriting Parameters Bento */}
+          <div className="rounded-2xl bg-surface p-5 border border-surface-border space-y-4 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-secondary flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+              3. Parameter Copywriting Hermes AI
             </h3>
 
-            {/* Added Tag Pills */}
-            <div className="flex flex-wrap gap-1.5 min-h-[32px] p-2 rounded-xl bg-threads-card border border-threads-border">
-              {uspTags.length === 0 ? (
-                <span className="text-xs text-zinc-500 italic">Belum ada USP ditambahkan.</span>
-              ) : (
-                uspTags.map((tag) => (
-                  <span
+            {/* USPs */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-ink">
+                Keunggulan Utama / USPs
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {USP_PRESETS.map((tag) => (
+                  <button
                     key={tag}
-                    className="inline-flex items-center gap-1 rounded-md bg-zinc-800 px-2.5 py-1 text-xs text-zinc-200 border border-zinc-700"
+                    type="button"
+                    onClick={() =>
+                      uspTags.includes(tag) ? handleRemoveUsp(tag) : handleAddUsp(tag)
+                    }
+                    className={cn(
+                      'rounded-full px-3 py-1 text-[11px] font-semibold border transition-all tap-effect',
+                      uspTags.includes(tag)
+                        ? 'bg-lime text-ink border-lime-dark/30 font-bold'
+                        : 'bg-white text-ink-secondary border-surface-border hover:bg-surface-hover'
+                    )}
                   >
-                    <span>{tag}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeUsp(tag)}
-                      className="text-zinc-400 hover:text-red-400 transition-colors ml-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))
-              )}
-            </div>
+                    {uspTags.includes(tag) ? `✓ ${tag}` : `+ ${tag}`}
+                  </button>
+                ))}
+              </div>
 
-            {/* Input & Quick Presets */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={uspInput}
-                onChange={(e) => setUspInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddUsp();
-                  }
-                }}
-                placeholder="Ketik USP lalu tekan Enter..."
-                className="flex-1 rounded-lg border border-threads-border bg-threads-card px-3 py-2 text-xs text-threads-text placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-threads-accent"
-              />
-              <button
-                type="button"
-                onClick={handleAddUsp}
-                className="rounded-lg bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-700 transition-colors border border-zinc-700"
-              >
-                Tambah
-              </button>
-            </div>
-
-            {/* Quick preset chips */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[11px] text-zinc-500">Saran cepat:</span>
-              {USP_PRESETS.map((preset) => (
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="text"
+                  value={uspInput}
+                  onChange={(e) => setUspInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddUsp(uspInput);
+                    }
+                  }}
+                  placeholder="Ketik USP custom lalu tekan Enter..."
+                  className="flex-1 rounded-full bg-white border border-surface-border px-4 py-1.5 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs"
+                />
                 <button
-                  key={preset}
                   type="button"
-                  onClick={() => handleAddPresetUsp(preset)}
-                  className="rounded bg-zinc-900 border border-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors"
+                  onClick={() => handleAddUsp(uspInput)}
+                  className="px-4 py-1.5 rounded-full bg-white border border-surface-border text-xs font-bold text-ink hover:bg-surface-hover shadow-xs"
                 >
-                  + {preset}
+                  Tambah
                 </button>
-              ))}
+              </div>
             </div>
-          </div>
 
-          {/* Section 4: AI Context Persona (Audience, Tone, CTA) */}
-          <div className="space-y-4 pt-2 border-t border-threads-border">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-threads-accent flex items-center gap-1.5">
-              <span>Persona & Copy Context untuk AI</span>
-            </h3>
-
+            {/* Target Audience & Tone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Target Audience
+                <label className="block text-xs font-bold text-ink mb-1 flex items-center gap-1">
+                  <Users className="h-3 w-3 text-ink-muted" /> Target Audiens
                 </label>
                 <input
                   type="text"
                   value={targetAudience}
                   onChange={(e) => setTargetAudience(e.target.value)}
-                  placeholder="Misal: Mahasiswa, Freelancer, Movie Buffs"
-                  className="w-full rounded-lg border border-threads-border bg-threads-card px-3.5 py-2 text-xs text-threads-text placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-threads-accent"
+                  placeholder="e.g. Mahasiswa, Content Creator..."
+                  className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Tone of Voice
+                <label className="block text-xs font-bold text-ink mb-1 flex items-center gap-1">
+                  <MessageSquareQuote className="h-3 w-3 text-ink-muted" /> Gaya Bahasa (Tone)
                 </label>
-                <input
-                  type="text"
+                <select
                   value={toneOfVoice}
                   onChange={(e) => setToneOfVoice(e.target.value)}
-                  placeholder="Misal: Santai, Edukatif, Storytelling"
-                  list="tone-options"
-                  className="w-full rounded-lg border border-threads-border bg-threads-card px-3.5 py-2 text-xs text-threads-text placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-threads-accent"
-                />
-                <datalist id="tone-options">
+                  className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink font-medium focus:border-ink focus:outline-none shadow-xs cursor-pointer"
+                >
                   {TONE_PRESETS.map((t) => (
-                    <option key={t} value={t} />
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
                   ))}
-                </datalist>
+                </select>
               </div>
             </div>
 
+            {/* CTA Template */}
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                Template Call to Action (CTA)
+              <label className="block text-xs font-bold text-ink mb-1 flex items-center gap-1">
+                <Megaphone className="h-3 w-3 text-ink-muted" /> Ajakan Bertindak (CTA)
               </label>
               <input
                 type="text"
                 value={ctaTemplate}
                 onChange={(e) => setCtaTemplate(e.target.value)}
-                placeholder="Misal: Klik link di bio untuk amankan slot kamu sebelum kehabisan!"
-                className="w-full rounded-lg border border-threads-border bg-threads-card px-3.5 py-2 text-xs text-threads-text placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-threads-accent"
+                placeholder="e.g. DM admin sekarang selagi slot promo masih ready!"
+                className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs"
               />
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-threads-border">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-400 hover:bg-threads-card hover:text-zinc-200 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-xl bg-threads-accent px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-threads-accent/20 hover:bg-sky-500 disabled:opacity-50 transition-all"
-            >
-              {isSaving ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>{initialData ? 'Simpan Perubahan' : 'Buat Produk'}</span>
-                </>
-              )}
-            </button>
-          </div>
         </form>
       </div>
-    </div>
+
+      {/* Sticky Footer */}
+      <div className="sticky bottom-0 z-20 bg-white border-t border-surface-border px-6 py-4 flex items-center justify-end gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSaving}
+          className="px-5 py-2.5 rounded-full border border-surface-border text-xs font-semibold text-ink hover:bg-surface transition-colors"
+        >
+          Batal
+        </button>
+
+        <button
+          type="submit"
+          form="product-form"
+          disabled={isSaving}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-ink hover:bg-zinc-800 text-white text-xs font-bold transition-all tap-effect shadow-pill disabled:opacity-50"
+        >
+          <CheckCircle2 className="h-4 w-4 stroke-[2.5]" />
+          <span>{isSaving ? 'Menyimpan...' : initialData ? 'Perbarui Produk' : 'Simpan Produk'}</span>
+        </button>
+      </div>
+    </ModalPortal>
   );
 }

@@ -12,11 +12,14 @@ import {
   AlertCircle,
   CheckCircle2,
   Wand2,
-  ChevronDown,
-  ChevronUp,
+  RefreshCw,
+  Tag,
+  PenTool,
+  Check,
 } from 'lucide-react';
 import { Product } from '@/types/product';
 import { ContentDraft, CreateDraftInput, DraftStatus } from '@/types/draft';
+import { ModalPortal } from '@/components/ModalPortal';
 import { cn } from '@/lib/utils';
 
 interface CreateDraftModalProps {
@@ -44,6 +47,8 @@ export function CreateDraftModal({
   products,
   editingDraft,
 }: CreateDraftModalProps) {
+  const [activeMode, setActiveMode] = useState<'AI' | 'MANUAL'>('AI');
+
   const [title, setTitle] = useState('');
   const [productId, setProductId] = useState<string>('');
   const [hookAngle, setHookAngle] = useState('');
@@ -53,7 +58,6 @@ export function CreateDraftModal({
   ]);
 
   // AI Generator Panel States
-  const [aiPanelOpen, setAiPanelOpen] = useState(true);
   const [selectedAngle, setSelectedAngle] = useState('contrarian');
   const [customTopic, setCustomTopic] = useState('');
   const [generatingAi, setGeneratingAi] = useState(false);
@@ -62,7 +66,6 @@ export function CreateDraftModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Synchronize initial state when opening modal or changing editingDraft
   useEffect(() => {
     if (editingDraft) {
       setTitle(editingDraft.title || '');
@@ -79,20 +82,18 @@ export function CreateDraftModal({
       } else {
         setPosts([{ content: '', mediaUrl: '' }]);
       }
-      setAiPanelOpen(false);
+      setActiveMode('MANUAL');
     } else {
       setTitle('');
       setProductId('');
       setHookAngle('');
       setStatus('PENDING_REVIEW');
       setPosts([{ content: '', mediaUrl: '' }]);
-      setAiPanelOpen(true);
+      setActiveMode('AI');
     }
     setError(null);
     setAiSuccessMessage(null);
   }, [editingDraft, isOpen]);
-
-  if (!isOpen) return null;
 
   const handleGenerateWithHermes = async () => {
     try {
@@ -100,66 +101,64 @@ export function CreateDraftModal({
       setError(null);
       setAiSuccessMessage(null);
 
+      const payload = {
+        productId: productId || null,
+        angle: selectedAngle,
+        customTopic: customTopic.trim() || undefined,
+      };
+
       const res = await fetch('/api/drafts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: productId || null,
-          angle: selectedAngle,
-          customTopic: customTopic.trim() || null,
-          autoSave: false,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Gagal menghasilkan draft dengan Hermes AI');
+        throw new Error(data.error || 'Hermes AI gagal meracik draf');
       }
 
-      const genData = data.data;
-      if (genData.title) setTitle(genData.title);
-      if (genData.hookAngle) setHookAngle(genData.hookAngle);
-      if (Array.isArray(genData.posts) && genData.posts.length > 0) {
-        setPosts(
-          genData.posts.map((p: any) => ({
-            content: p.content || '',
-            mediaUrl: p.mediaUrl || '',
-          }))
-        );
+      const generated = data.data;
+      if (generated) {
+        setTitle(generated.title || '');
+        setHookAngle(generated.hookAngle || '');
+        if (generated.productId) setProductId(generated.productId);
+        if (Array.isArray(generated.posts) && generated.posts.length > 0) {
+          setPosts(
+            generated.posts.map((p: any) => ({
+              content: p.content || '',
+              mediaUrl: p.mediaUrl || '',
+            }))
+          );
+        }
+        setAiSuccessMessage('Hermes AI berhasil meracik draft copywriting baru!');
+        // Automatically switch to Manual mode so user can review and polish the generated posts
+        setActiveMode('MANUAL');
       }
-
-      setAiSuccessMessage('Draft fresh berhasil digenerate oleh Hermes Agent! Silakan review dan sesuaikan jika perlu.');
     } catch (err: any) {
-      setError(err?.message || 'Terjadi kesalahan saat meminta Hermes AI');
+      setError(err?.message || 'Gagal generate konten dengan AI');
     } finally {
       setGeneratingAi(false);
     }
   };
 
+  const handlePostChange = (index: number, field: 'content' | 'mediaUrl', value: string) => {
+    const next = [...posts];
+    next[index][field] = value;
+    setPosts(next);
+  };
+
   const handleAddPost = () => {
-    setPosts((prev) => [...prev, { content: '', mediaUrl: '' }]);
+    setPosts([...posts, { content: '', mediaUrl: '' }]);
   };
 
   const handleRemovePost = (index: number) => {
     if (posts.length <= 1) return;
-    setPosts((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handlePostChange = (
-    index: number,
-    field: 'content' | 'mediaUrl',
-    val: string
-  ) => {
-    setPosts((prev) =>
-      prev.map((p, i) => (i === index ? { ...p, [field]: val } : p))
-    );
+    setPosts(posts.filter((_, idx) => idx !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    // Form Validations
     if (!title.trim()) {
       setError('Judul draft wajib diisi');
       return;
@@ -167,28 +166,36 @@ export function CreateDraftModal({
 
     const validPosts = posts.filter((p) => p.content.trim().length > 0);
     if (validPosts.length === 0) {
-      setError('Minimal harus ada 1 post dengan konten teks');
+      setError('Minimal ada 1 bagian postingan dengan konten');
       return;
+    }
+
+    for (let i = 0; i < validPosts.length; i++) {
+      if (validPosts[i].content.length > 500) {
+        setError(`Post #${i + 1} melebihi limit 500 karakter Threads (${validPosts[i].content.length}/500)`);
+        return;
+      }
     }
 
     try {
       setLoading(true);
+      setError(null);
 
       const payload: CreateDraftInput = {
         title: title.trim(),
-        productId: productId ? productId : null,
+        productId: productId || null,
         hookAngle: hookAngle.trim() || null,
-        status: status,
         type: validPosts.length > 1 ? 'THREAD_CHAIN' : 'SINGLE',
-        posts: validPosts.map((p, index) => ({
-          orderIndex: index,
+        source: editingDraft ? editingDraft.source as any : 'MANUAL',
+        posts: validPosts.map((p, idx) => ({
+          orderIndex: idx,
           content: p.content.trim(),
           mediaUrl: p.mediaUrl.trim() || null,
         })),
       };
 
       const url = editingDraft ? `/api/drafts/${editingDraft.id}` : '/api/drafts';
-      const method = editingDraft ? 'PUT' : 'POST';
+      const method = editingDraft ? 'PATCH' : 'POST';
 
       const res = await fetch(url, {
         method,
@@ -197,12 +204,11 @@ export function CreateDraftModal({
       });
 
       const data = await res.json();
-
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Gagal menyimpan draft');
       }
 
-      onSuccess(data.draft || data.data);
+      onSuccess(data.data);
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Terjadi kesalahan saat menyimpan draft');
@@ -212,276 +218,282 @@ export function CreateDraftModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Modal Card */}
-      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border border-threads-border bg-threads-card shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-threads-border px-6 py-4">
-          <div className="flex items-center space-x-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-threads-surface border border-threads-border text-threads-accent">
-              <FileText className="h-5 w-5" />
-            </div>
+    <ModalPortal isOpen={isOpen} onClose={onClose} maxWidth="2xl">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-surface-border px-6 py-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-lime text-ink text-sm font-black shadow-xs">
+              ⚡
+            </span>
             <div>
-              <h2 className="text-base font-semibold text-threads-text">
-                {editingDraft ? 'Edit Draft Konten' : 'Buat Draft Konten Baru'}
+              <h2 className="text-base sm:text-lg font-extrabold text-ink tracking-tight">
+                {editingDraft ? 'Edit Draft Konten' : 'Buat Draft Threads Baru'}
               </h2>
-              <p className="text-xs text-threads-secondary">
-                {editingDraft
-                  ? 'Perbarui teks, hook, atau rantai postingan thread'
-                  : 'Tulis manual atau generate instan rangkaian thread dengan Hermes AI'}
+              <p className="text-xs text-ink-secondary">
+                Racik postingan berkonversi dengan AI atau susun rangkaian post manual.
               </p>
             </div>
           </div>
+
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-threads-secondary transition-colors hover:bg-threads-surface hover:text-threads-text"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-surface hover:bg-surface-hover text-ink-secondary hover:text-ink transition-colors"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
-          {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300">
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-              <span>{error}</span>
-            </div>
-          )}
+        {/* Mode Pill Switcher */}
+        {!editingDraft && (
+          <div className="flex items-center rounded-full bg-surface p-1 border border-surface-border">
+            <button
+              type="button"
+              onClick={() => setActiveMode('AI')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-2 py-1.5 rounded-full text-xs font-bold transition-all tap-effect',
+                activeMode === 'AI'
+                  ? 'bg-ink text-white shadow-pill'
+                  : 'text-ink-secondary hover:text-ink'
+              )}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-lime" />
+              <span>Hermes AI Generator</span>
+            </button>
 
-          {aiSuccessMessage && (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-300">
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
-              <span>{aiSuccessMessage}</span>
-            </div>
-          )}
+            <button
+              type="button"
+              onClick={() => setActiveMode('MANUAL')}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-2 py-1.5 rounded-full text-xs font-bold transition-all tap-effect',
+                activeMode === 'MANUAL'
+                  ? 'bg-ink text-white shadow-pill'
+                  : 'text-ink-secondary hover:text-ink'
+              )}
+            >
+              <PenTool className="h-3.5 w-3.5" />
+              <span>Editor Manual {posts[0]?.content && `(${posts.length} Post)`}</span>
+            </button>
+          </div>
+        )}
+      </div>
 
-          {/* AI Generator Panel (Available when creating new draft) */}
-          {!editingDraft && (
-            <div className="rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/5 p-4 space-y-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
-                    <Wand2 className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-threads-text flex items-center gap-1.5">
-                      <span>Hermes AI Content Generator</span>
-                      <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold text-indigo-300">
-                        Fresh & Anti-Klise
-                      </span>
-                    </h3>
-                    <p className="text-[11px] text-threads-secondary">
-                      Racik hook & thread berkonversi tinggi secara otomatis berdasarkan sudut pandang pilihan
-                    </p>
-                  </div>
+      {/* Scrollable Body */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+        {error && (
+          <div className="flex items-center gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 animate-fadeIn">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+            <span className="font-semibold">{error}</span>
+          </div>
+        )}
+
+        {aiSuccessMessage && (
+          <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 animate-fadeIn">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span className="font-semibold">{aiSuccessMessage}</span>
+          </div>
+        )}
+
+        {/* MODE 1: Hermes AI Generator */}
+        {activeMode === 'AI' && !editingDraft && (
+          <div className="space-y-5">
+            {/* Angle Selection Grid */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-ink uppercase tracking-wider">
+                Pilih Sudut Pandang / Copywriting Angle
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {AI_ANGLES.map((angle) => (
+                  <button
+                    key={angle.id}
+                    type="button"
+                    onClick={() => setSelectedAngle(angle.id)}
+                    className={cn(
+                      'rounded-2xl p-3.5 text-left transition-all border tap-effect space-y-1',
+                      selectedAngle === angle.id
+                        ? 'bg-surface border-ink shadow-xs ring-1 ring-black'
+                        : 'bg-surface/50 border-surface-border hover:bg-surface'
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="block text-xs font-bold text-ink">{angle.label}</span>
+                      {selectedAngle === angle.id && (
+                        <Check className="h-3.5 w-3.5 text-ink stroke-[2.5]" />
+                      )}
+                    </div>
+                    <span className="block text-[11px] text-ink-secondary leading-tight">
+                      {angle.desc}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Product & Custom Topic */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1.5">
+                  Pilih Produk Terkait (Opsional)
+                </label>
+                <select
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                  className="w-full rounded-full bg-surface border border-surface-border px-4 py-2 text-xs text-ink font-medium focus:border-ink focus:bg-white focus:outline-none shadow-xs cursor-pointer"
+                >
+                  <option value="">-- Konten Organik (Non-Produk) --</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1.5">
+                  Topik Khusus / Prompt (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={customTopic}
+                  onChange={(e) => setCustomTopic(e.target.value)}
+                  placeholder="e.g. Tips nugas santai, Canva vs Photoshop..."
+                  className="w-full rounded-full bg-surface border border-surface-border px-4 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:bg-white focus:outline-none shadow-xs"
+                />
+              </div>
+            </div>
+
+            {/* Generate Action Card */}
+            <div className="rounded-2xl border border-surface-border bg-ink p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-dock">
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-lime" />
+                  Hermes Autonomous Engine
+                </h4>
+                <p className="text-[11px] text-zinc-400">
+                  Meracik otomatis Hook, Value USP, dan CTA sesuai standar humanizer Threads.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGenerateWithHermes}
+                disabled={generatingAi}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-lime hover:bg-lime-hover text-ink text-xs font-bold shadow-pill transition-all tap-effect shrink-0 disabled:opacity-50"
+              >
+                {generatingAi ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Wand2 className="h-3.5 w-3.5" />
+                )}
+                <span>
+                  {generatingAi ? 'Meracik Draft...' : 'Racik Draft dengan Hermes AI'}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* MODE 2: Manual Post & Chain Editor */}
+        {(activeMode === 'MANUAL' || editingDraft) && (
+          <form id="draft-form" onSubmit={handleSubmit} className="space-y-5">
+            {/* Metadata Card */}
+            <div className="rounded-2xl bg-surface p-5 border border-surface-border space-y-4 shadow-xs">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-ink-secondary flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Informasi Draft
+              </h3>
+
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1">
+                  Judul Internal Draft <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Misal: 5 Alasan Kenapa Harus Pakai Canva Pro..."
+                  className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    Produk Terkait
+                  </label>
+                  <select
+                    value={productId}
+                    onChange={(e) => setProductId(e.target.value)}
+                    className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink font-medium focus:border-ink focus:outline-none shadow-xs cursor-pointer"
+                  >
+                    <option value="">-- Organik / Tanpa Produk --</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-ink mb-1">
+                    Hook Angle
+                  </label>
+                  <input
+                    type="text"
+                    value={hookAngle}
+                    onChange={(e) => setHookAngle(e.target.value)}
+                    placeholder="e.g. Price Comparison, Unpopular Opinion..."
+                    className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Posts Chain Section */}
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-ink-secondary flex items-center gap-1.5">
+                  <Layers className="h-3.5 w-3.5" />
+                  Rangkaian Postingan Thread ({posts.length} Bagian)
+                </h3>
                 <button
                   type="button"
-                  onClick={() => setAiPanelOpen(!aiPanelOpen)}
-                  className="rounded-lg p-1 text-threads-secondary hover:text-threads-text hover:bg-threads-surface transition-colors"
+                  onClick={handleAddPost}
+                  className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-surface hover:bg-surface-hover text-ink text-xs font-bold border border-surface-border shadow-xs tap-effect"
                 >
-                  {aiPanelOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+                  <span>Tambah Post Lanjutan</span>
                 </button>
               </div>
 
-              {aiPanelOpen && (
-                <div className="pt-2 space-y-3 border-t border-indigo-500/20">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Angle Selector */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-threads-text">
-                        Sudut Pandang / Angle
-                      </label>
-                      <select
-                        value={selectedAngle}
-                        onChange={(e) => setSelectedAngle(e.target.value)}
-                        className="w-full rounded-lg border border-threads-border bg-threads-bg px-2.5 py-1.5 text-xs text-threads-text focus:border-indigo-400 focus:outline-none"
-                      >
-                        {AI_ANGLES.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Custom Topic/Scenario */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-threads-text">
-                        Topik / Skenario Spesifik (Opsional)
-                      </label>
-                      <input
-                        type="text"
-                        value={customTopic}
-                        onChange={(e) => setCustomTopic(e.target.value)}
-                        placeholder="Misal: nugas skripsi jam 2 pagi, meeting klien..."
-                        className="w-full rounded-lg border border-threads-border bg-threads-bg px-2.5 py-1.5 text-xs text-threads-text placeholder-threads-muted focus:border-indigo-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleGenerateWithHermes}
-                    disabled={generatingAi}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-indigo-600/25 transition-all hover:opacity-95 disabled:opacity-50"
-                  >
-                    {generatingAi ? (
-                      <>
-                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        <span>Hermes AI Sedang Meracik Konten Fresh...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        <span>Generate Rangkaian Thread dengan Hermes AI</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Title */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-threads-text">
-              Judul Draft <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Contoh: 5 Alasan Beralih ke Canva Pro Lifetime"
-              className="w-full rounded-xl border border-threads-border bg-threads-bg px-3.5 py-2.5 text-sm text-threads-text placeholder-threads-muted focus:border-threads-accent focus:outline-none"
-              required
-            />
-          </div>
-
-          {/* Product & Hook Angle in 2 cols */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Product Selector */}
-            <div className="space-y-1.5">
-              <label className="flex items-center gap-1 text-xs font-semibold text-threads-text">
-                <Package className="h-3.5 w-3.5 text-threads-accent" />
-                Produk Terkait
-              </label>
-              <select
-                value={productId}
-                onChange={(e) => setProductId(e.target.value)}
-                className="w-full rounded-xl border border-threads-border bg-threads-bg px-3 py-2.5 text-sm text-threads-text focus:border-threads-accent focus:outline-none"
-              >
-                <option value="">-- Umum / Tanpa Produk Spesifik (Organik) --</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.category})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Hook Angle */}
-            <div className="space-y-1.5">
-              <label className="flex items-center gap-1 text-xs font-semibold text-threads-text">
-                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                Hook Angle / Sudut Pandang
-              </label>
-              <input
-                type="text"
-                value={hookAngle}
-                onChange={(e) => setHookAngle(e.target.value)}
-                placeholder="Pilih atau ketik angle..."
-                className="w-full rounded-xl border border-threads-border bg-threads-bg px-3.5 py-2.5 text-sm text-threads-text placeholder-threads-muted focus:border-threads-accent focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Initial Status */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-threads-text">
-              Status Awal
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setStatus('PENDING_REVIEW')}
-                className={cn(
-                  'flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-all',
-                  status === 'PENDING_REVIEW'
-                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 shadow-sm'
-                    : 'border-threads-border bg-threads-bg text-threads-secondary hover:bg-threads-surface'
-                )}
-              >
-                <span>Menunggu Review</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatus('APPROVED')}
-                className={cn(
-                  'flex items-center justify-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-all',
-                  status === 'APPROVED'
-                    ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300 shadow-sm'
-                    : 'border-threads-border bg-threads-bg text-threads-secondary hover:bg-threads-surface'
-                )}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Langsung Setujui (Approved)</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Thread / Post Items Section */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Layers className="h-4 w-4 text-threads-accent" />
-                <span className="text-xs font-semibold text-threads-text">
-                  Postingan Konten ({posts.length} {posts.length > 1 ? 'Part Thread' : 'Post'})
-                </span>
-              </div>
-              <span className="text-[11px] text-threads-secondary">
-                Batas ideal: 500 karakter / post di Threads
-              </span>
-            </div>
-
-            {/* Post cards list */}
-            <div className="space-y-3">
-              {posts.map((post, idx) => {
-                const charCount = post.content.length;
-                const isOverLimit = charCount > 500;
-
-                return (
+              <div className="space-y-3">
+                {posts.map((post, idx) => (
                   <div
                     key={idx}
-                    className="relative rounded-xl border border-threads-border bg-threads-bg/80 p-3.5 space-y-2.5"
+                    className="rounded-2xl bg-surface p-4 border border-surface-border space-y-3 shadow-xs"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-threads-secondary uppercase tracking-wider">
-                        {posts.length > 1 ? `Post #${idx + 1}` : 'Isi Post Utama'}
+                      <span className="text-xs font-bold text-ink bg-white px-3 py-0.5 rounded-full border border-surface-border shadow-xs">
+                        {idx === 0 ? 'Post #01 (Hook Utama)' : `Post #${String(idx + 1).padStart(2, '0')}`}
                       </span>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <span
                           className={cn(
-                            'text-[11px] font-mono font-medium',
-                            isOverLimit ? 'text-rose-400 font-bold' : 'text-threads-secondary'
+                            'text-[11px] font-mono font-bold',
+                            post.content.length > 500 ? 'text-rose-600' : 'text-ink-muted'
                           )}
                         >
-                          {charCount} / 500
+                          {post.content.length} / 500
                         </span>
                         {posts.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemovePost(idx)}
-                            className="rounded p-1 text-threads-secondary hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
-                            title="Hapus Bagian Post Ini"
+                            className="p-1 text-zinc-400 hover:text-rose-600 rounded-full transition-colors"
+                            title="Hapus Bagian Ini"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -489,61 +501,68 @@ export function CreateDraftModal({
                       </div>
                     </div>
 
-                    {/* Textarea */}
                     <textarea
-                      rows={3}
                       value={post.content}
                       onChange={(e) => handlePostChange(idx, 'content', e.target.value)}
-                      placeholder={`Tulis isi konten post ${idx + 1}...`}
-                      className="w-full rounded-lg border border-threads-border bg-threads-card px-3 py-2 text-xs text-threads-text placeholder-threads-muted focus:border-threads-accent focus:outline-none resize-y"
+                      rows={3}
+                      placeholder={
+                        idx === 0
+                          ? 'Tulis kalimat hook pembuka yang menarik audiens di Threads...'
+                          : `Tulis kelanjutan poin thread bagian #${idx + 1}...`
+                      }
+                      className="w-full rounded-xl bg-white border border-surface-border p-3 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none leading-relaxed shadow-xs"
                     />
 
-                    {/* Optional Media URL */}
-                    <input
-                      type="url"
-                      value={post.mediaUrl}
-                      onChange={(e) => handlePostChange(idx, 'mediaUrl', e.target.value)}
-                      placeholder="Optional: Link Media URL / Gambar (https://...)"
-                      className="w-full rounded-lg border border-threads-border/70 bg-threads-card/70 px-3 py-1.5 text-[11px] text-zinc-300 placeholder-threads-muted focus:border-threads-accent focus:outline-none"
-                    />
+                    <div>
+                      <input
+                        type="url"
+                        value={post.mediaUrl}
+                        onChange={(e) => handlePostChange(idx, 'mediaUrl', e.target.value)}
+                        placeholder="URL Media Lampiran (Opsional, e.g. https://...)"
+                        className="w-full rounded-full bg-white border border-surface-border px-4 py-1.5 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs font-mono"
+                      />
+                    </div>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
+          </form>
+        )}
+      </div>
 
-            {/* Add Next Thread Part Button */}
-            <button
-              type="button"
-              onClick={handleAddPost}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-threads-border py-2.5 text-xs font-medium text-threads-secondary transition-colors hover:border-threads-accent/50 hover:bg-threads-surface/50 hover:text-threads-text"
-            >
-              <Plus className="h-3.5 w-3.5 text-threads-accent" />
-              <span>+ Tambah Post Berikutnya ke Rangkaian Thread</span>
-            </button>
-          </div>
-        </form>
+      {/* Sticky Footer */}
+      <div className="sticky bottom-0 z-20 bg-white border-t border-surface-border px-6 py-4 flex items-center justify-between">
+        <div className="text-xs text-ink-muted">
+          {activeMode === 'AI' && !editingDraft ? (
+            <span>Pilih angle dan klik racik draft AI</span>
+          ) : (
+            <span>{posts.length} bagian post siap disimpan</span>
+          )}
+        </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-threads-border px-6 py-4 bg-threads-card">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl border border-threads-border bg-threads-surface px-4 py-2 text-xs font-medium text-threads-text transition-colors hover:bg-threads-border disabled:opacity-50"
+            className="px-5 py-2.5 rounded-full border border-surface-border text-xs font-semibold text-ink hover:bg-surface transition-colors"
           >
             Batal
           </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-xl bg-threads-accent px-5 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 shadow-md shadow-threads-accent/20"
-          >
-            {loading && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />}
-            <span>{editingDraft ? 'Simpan Perubahan' : 'Buat Draft'}</span>
-          </button>
+
+          {(activeMode === 'MANUAL' || editingDraft) && (
+            <button
+              type="submit"
+              form="draft-form"
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-ink hover:bg-zinc-800 text-white text-xs font-bold transition-all tap-effect shadow-pill disabled:opacity-50"
+            >
+              <CheckCircle2 className="h-4 w-4 stroke-[2.5]" />
+              <span>{loading ? 'Menyimpan...' : editingDraft ? 'Perbarui Draft' : 'Simpan Draft'}</span>
+            </button>
+          )}
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }

@@ -10,6 +10,7 @@ Always strictly follow the **Superpowers** workflow and discipline (`superpowers
 
 2. **Skill Priority & Workflow**:
    - **New Features / UI / Functionality**: Invoke `superpowers:brainstorming` first to explore requirements and design before jumping into implementation or plans.
+   - **UI / Frontend & Visual Craft**: Pastikan selalu menggunakan skill atau plugin **`impeccable`** (atau design standards Impeccable / frontend-design) untuk setiap pengerjaan UI, styling, komponen tampilan, tata letak, responsivitas, dan micro-interactions guna menjamin standar visual kelas atas, zero visual defect, dan kepatuhan autentik pada design tokens Threads (`DESIGN.md`).
    - **Planning**: After brainstorming or receiving a clear specification, invoke `superpowers:writing-plans`.
    - **Execution**: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans`.
    - **Bug Fixes / Issues**: Always invoke `superpowers:systematic-debugging` before proposing fixes.
@@ -138,3 +139,47 @@ Scheduled tasks are registered directly into the **Hermes Gateway Service** (`he
 - Build production bundle: `npm run build`
 - Restart production process: `npm run pm2:restart`
 - Verify Hermes cron: `hermes cron status` and `hermes cron list`
+
+---
+
+## 9. Local Hermes & Development Setup Protocol
+For local development in `/home/ubuntu/project/threads-marketing` (`dev` branch):
+
+### A. Environment Configuration (`.env`):
+- **Database**: `DATABASE_URL="file:./dev.db"`
+- **Hermes LLM Connection**:
+  ```env
+  HERMES_AI_BASE_URL="http://168.110.198.40:20128/v1"
+  HERMES_AI_API_KEY="<HERMES_VPS_API_KEY>"
+  HERMES_AI_MODEL="ag/gemini-3.6-flash-high"
+  ```
+  *(Fallback: If `HERMES_AI_API_KEY` is not provided, the engine automatically attempts one-shot CLI execution via `hermes -z`).*
+
+### B. Database Initialization:
+```bash
+npx prisma db push
+npx prisma db seed # Seeds products & default HERMES_API_KEY ('hermes-secret-key-2026')
+npm run dev        # Starts local web app on http://localhost:3000
+```
+
+### C. Testing Hermes Background Runner Locally:
+There is no need to run system cron in dev. Execute runners on-demand via TypeScript or Python:
+
+1. **TypeScript Runner (`npx tsx`)**:
+   ```bash
+   # Run full cycle (Generate AI Drafts + Publish Approved)
+   npx tsx scripts/hermes-runner/hermes_mock_cron.ts --action=all --base-url=http://localhost:3000 --api-key=hermes-secret-key-2026
+
+   # Only generate new AI drafts
+   npx tsx scripts/hermes-runner/hermes_mock_cron.ts --action=generate --base-url=http://localhost:3000
+
+   # Only publish approved drafts
+   npx tsx scripts/hermes-runner/hermes_mock_cron.ts --action=post --base-url=http://localhost:3000
+   ```
+
+2. **Python 3 Runner (`python3`)**:
+   ```bash
+   chmod +x scripts/hermes-runner/hermes_mock_cron.py
+   python3 scripts/hermes-runner/hermes_mock_cron.py --action all --base-url http://localhost:3000 --api-key hermes-secret-key-2026
+   ```
+
