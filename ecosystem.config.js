@@ -4,7 +4,7 @@ module.exports = {
       name: 'threads-marketing',
       script: 'node_modules/next/dist/bin/next',
       args: 'start -p 4000 -H 0.0.0.0',
-      cwd: '/home/ubuntu/project/threads-marketing',
+      cwd: '/home/ubuntu/production/threads-marketing',
       instances: 1,
       autorestart: true,
       watch: false,
