@@ -9,6 +9,7 @@ Threads Marketing Engine is a high-performance marketing pipeline designed for d
 ## 📑 Table of Contents
 
 - [Architecture & Workflow](#-architecture--workflow)
+- [Dual-Environment & Branching Protocol](#-dual-environment--branching-protocol)
 - [Key Features](#-key-features)
 - [Tech Stack](#-tech-stack)
 - [Quick Start](#-quick-start)
@@ -65,6 +66,28 @@ flowchart TD
     DB_D -->|11. Live Metrics| D
     DB_S -.->|Auth Key Validation| Hermes
 ```
+
+---
+
+## 🛡️ Dual-Environment & Branching Protocol
+
+To ensure 100% stability, zero downtime, and complete isolation between live traffic and feature development, the codebase is partitioned into two distinct directories and branches under GitHub repository `git@github.com:HanifMukkorrobin/threads-marketing.git`:
+
+| Environment | Directory Path | Git Branch | Database | Port | Description & Scope |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **🛠️ Development** | `/home/ubuntu/project/threads-marketing` | `dev` | `prisma/dev.db` | `3000` | **Active workspace for all coding, experimentation, bug fixes, and Vitest test suite.** |
+| **🚀 Production** | `/home/ubuntu/production/threads-marketing` | `main` | `prisma/prod.db` | `4000` | **Live public server (`https://threads.hadestech.web.id`) served by PM2 cluster & Hermes Cron.** |
+
+### 🔄 Deployment Workflow:
+1. **Work in Dev**: Make edits, write tests, and verify in `/home/ubuntu/project/threads-marketing` (`npm test`).
+2. **Push Dev**: `git push origin dev`
+3. **Merge to Main**: Merge `dev` into `main` branch via GitHub PR or CLI.
+4. **Deploy in Prod**: In `/home/ubuntu/production/threads-marketing`:
+   ```bash
+   git pull origin main
+   npm run build
+   npm run pm2:restart
+   ```
 
 ---
 

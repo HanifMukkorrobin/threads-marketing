@@ -27,65 +27,100 @@ Always strictly follow the **Superpowers** workflow and discipline (`superpowers
 - **Framework**: Next.js 14 (App Router) with TypeScript & React 18
 - **Styling**: Tailwind CSS & Lucide Icons (Dark Theme, Threads-authentic aesthetics)
 - **Database**: SQLite via Prisma ORM (`prod.db` for production, `dev.db` for dev, `test.db` for Vitest)
-- **Runtime / Process Manager**: PM2 (`threads-marketing` cluster/fork mode on port 4000)
+- **Runtime / Process Manager**: PM2 (`threads-marketing` cluster mode on port 4000)
 - **External Agent**: Hermes Autonomous Agent (Python 3 & TypeScript runners integrated with Hermes Gateway CLI scheduler)
+- **Domain & Reverse Proxy**: `https://threads.hadestech.web.id` -> Nginx -> `http://127.0.0.1:4000` (Cloudflare SSL)
 
 ---
 
-## 2. Database Multi-Environment Isolation Protocol
+## 2. Dual-Environment Directory & Git Branching Protocol
+To ensure 100% stability, zero downtime, and complete isolation between live traffic and feature development, the codebase and server are strictly partitioned into two separate directories and branches under repository `git@github.com:HanifMukkorrobin/threads-marketing.git`:
+
+### 🛠️ A. Development Environment (`/home/ubuntu/project/threads-marketing`)
+- **Git Branch**: `dev` (`origin/dev`)
+- **Work Scope**: **ALL** coding, feature creation, bug fixing, experimentation, refactoring, and automated testing must occur in this directory.
+- **Database**: `prisma/dev.db` for local dev server, and `prisma/test.db` for Vitest test runs.
+- **Port**: Local dev server on port `3000` (`npm run dev`).
+- **Strict Rule**: NEVER run PM2 production cluster from this directory or overwrite live `prod.db`.
+
+### 🚀 B. Production Environment (`/home/ubuntu/production/threads-marketing`)
+- **Git Branch**: `main` (`origin/main`)
+- **Work Scope**: Serves the live production web app and Hermes Autonomous Agent background schedulers.
+- **Database**: `prisma/prod.db` (stores live product catalogs, approved queues, settings, and revision history).
+- **Process Manager**: PM2 process `threads-marketing` running Next.js production server on port `4000`.
+- **Hermes Cron**: `~/.hermes/scripts/threads_marketing_*.py` points exclusively to this directory.
+- **Deployment Protocol**:
+  1. Complete and verify work on `dev` branch in `/home/ubuntu/project/threads-marketing`.
+  2. Run `npm test` and ensure all tests pass.
+  3. Push to GitHub `dev` (`git push origin dev`) and merge into `main` (via PR or `git merge`).
+  4. In `/home/ubuntu/production/threads-marketing`, deploy via:
+     ```bash
+     git pull origin main
+     npm run build
+     npm run pm2:restart
+     ```
+- **Strict Rule**: NEVER perform manual, untested ad-hoc coding directly in the production directory.
+
+---
+
+## 3. Database Multi-Environment Isolation Protocol
 To prevent automated unit tests from truncating or resetting live production product catalogs, the database is strictly separated:
-- **Production Server (`PM2`)**: Configured with `DATABASE_URL="file:./prod.db"`.
+- **Production Server (`PM2`)**: Configured with `DATABASE_URL="file:./prod.db"` in `/home/ubuntu/production/threads-marketing`.
 - **Vitest Unit & API Tests**: Configured in `vitest.config.ts` with `DATABASE_URL="file:./test.db"`.
-- **Local Dev / Seeds**: Uses `dev.db` or `prod.db`.
+- **Local Dev / Seeds**: Uses `dev.db` in `/home/ubuntu/project/threads-marketing`.
 
 ---
 
-## 3. Hermes AI Copywriting & Skill Guidelines
+## 4. Hermes AI Copywriting & Skill Guidelines
 Hermes Agent uses the **`ecommerce-copy-humanizer-id`** copywriting standard:
 - **Natural, Casual Indonesian**: Authentic slang (`gess`, `sat-set`, `boncos`, `worth it`, `nugas`), balanced without cringe, strictly avoiding robotic stiff translation phrasing.
 - **500 Character Limit**: Every single thread post must be under 500 characters.
 - **Multi-Part Structure**:
-  - **Post 1 (Hook)**: Engaging problem, relate/curhat question, or curiosity gap.
+  - **Post 1 (Hook)**: Engaging problem, relate/curhat question, or curiosity gap with thread indicator (`🧵👇`).
   - **Post 2 (Value / Product Proof)**: Dynamic USP list, real package pricing, and benefit comparisons.
   - **Post 3 (Action / CTA)**: Soft or hard CTA referencing the store's handle (e.g. `@hades.zshrc`) and ordering instructions.
 
-### Content Generation Archetypes:
+### Dynamic Content Generation Angles (`src/lib/generation-engine.ts`):
 1. **Product Promo Drafts**:
-   - `Storytelling & Curhat Relate`
-   - `Solusi Cerdas & Anti-Boncos`
-   - `Productivity & Feature Hack`
-   - `FOMO & Slot Terbatas`
+   - `Contrarian / Unpopular Opinion`
+   - `Micro-Story & Curhat Relate`
+   - `Value & Coffee Comparison`
+   - `Productivity & Workflow Hack`
+   - `FOMO & Slot Promo Terbatas`
+   - `Kesalahan Fatal Pemula`
 2. **Organic / Non-Product Drafts (`productId: null`)**:
-   - `Edukasi & Produktivitas`
+   - `Edukasi & Produktivitas Organik`
    - `Tech & AI Insights`
    - `Storytelling & Curhat Relate`
    - `Rekomendasi Tools Digital`
 
 ---
 
-## 4. AI Copilot Revision Engine (Option A)
+## 5. AI Copilot Revision Engine (Option A)
 The system includes an interactive in-editor Copilot engine (`src/lib/revision-engine.ts` and `POST /api/drafts/[id]/revise`):
 - **Natural Language Parsing**: Automatically detects targeted parts (e.g. `"ubah post 3..."`, `"ganti hook..."`, `"tambah varian harga"`) or whole-thread tone shift (`"bikin lebih santai"`, `"bikin gaya fomo"`).
+- **Hermes VPS LLM Connection**: Queries `http://168.110.198.40:20128/v1/chat/completions` with model `ag/gemini-3.6-flash-high`.
 - **Dynamic Store Branding**: Injects `STORE_NAME` and `STORE_USERNAME` from `SystemConfig` into generated revisions.
 - **Preview & AutoSave**: Supports testing revisions live with instant Threads Simulator update, and optional direct persistence.
 
 ---
 
-## 5. Hermes Gateway Scheduler (`hermes cron`)
+## 6. Hermes Gateway Scheduler (`hermes cron`)
 Scheduled tasks are registered directly into the **Hermes Gateway Service** (`hermes cron`):
 - **`threads-marketing-post`** (`every 1m`): Fetches `APPROVED` drafts from `/api/hermes/drafts/approved` and publishes to Threads.
 - **`threads-marketing-generate`** (`every 120m`): Fetches active products and store info from `/api/hermes/products/active`, generating both product promos and organic threads to `/api/hermes/drafts`.
-- **Helper Scripts**: Located in `~/.hermes/scripts/threads_marketing_post.py` and `~/.hermes/scripts/threads_marketing_generate.py`.
+- **Helper Scripts**: Located in `~/.hermes/scripts/threads_marketing_post.py` and `~/.hermes/scripts/threads_marketing_generate.py` targeting `/home/ubuntu/production/threads-marketing`.
 
 ---
 
-## 6. Key REST Endpoints
+## 7. Key REST Endpoints
 
 ### Store Admin & UI APIs:
 - `GET, POST /api/products`: Manage product catalog
 - `GET, PUT, DELETE /api/products/[id]`: Product details, update, delete
 - `GET, POST /api/drafts`: Query and create content drafts
 - `GET, PATCH, DELETE /api/drafts/[id]`: Draft inspection, multi-part post edits, approvals
+- `POST /api/drafts/generate`: Dynamic Hermes AI draft generation with angles
 - `POST /api/drafts/[id]/revise`: AI Copilot natural language revision
 - `GET, POST /api/settings`: Read and update system configurations & store branding
 - `GET /api/overview`: Aggregated analytics and queue KPIs
@@ -98,7 +133,7 @@ Scheduled tasks are registered directly into the **Hermes Gateway Service** (`he
 
 ---
 
-## 7. Verification & Build Commands
+## 8. Verification & Build Commands
 - Run test suite: `npm test`
 - Build production bundle: `npm run build`
 - Restart production process: `npm run pm2:restart`
