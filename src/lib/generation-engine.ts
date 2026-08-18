@@ -176,8 +176,10 @@ SUDUT PANDANG / ANGLE KONTEN:
 - Inspirasi Hook: "${hookHint}"
 ${customTopic ? `- Topik Tambahan dari Pengguna: "${customTopic}"` : ''}
 
-${negativeContextSection ? `${negativeContextSection}\n` : ''}${collisionWarningSection ? `${collisionWarningSection}\n` : ''}ATURAN ANTI-KLISE & ANTI-GENERIC (SANGAT PENTING):
-1. JANGAN gunakan pembuka klise seperti "Lagi asik nugas..." atau formula robotik yang kaku. Ciptakan skenario spesifik dan segar!
+${negativeContextSection ? `${negativeContextSection}\n` : ''}${collisionWarningSection ? `${collisionWarningSection}\n` : ''}ATURAN ANTI-KLISE & ANTI-GENERIC (SANGAT KETAT & WAJIB PATUH):
+1. DAFTAR FORMULA HARAM (DILARANG KERAS DIGUNAKAN):
+   - JANGAN pakai: "Lagi asik nugas...", "Tahukah kamu...", "Di era digital/modern ini...", "Pernah gak sih ngerasa...", "Jangan lewatkan kesempatan...", "Kabar gembira...", "Siapa sangka...".
+   - Wajib mulai dengan skenario super spesifik, kontras angka nyata, atau opini berani to-the-point!
 2. Bahasa Indonesia santai, luwes, dan natural (e.g. gess, sat-set, boncos, worth it, nugas, gak pake ribet, cuan).
 3. Struktur 3 Post Thread:
    - Post 1 (Hook): Masalah relatable / pertanyaan / kontrarian yang memicu rasa penasaran + diakhiri "🧵👇".

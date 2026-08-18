@@ -76,11 +76,11 @@ export function computeJaccardSimilarity(tokensA: string[], tokensB: string[], n
 
 export async function getRecentDraftHistory(
   productId?: string | null,
-  limit = 10
+  limit = 15
 ): Promise<HistoricalDraftItem[]> {
   try {
     const whereClause: any = {
-      status: { in: ['APPROVED', 'PUBLISHED'] },
+      status: { in: ['PENDING_REVIEW', 'APPROVED', 'PUBLISHED'] },
     };
 
     if (productId) {

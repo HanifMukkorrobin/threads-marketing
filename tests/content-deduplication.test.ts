@@ -87,4 +87,66 @@ describe('Content Deduplication & Freshness Guard', () => {
     expect(result.isFresh).toBe(true);
     expect(result.method).toBe('none');
   });
+
+  it('fetches recent history including PENDING_REVIEW, APPROVED, and PUBLISHED drafts while excluding FAILED', async () => {
+    const { prisma } = await import('../src/lib/prisma');
+    const { getRecentDraftHistory } = await import('../src/lib/content-deduplication');
+
+    // Create sample product
+    const p = await prisma.product.create({
+      data: {
+        name: 'Disney+ Hotstar Test',
+        slug: `disney-test-${Date.now()}`,
+        category: 'Streaming',
+        variants: JSON.stringify([{ name: '1 Bulan', price: 25000 }]),
+        usp: JSON.stringify(['Full HD']),
+      },
+    });
+
+    // Create 1 PENDING_REVIEW, 1 APPROVED, 1 PUBLISHED, 1 FAILED
+    await prisma.contentDraft.create({
+      data: {
+        title: 'Pending Draft Disney',
+        productId: p.id,
+        status: 'PENDING_REVIEW',
+        posts: { create: [{ orderIndex: 0, content: 'Hook pending disney 🧵👇' }] },
+      },
+    });
+
+    await prisma.contentDraft.create({
+      data: {
+        title: 'Approved Draft Disney',
+        productId: p.id,
+        status: 'APPROVED',
+        posts: { create: [{ orderIndex: 0, content: 'Hook approved disney 🧵👇' }] },
+      },
+    });
+
+    await prisma.contentDraft.create({
+      data: {
+        title: 'Published Draft Disney',
+        productId: p.id,
+        status: 'PUBLISHED',
+        posts: { create: [{ orderIndex: 0, content: 'Hook published disney 🧵👇' }] },
+      },
+    });
+
+    await prisma.contentDraft.create({
+      data: {
+        title: 'Failed Draft Disney',
+        productId: p.id,
+        status: 'FAILED',
+        posts: { create: [{ orderIndex: 0, content: 'Hook failed disney 🧵👇' }] },
+      },
+    });
+
+    const history = await getRecentDraftHistory(p.id, 15);
+    expect(history.length).toBe(3);
+    const titles = history.map((h) => h.title);
+    expect(titles).toContain('Pending Draft Disney');
+    expect(titles).toContain('Approved Draft Disney');
+    expect(titles).toContain('Published Draft Disney');
+    expect(titles).not.toContain('Failed Draft Disney');
+  });
 });
+
