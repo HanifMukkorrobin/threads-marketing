@@ -132,7 +132,6 @@ export function CreateDraftModal({
           );
         }
         setAiSuccessMessage('Hermes AI berhasil meracik draft copywriting baru!');
-        // Automatically switch to Manual mode so user can review and polish the generated posts
         setActiveMode('MANUAL');
       }
     } catch (err: any) {
@@ -219,18 +218,18 @@ export function CreateDraftModal({
 
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose} maxWidth="2xl">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-surface-border px-6 py-5 space-y-4">
+      {/* Sticky Header with 90s Sand Top Frame */}
+      <div className="sticky top-0 z-20 bg-[#D8C49D] border-b-2 border-[#181816] px-6 py-4 space-y-3 shadow-[0_2px_0px_0px_#181816]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-lime text-ink text-sm font-black shadow-xs">
+            <span className="flex h-9 w-9 items-center justify-center rounded-retro-xs bg-[#FAF6EE] text-[#181816] border-2 border-[#181816] font-black shadow-[2px_2px_0px_0px_#181816]">
               ⚡
             </span>
             <div>
-              <h2 className="text-base sm:text-lg font-extrabold text-ink tracking-tight">
+              <h2 className="text-base sm:text-lg font-black text-[#181816] tracking-tight uppercase">
                 {editingDraft ? 'Edit Draft Konten' : 'Buat Draft Threads Baru'}
               </h2>
-              <p className="text-xs text-ink-secondary">
+              <p className="text-xs text-[#4A463F] font-semibold">
                 Racik postingan berkonversi dengan AI atau susun rangkaian post manual.
               </p>
             </div>
@@ -239,26 +238,26 @@ export function CreateDraftModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-surface hover:bg-surface-hover text-ink-secondary hover:text-ink transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-retro-xs bg-white hover:bg-[#C95D53] hover:text-white text-[#181816] border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 stroke-[3]" />
           </button>
         </div>
 
         {/* Mode Pill Switcher */}
         {!editingDraft && (
-          <div className="flex items-center rounded-full bg-surface p-1 border border-surface-border">
+          <div className="flex items-center rounded-retro-xs bg-white p-1 border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816]">
             <button
               type="button"
               onClick={() => setActiveMode('AI')}
               className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-1.5 rounded-full text-xs font-bold transition-all tap-effect',
+                'flex-1 flex items-center justify-center gap-2 py-1.5 rounded-none text-xs font-black transition-all tap-effect uppercase tracking-wider',
                 activeMode === 'AI'
-                  ? 'bg-ink text-white shadow-pill'
-                  : 'text-ink-secondary hover:text-ink'
+                  ? 'bg-[#6B9AC4] text-white shadow-[1.5px_1.5px_0px_0px_#181816]'
+                  : 'text-[#181816] hover:bg-[#FAF6EE]'
               )}
             >
-              <Sparkles className="h-3.5 w-3.5 text-lime" />
+              <Sparkles className="h-3.5 w-3.5" />
               <span>Hermes AI Generator</span>
             </button>
 
@@ -266,13 +265,13 @@ export function CreateDraftModal({
               type="button"
               onClick={() => setActiveMode('MANUAL')}
               className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-1.5 rounded-full text-xs font-bold transition-all tap-effect',
+                'flex-1 flex items-center justify-center gap-2 py-1.5 rounded-none text-xs font-black transition-all tap-effect uppercase tracking-wider',
                 activeMode === 'MANUAL'
-                  ? 'bg-ink text-white shadow-pill'
-                  : 'text-ink-secondary hover:text-ink'
+                  ? 'bg-[#6B9AC4] text-white shadow-[1.5px_1.5px_0px_0px_#181816]'
+                  : 'text-[#181816] hover:bg-[#FAF6EE]'
               )}
             >
-              <PenTool className="h-3.5 w-3.5" />
+              <PenTool className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>Editor Manual {posts[0]?.content && `(${posts.length} Post)`}</span>
             </button>
           </div>
@@ -280,18 +279,18 @@ export function CreateDraftModal({
       </div>
 
       {/* Scrollable Body */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-[#FAF6EE]">
         {error && (
-          <div className="flex items-center gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 animate-fadeIn">
-            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
-            <span className="font-semibold">{error}</span>
+          <div className="flex items-center gap-2.5 rounded-retro-xs border-2 border-[#181816] bg-rose-100 p-4 text-xs text-[#181816] font-black shadow-[2px_2px_0px_0px_#181816] animate-fadeIn">
+            <AlertCircle className="h-4 w-4 shrink-0 text-[#C95D53] stroke-[2.5]" />
+            <span>{error}</span>
           </div>
         )}
 
         {aiSuccessMessage && (
-          <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 animate-fadeIn">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-            <span className="font-semibold">{aiSuccessMessage}</span>
+          <div className="flex items-center gap-2.5 rounded-retro-xs border-2 border-[#181816] bg-[#D8C49D] p-4 text-xs text-[#181816] font-black shadow-[2px_2px_0px_0px_#181816] animate-fadeIn">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#181816] stroke-[3]" />
+            <span>{aiSuccessMessage}</span>
           </div>
         )}
 
@@ -300,7 +299,7 @@ export function CreateDraftModal({
           <div className="space-y-5">
             {/* Angle Selection Grid */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-ink uppercase tracking-wider">
+              <label className="block text-xs font-black text-[#181816] uppercase tracking-wider">
                 Pilih Sudut Pandang / Copywriting Angle
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -310,19 +309,19 @@ export function CreateDraftModal({
                     type="button"
                     onClick={() => setSelectedAngle(angle.id)}
                     className={cn(
-                      'rounded-2xl p-3.5 text-left transition-all border tap-effect space-y-1',
+                      'rounded-retro-xs p-3.5 text-left transition-all border-2 border-[#181816] tap-effect space-y-1',
                       selectedAngle === angle.id
-                        ? 'bg-surface border-ink shadow-xs ring-1 ring-black'
-                        : 'bg-surface/50 border-surface-border hover:bg-surface'
+                        ? 'bg-[#6B9AC4] text-white shadow-[3px_3px_0px_0px_#181816]'
+                        : 'bg-white hover:bg-[#FAF6EE] text-[#181816] shadow-[1.5px_1.5px_0px_0px_#181816]'
                     )}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="block text-xs font-bold text-ink">{angle.label}</span>
+                      <span className="block text-xs font-black">{angle.label}</span>
                       {selectedAngle === angle.id && (
-                        <Check className="h-3.5 w-3.5 text-ink stroke-[2.5]" />
+                        <Check className="h-3.5 w-3.5 text-white stroke-[3]" />
                       )}
                     </div>
-                    <span className="block text-[11px] text-ink-secondary leading-tight">
+                    <span className={cn('block text-[11px] font-medium leading-tight', selectedAngle === angle.id ? 'text-white/90' : 'text-[#4A463F]')}>
                       {angle.desc}
                     </span>
                   </button>
@@ -333,13 +332,13 @@ export function CreateDraftModal({
             {/* Product & Custom Topic */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-ink mb-1.5">
+                <label className="block text-xs font-black text-[#181816] mb-1.5 uppercase tracking-wider">
                   Pilih Produk Terkait (Opsional)
                 </label>
                 <select
                   value={productId}
                   onChange={(e) => setProductId(e.target.value)}
-                  className="w-full rounded-full bg-surface border border-surface-border px-4 py-2 text-xs text-ink font-medium focus:border-ink focus:bg-white focus:outline-none shadow-xs cursor-pointer"
+                  className="w-full rounded-retro-xs bg-white border-2 border-[#181816] px-4 py-2 text-xs text-[#181816] font-bold focus:outline-none shadow-[2px_2px_0px_0px_#181816] cursor-pointer"
                 >
                   <option value="">-- Konten Organik (Non-Produk) --</option>
                   {products.map((p) => (
@@ -351,7 +350,7 @@ export function CreateDraftModal({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-ink mb-1.5">
+                <label className="block text-xs font-black text-[#181816] mb-1.5 uppercase tracking-wider">
                   Topik Khusus / Prompt (Opsional)
                 </label>
                 <input
@@ -359,19 +358,19 @@ export function CreateDraftModal({
                   value={customTopic}
                   onChange={(e) => setCustomTopic(e.target.value)}
                   placeholder="e.g. Tips nugas santai, Canva vs Photoshop..."
-                  className="w-full rounded-full bg-surface border border-surface-border px-4 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:bg-white focus:outline-none shadow-xs"
+                  className="w-full rounded-retro-xs bg-white border-2 border-[#181816] px-4 py-2 text-xs text-[#181816] font-bold focus:outline-none shadow-[2px_2px_0px_0px_#181816]"
                 />
               </div>
             </div>
 
             {/* Generate Action Card */}
-            <div className="rounded-2xl border border-surface-border bg-ink p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-dock">
+            <div className="rounded-retro-xs border-2 border-[#181816] bg-[#FAF6EE] p-5 text-[#181816] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_#181816]">
               <div className="space-y-0.5">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-lime" />
+                <h4 className="text-xs font-black text-[#181816] uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-[#C95D53]" />
                   Hermes Autonomous Engine
                 </h4>
-                <p className="text-[11px] text-zinc-400">
+                <p className="text-[11px] text-[#4A463F] font-semibold">
                   Meracik otomatis Hook, Value USP, dan CTA sesuai standar humanizer Threads.
                 </p>
               </div>
@@ -380,12 +379,12 @@ export function CreateDraftModal({
                 type="button"
                 onClick={handleGenerateWithHermes}
                 disabled={generatingAi}
-                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-lime hover:bg-lime-hover text-ink text-xs font-bold shadow-pill transition-all tap-effect shrink-0 disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-retro-xs bg-[#C95D53] hover:bg-[#D45D52] text-white text-xs font-black border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all tap-effect shrink-0 disabled:opacity-50 uppercase tracking-wider"
               >
                 {generatingAi ? (
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin stroke-[2.5]" />
                 ) : (
-                  <Wand2 className="h-3.5 w-3.5" />
+                  <Wand2 className="h-3.5 w-3.5 stroke-[2.5]" />
                 )}
                 <span>
                   {generatingAi ? 'Meracik Draft...' : 'Racik Draft dengan Hermes AI'}
@@ -399,34 +398,34 @@ export function CreateDraftModal({
         {(activeMode === 'MANUAL' || editingDraft) && (
           <form id="draft-form" onSubmit={handleSubmit} className="space-y-5">
             {/* Metadata Card */}
-            <div className="rounded-2xl bg-surface p-5 border border-surface-border space-y-4 shadow-xs">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-ink-secondary flex items-center gap-1.5">
+            <div className="rounded-retro-sm bg-white p-5 border-2 border-[#181816] space-y-4 shadow-[3px_3px_0px_0px_#181816]">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[#181816] flex items-center gap-1.5 border-b-2 border-[#181816] pb-2">
                 <FileText className="h-3.5 w-3.5" />
                 Informasi Draft
               </h3>
 
               <div>
-                <label className="block text-xs font-bold text-ink mb-1">
-                  Judul Internal Draft <span className="text-rose-500">*</span>
+                <label className="block text-xs font-black text-[#181816] mb-1 uppercase tracking-wider">
+                  Judul Internal Draft <span className="text-[#C95D53]">*</span>
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Misal: 5 Alasan Kenapa Harus Pakai Canva Pro..."
-                  className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs font-semibold"
+                  className="w-full rounded-retro-xs bg-[#FAF6EE] border-2 border-[#181816] px-4 py-2 text-xs sm:text-sm text-[#181816] font-bold shadow-[2px_2px_0px_0px_#181816] focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-ink mb-1">
+                  <label className="block text-xs font-black text-[#181816] mb-1 uppercase tracking-wider">
                     Produk Terkait
                   </label>
                   <select
                     value={productId}
                     onChange={(e) => setProductId(e.target.value)}
-                    className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink font-medium focus:border-ink focus:outline-none shadow-xs cursor-pointer"
+                    className="w-full rounded-retro-xs bg-[#FAF6EE] border-2 border-[#181816] px-4 py-2 text-xs text-[#181816] font-bold shadow-[2px_2px_0px_0px_#181816] focus:outline-none cursor-pointer"
                   >
                     <option value="">-- Organik / Tanpa Produk --</option>
                     {products.map((p) => (
@@ -438,7 +437,7 @@ export function CreateDraftModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-ink mb-1">
+                  <label className="block text-xs font-black text-[#181816] mb-1 uppercase tracking-wider">
                     Hook Angle
                   </label>
                   <input
@@ -446,7 +445,7 @@ export function CreateDraftModal({
                     value={hookAngle}
                     onChange={(e) => setHookAngle(e.target.value)}
                     placeholder="e.g. Price Comparison, Unpopular Opinion..."
-                    className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs"
+                    className="w-full rounded-retro-xs bg-[#FAF6EE] border-2 border-[#181816] px-4 py-2 text-xs text-[#181816] font-bold shadow-[2px_2px_0px_0px_#181816] focus:outline-none"
                   />
                 </div>
               </div>
@@ -455,17 +454,17 @@ export function CreateDraftModal({
             {/* Posts Chain Section */}
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-ink-secondary flex items-center gap-1.5">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[#181816] flex items-center gap-1.5">
                   <Layers className="h-3.5 w-3.5" />
                   Rangkaian Postingan Thread ({posts.length} Bagian)
                 </h3>
                 <button
                   type="button"
                   onClick={handleAddPost}
-                  className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-surface hover:bg-surface-hover text-ink text-xs font-bold border border-surface-border shadow-xs tap-effect"
+                  className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-retro-xs bg-[#D8C49D] hover:bg-[#E2D2B0] text-[#181816] text-xs font-black border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all uppercase tracking-wider"
                 >
-                  <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
-                  <span>Tambah Post Lanjutan</span>
+                  <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                  <span>+ Tambah Post</span>
                 </button>
               </div>
 
@@ -473,17 +472,17 @@ export function CreateDraftModal({
                 {posts.map((post, idx) => (
                   <div
                     key={idx}
-                    className="rounded-2xl bg-surface p-4 border border-surface-border space-y-3 shadow-xs"
+                    className="rounded-retro-xs bg-white p-4 border-2 border-[#181816] space-y-3 shadow-[2.5px_2.5px_0px_0px_#181816]"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-ink bg-white px-3 py-0.5 rounded-full border border-surface-border shadow-xs">
+                    <div className="flex items-center justify-between border-b border-[#181816]/20 pb-2">
+                      <span className="text-xs font-black text-white bg-[#6B9AC4] px-2.5 py-0.5 rounded-retro-xs border border-[#181816] shadow-[1px_1px_0px_0px_#181816] uppercase tracking-wider">
                         {idx === 0 ? 'Post #01 (Hook Utama)' : `Post #${String(idx + 1).padStart(2, '0')}`}
                       </span>
                       <div className="flex items-center gap-2">
                         <span
                           className={cn(
-                            'text-[11px] font-mono font-bold',
-                            post.content.length > 500 ? 'text-rose-600' : 'text-ink-muted'
+                            'text-[11px] font-mono font-black',
+                            post.content.length > 500 ? 'text-[#C95D53]' : 'text-[#7A7468]'
                           )}
                         >
                           {post.content.length} / 500
@@ -492,10 +491,10 @@ export function CreateDraftModal({
                           <button
                             type="button"
                             onClick={() => handleRemovePost(idx)}
-                            className="p-1 text-zinc-400 hover:text-rose-600 rounded-full transition-colors"
+                            className="p-1 text-zinc-400 hover:text-[#C95D53] hover:bg-rose-100 rounded-retro-xs transition-colors"
                             title="Hapus Bagian Ini"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3.5 w-3.5 stroke-[2.5]" />
                           </button>
                         )}
                       </div>
@@ -510,7 +509,7 @@ export function CreateDraftModal({
                           ? 'Tulis kalimat hook pembuka yang menarik audiens di Threads...'
                           : `Tulis kelanjutan poin thread bagian #${idx + 1}...`
                       }
-                      className="w-full rounded-xl bg-white border border-surface-border p-3 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none leading-relaxed shadow-xs"
+                      className="w-full rounded-retro-xs bg-[#FAF6EE] border-2 border-[#181816] p-3 text-xs text-[#181816] font-medium leading-relaxed shadow-[1.5px_1.5px_0px_0px_#181816] focus:outline-none focus:bg-white"
                     />
 
                     <div>
@@ -519,7 +518,7 @@ export function CreateDraftModal({
                         value={post.mediaUrl}
                         onChange={(e) => handlePostChange(idx, 'mediaUrl', e.target.value)}
                         placeholder="URL Media Lampiran (Opsional, e.g. https://...)"
-                        className="w-full rounded-full bg-white border border-surface-border px-4 py-1.5 text-xs text-ink placeholder-ink-muted focus:border-ink focus:outline-none shadow-xs font-mono"
+                        className="w-full rounded-retro-xs bg-[#FAF6EE] border-2 border-[#181816] px-3.5 py-1.5 text-xs text-[#181816] font-mono shadow-[1.5px_1.5px_0px_0px_#181816] focus:outline-none"
                       />
                     </div>
                   </div>
@@ -531,8 +530,8 @@ export function CreateDraftModal({
       </div>
 
       {/* Sticky Footer */}
-      <div className="sticky bottom-0 z-20 bg-white border-t border-surface-border px-6 py-4 flex items-center justify-between">
-        <div className="text-xs text-ink-muted">
+      <div className="sticky bottom-0 z-20 bg-white border-t-2 border-[#181816] px-6 py-4 flex items-center justify-between shadow-[0_-2px_0px_0px_#181816]">
+        <div className="text-xs font-bold text-[#7A7468]">
           {activeMode === 'AI' && !editingDraft ? (
             <span>Pilih angle dan klik racik draft AI</span>
           ) : (
@@ -545,7 +544,7 @@ export function CreateDraftModal({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-5 py-2.5 rounded-full border border-surface-border text-xs font-semibold text-ink hover:bg-surface transition-colors"
+            className="px-5 py-2.5 rounded-retro-xs border-2 border-[#181816] text-xs font-bold text-[#181816] hover:bg-[#FAF6EE] shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all uppercase tracking-wider"
           >
             Batal
           </button>
@@ -555,7 +554,7 @@ export function CreateDraftModal({
               type="submit"
               form="draft-form"
               disabled={loading}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-ink hover:bg-zinc-800 text-white text-xs font-bold transition-all tap-effect shadow-pill disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-retro-xs bg-[#C95D53] hover:bg-[#D45D52] text-white text-xs font-black border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all disabled:opacity-50 uppercase tracking-wider"
             >
               <CheckCircle2 className="h-4 w-4 stroke-[2.5]" />
               <span>{loading ? 'Menyimpan...' : editingDraft ? 'Perbarui Draft' : 'Simpan Draft'}</span>

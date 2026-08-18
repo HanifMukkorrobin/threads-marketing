@@ -67,7 +67,7 @@ export function ModalPortal({
     >
       <div
         className={cn(
-          'relative w-full rounded-[32px] bg-white shadow-2xl border border-surface-border animate-scale-in max-h-[90vh] flex flex-col overflow-hidden',
+          'relative w-full bg-[#FAF6EE] rounded-retro-sm border-[2.5px] sm:border-[3px] border-[#181816] shadow-[8px_8px_0px_0px_#181816] sm:shadow-[10px_10px_0px_0px_#181816] animate-scale-in max-h-[90vh] flex flex-col overflow-hidden',
           MAX_WIDTH_MAP[maxWidth],
           className
         )}

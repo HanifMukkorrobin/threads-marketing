@@ -7,16 +7,13 @@ import {
   Search,
   RefreshCw,
   AlertCircle,
-  Sparkles,
-  Layers,
-  CheckCircle2,
   X,
   Tag,
-  Filter,
 } from 'lucide-react';
 import { Product, CreateProductInput } from '@/types/product';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductModal } from '@/components/ProductModal';
+import { fireRetroConfetti } from '@/lib/confetti';
 import { cn } from '@/lib/utils';
 
 interface Toast {
@@ -134,6 +131,7 @@ export default function ProductsPage() {
     }
 
     await fetchProducts();
+    fireRetroConfetti(0.5, 0.5);
     addToast(
       isEdit ? `Produk "${productData.name}" berhasil diperbarui` : `Produk "${productData.name}" berhasil ditambahkan!`,
       'success'
@@ -173,24 +171,24 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="p-6 sm:p-8 lg:p-10 space-y-8 animate-fadeIn">
+    <div className="p-6 sm:p-8 lg:p-10 space-y-7 animate-fadeIn bg-[#FAF6EE]">
       {/* Toast Notifications */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={cn(
-              'pointer-events-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-full shadow-lg text-xs font-semibold animate-scale-in transition-all',
-              toast.type === 'success' && 'bg-ink text-white border border-black',
-              toast.type === 'error' && 'bg-rose-500 text-white',
-              toast.type === 'info' && 'bg-surface text-ink border border-surface-border'
+              'pointer-events-auto flex items-center justify-between gap-3 px-4 py-2.5 rounded-retro-xs border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] text-xs font-black animate-scale-in transition-all',
+              toast.type === 'success' && 'bg-[#6B9AC4] text-white',
+              toast.type === 'error' && 'bg-[#C95D53] text-white',
+              toast.type === 'info' && 'bg-white text-[#181816]'
             )}
           >
             <span>{toast.message}</span>
             <button
               type="button"
               onClick={() => removeToast(toast.id)}
-              className="text-white/60 hover:text-white"
+              className="text-black/60 hover:text-black"
             >
               ✕
             </button>
@@ -199,21 +197,16 @@ export default function ProductsPage() {
       </div>
 
       {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 border-b-2 border-[#181816] pb-5">
         <div className="space-y-1.5 max-w-2xl">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-ink tracking-tight flex flex-wrap items-center gap-x-2.5 gap-y-2">
-            <span>Managing</span>
-            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-surface border border-surface-border text-ink shadow-sm">
-              <Tag className="h-4 w-4" />
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#181816] tracking-tight flex flex-wrap items-center gap-x-2.5 gap-y-2 uppercase">
+            <span>Katalog</span>
+            <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-retro-xs bg-[#6B9AC4] border-2 border-[#181816] text-white shadow-[2px_2px_0px_0px_#181816]">
+              Produk Digital
             </span>
-            <span>Your Products</span>
-            <span>and</span>
-            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-lime border border-lime-dark/30 text-ink text-sm font-black shadow-sm">
-              ✦
-            </span>
-            <span>AI Knowledge</span>
+            <span>// 90s Edition</span>
           </h1>
-          <p className="text-xs sm:text-sm text-ink-secondary">
+          <p className="text-xs sm:text-sm text-[#4A463F] font-semibold">
             Katalog produk digital yang menjadi acuan otomatis bagi Hermes AI saat meracik copywriting dan penawaran harga.
           </p>
         </div>
@@ -223,10 +216,10 @@ export default function ProductsPage() {
             type="button"
             onClick={fetchProducts}
             disabled={loading}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface hover:bg-surface-hover border border-surface-border text-ink transition-all tap-effect"
+            className="flex h-10 w-10 items-center justify-center rounded-retro-xs bg-white hover:bg-[#FAF6EE] border-2 border-[#181816] text-[#181816] shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all tap-effect"
             title="Refresh Data"
           >
-            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+            <RefreshCw className={cn('h-4 w-4 stroke-[2.5]', loading && 'animate-spin')} />
           </button>
 
           <button
@@ -235,9 +228,9 @@ export default function ProductsPage() {
               setEditingProduct(null);
               setModalOpen(true);
             }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink hover:bg-zinc-800 text-white font-bold text-xs shadow-pill transition-all tap-effect"
+            className="flex items-center gap-2 px-5 py-2 rounded-retro-xs bg-[#C95D53] hover:bg-[#D45D52] text-white font-black text-xs border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all tap-effect uppercase tracking-wider"
           >
-            <Plus className="h-4 w-4 stroke-[2.5]" />
+            <Plus className="h-4 w-4 stroke-[3]" />
             <span>+ Tambah Produk Baru</span>
           </button>
         </div>
@@ -246,7 +239,7 @@ export default function ProductsPage() {
       {/* Category Pills & Status Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat;
             return (
@@ -255,10 +248,10 @@ export default function ProductsPage() {
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
                 className={cn(
-                  'rounded-full px-4 py-1.5 text-xs font-semibold transition-all tap-effect shrink-0',
+                  'rounded-retro-xs px-4 py-1.5 text-xs font-black border-2 border-[#181816] transition-all tap-effect shrink-0 uppercase tracking-wider',
                   isActive
-                    ? 'bg-ink text-white shadow-pill'
-                    : 'bg-surface text-ink-secondary border border-surface-border hover:bg-surface-hover'
+                    ? 'bg-[#6B9AC4] text-white shadow-[2px_2px_0px_0px_#181816]'
+                    : 'bg-white text-[#181816] hover:bg-[#FAF6EE] shadow-[1.5px_1.5px_0px_0px_#181816]'
                 )}
               >
                 {cat}
@@ -268,17 +261,17 @@ export default function ProductsPage() {
         </div>
 
         {/* Status Filter */}
-        <div className="flex items-center rounded-full bg-surface p-1 border border-surface-border shrink-0 self-start sm:self-auto">
+        <div className="flex items-center rounded-retro-xs bg-white p-1 border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816] shrink-0 self-start sm:self-auto">
           {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map((st) => (
             <button
               key={st}
               type="button"
               onClick={() => setStatusFilter(st)}
               className={cn(
-                'rounded-full px-3 py-1 text-xs font-semibold transition-all tap-effect',
+                'rounded-none px-3 py-1 text-xs font-black transition-all tap-effect uppercase tracking-wider',
                 statusFilter === st
-                  ? 'bg-ink text-white shadow-pill'
-                  : 'text-ink-secondary hover:text-ink'
+                  ? 'bg-[#D8C49D] text-[#181816] shadow-[1px_1px_0px_0px_#181816]'
+                  : 'text-[#181816] hover:bg-[#FAF6EE]'
               )}
             >
               {st === 'ALL' ? 'Semua' : st === 'ACTIVE' ? 'Aktif' : 'Non-Aktif'}
@@ -289,63 +282,63 @@ export default function ProductsPage() {
 
       {/* Search Bar */}
       <div className="relative w-full">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#181816] stroke-[2.5]" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Cari produk berdasarkan nama, kategori, deskripsi, atau keunggulan USP..."
-          className="w-full rounded-full bg-surface border border-surface-border pl-10 pr-4 py-2.5 text-xs text-ink placeholder-ink-muted focus:border-ink focus:bg-white focus:outline-none transition-all shadow-xs"
+          className="w-full rounded-retro-xs bg-white border-2 border-[#181816] pl-10 pr-10 py-2.5 text-xs sm:text-sm text-[#181816] placeholder-zinc-400 font-bold shadow-[3px_3px_0px_0px_#181816] focus:outline-none focus:bg-[#FAF6EE]"
         />
         {searchQuery && (
           <button
             type="button"
             onClick={() => setSearchQuery('')}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#181816] hover:text-[#C95D53] p-1"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4 stroke-[3]" />
           </button>
         )}
       </div>
 
       {/* Error Alert */}
       {error && (
-        <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+        <div className="flex items-center justify-between rounded-retro-xs border-2 border-[#181816] bg-rose-100 p-4 text-xs text-[#181816] font-black shadow-[3px_3px_0px_0px_#181816]">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-rose-600" />
+            <AlertCircle className="h-4 w-4 text-[#C95D53] stroke-[2.5]" />
             <span>{error}</span>
           </div>
           <button
             type="button"
             onClick={fetchProducts}
-            className="rounded-full bg-rose-600 px-3 py-1 text-white font-medium hover:bg-rose-700"
+            className="rounded-retro-xs bg-[#C95D53] px-3 py-1 text-white font-black border border-[#181816] hover:bg-[#D45D52]"
           >
             Coba Lagi
           </button>
         </div>
       )}
 
-      {/* Products Bento Grid */}
+      {/* Products Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1, 2, 3, 4, 5, 6].map((n) => (
             <div
               key={n}
-              className="h-64 rounded-bento bg-surface border border-surface-border animate-pulse p-6 space-y-4"
+              className="h-64 rounded-retro-xs bg-white border-2 border-[#181816] animate-pulse p-6 space-y-4 shadow-[4px_4px_0px_0px_#181816]"
             >
-              <div className="h-4 w-1/3 bg-zinc-200 rounded-full" />
-              <div className="h-5 w-3/4 bg-zinc-200 rounded-full" />
-              <div className="h-24 bg-white rounded-2xl" />
+              <div className="h-4 w-1/3 bg-[#D8C49D] rounded-retro-xs" />
+              <div className="h-5 w-3/4 bg-zinc-200 rounded-retro-xs" />
+              <div className="h-24 bg-[#FAF6EE] rounded-retro-xs" />
             </div>
           ))}
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="rounded-bento border border-dashed border-surface-border p-12 text-center bg-surface/50 space-y-3">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white border border-surface-border text-ink-secondary">
-            <Package className="h-6 w-6" />
+        <div className="rounded-retro-xs border-2 border-dashed border-[#181816] p-12 text-center bg-white space-y-3 shadow-[3px_3px_0px_0px_#181816]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-retro-xs bg-[#D8C49D] border-2 border-[#181816] text-[#181816] shadow-[2px_2px_0px_0px_#181816]">
+            <Package className="h-6 w-6 stroke-[2.5]" />
           </div>
-          <h3 className="text-sm font-bold text-ink">Tidak Ada Produk Ditemukan</h3>
-          <p className="text-xs text-ink-secondary max-w-md mx-auto">
+          <h3 className="text-sm font-black text-[#181816] uppercase">Tidak Ada Produk Ditemukan</h3>
+          <p className="text-xs text-[#7A7468] max-w-md mx-auto font-medium">
             {searchQuery || selectedCategory !== 'Semua' || statusFilter !== 'ALL'
               ? 'Tidak ada produk yang cocok dengan filter pencarian Anda.'
               : 'Katalog produk Anda masih kosong. Tambahkan produk pertama Anda sekarang.'}
@@ -357,9 +350,9 @@ export default function ProductsPage() {
                 setEditingProduct(null);
                 setModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-ink text-white text-xs font-bold tap-effect shadow-pill"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-retro-xs bg-[#C95D53] text-white text-xs font-black border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all tap-effect uppercase tracking-wider"
             >
-              <Plus className="h-4 w-4 stroke-[2.5]" />
+              <Plus className="h-4 w-4 stroke-[3]" />
               <span>+ Tambah Produk Baru</span>
             </button>
           </div>

@@ -7,12 +7,10 @@ import {
   Check,
   Edit3,
   Trash2,
-  Power,
   Layers,
   Sparkles,
   Users,
   MessageSquareQuote,
-  Megaphone,
 } from 'lucide-react';
 import { Product } from '@/types/product';
 import { ModalPortal } from '@/components/ModalPortal';
@@ -99,17 +97,17 @@ export function ProductCard({
   return (
     <div
       className={cn(
-        'group relative flex flex-col justify-between rounded-bento border bg-surface p-6 transition-all duration-200 bento-card',
+        'group relative flex flex-col justify-between rounded-retro-sm border-[2.5px] border-[#181816] bg-[#FAF6EE] p-5 sm:p-6 transition-all duration-150',
         product.isActive
-          ? 'border-surface-border'
-          : 'opacity-70 border-dashed border-zinc-300 bg-zinc-50'
+          ? 'shadow-[4px_4px_0px_0px_#181816] hover:shadow-[6px_6px_0px_0px_#181816] hover:translate-x-[-1px] hover:translate-y-[-1px]'
+          : 'opacity-70 bg-[#E8DBC0]/40 shadow-[2px_2px_0px_0px_#181816]'
       )}
     >
       <div className="space-y-4">
-        {/* Header: Category + Active Status Pill */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-ink border border-surface-border shadow-xs">
-            <Tag className="h-3 w-3 text-ink-secondary" />
+        {/* Header: Category Stamp + Active Switch */}
+        <div className="flex items-center justify-between gap-2 border-b-2 border-[#181816]/15 pb-3">
+          <span className="inline-flex items-center gap-1.5 rounded-retro-xs bg-[#6B9AC4] px-2.5 py-1 text-xs font-black text-white border-2 border-[#181816] shadow-[1.5px_1.5px_0px_0px_#181816] uppercase tracking-wider">
+            <Tag className="h-3 w-3 stroke-[2.5]" />
             <span>{product.category}</span>
           </span>
 
@@ -118,17 +116,17 @@ export function ProductCard({
             onClick={handleToggle}
             disabled={isToggling}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold border transition-all tap-effect',
+              'inline-flex items-center gap-1.5 rounded-retro-xs px-2.5 py-1 text-[11px] font-black border-2 border-[#181816] transition-all tap-effect uppercase tracking-wider',
               product.isActive
-                ? 'bg-lime text-ink border-lime-dark/30 shadow-xs'
-                : 'bg-zinc-200 text-zinc-600 border-zinc-300'
+                ? 'bg-[#D8C49D] text-[#181816] shadow-[1.5px_1.5px_0px_0px_#181816]'
+                : 'bg-zinc-200 text-zinc-600 shadow-none'
             )}
             title="Klik untuk mengubah status aktif"
           >
             <span
               className={cn(
-                'h-1.5 w-1.5 rounded-full',
-                product.isActive ? 'bg-ink animate-pulse' : 'bg-zinc-400'
+                'h-2 w-2 rounded-full border border-[#181816]',
+                product.isActive ? 'bg-[#181816] animate-pulse' : 'bg-zinc-400'
               )}
             />
             <span>{product.isActive ? 'Aktif' : 'Non-Aktif'}</span>
@@ -137,29 +135,29 @@ export function ProductCard({
 
         {/* Product Name & Description */}
         <div className="space-y-1">
-          <h3 className="text-base font-bold text-ink tracking-tight line-clamp-1">
+          <h3 className="text-base font-black text-[#181816] tracking-tight uppercase line-clamp-1">
             {product.name}
           </h3>
-          <p className="text-xs text-ink-secondary leading-relaxed line-clamp-2">
-            {product.description}
+          <p className="text-xs text-[#4A463F] leading-relaxed line-clamp-2 font-medium">
+            {product.description || 'Katalog produk digital siap untuk promosi otomatis Threads.'}
           </p>
         </div>
 
-        {/* Pricing Variants Box */}
+        {/* Pricing Variants Stamp Box */}
         {product.variants && product.variants.length > 0 && (
-          <div className="rounded-2xl bg-white p-3.5 border border-surface-border/80 space-y-2 shadow-xs">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1">
-              <Layers className="h-3 w-3" />
-              Varian & Harga Resmi
+          <div className="rounded-retro-xs bg-[#E8DBC0]/40 p-3 border-2 border-[#181816] space-y-2 shadow-[2px_2px_0px_0px_#181816]">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#181816] flex items-center gap-1 border-b border-[#181816]/20 pb-1">
+              <Layers className="h-3.5 w-3.5 stroke-[2.5]" />
+              Varian Paket & Harga
             </span>
             <div className="flex flex-wrap gap-1.5">
               {product.variants.map((v, idx) => (
                 <div
                   key={idx}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-surface border border-surface-border px-2.5 py-1 text-xs text-ink font-medium"
+                  className="inline-flex items-center gap-1.5 rounded-retro-xs bg-white border-1.5 border-[#181816] px-2 py-0.5 text-xs text-[#181816] font-bold shadow-[1px_1px_0px_0px_#181816]"
                 >
-                  <span className="font-semibold">{v.name}:</span>
-                  <span className="font-bold text-ink">{formatIDR(v.price)}</span>
+                  <span className="text-[#4A463F]">{v.name}:</span>
+                  <span className="font-black text-[#181816]">{formatIDR(v.price)}</span>
                 </div>
               ))}
             </div>
@@ -169,17 +167,17 @@ export function ProductCard({
         {/* USPs Pill Tags */}
         {product.usp && product.usp.length > 0 && (
           <div className="space-y-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-ink-muted flex items-center gap-1">
-              <Sparkles className="h-3 w-3 text-amber-500" />
-              Keunggulan Utama (USP)
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#181816] flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-[#C95D53] stroke-[2.5]" />
+              Keunggulan (USP)
             </span>
             <div className="flex flex-wrap gap-1.5">
               {product.usp.map((item, idx) => (
                 <span
                   key={idx}
-                  className="rounded-full bg-white border border-surface-border px-2.5 py-0.5 text-[11px] font-medium text-ink-secondary"
+                  className="rounded-retro-xs bg-white border-1.5 border-[#181816] px-2 py-0.5 text-[11px] font-bold text-[#181816] shadow-[1px_1px_0px_0px_#181816]"
                 >
-                  ✓ {item}
+                  ★ {item}
                 </span>
               ))}
             </div>
@@ -189,55 +187,55 @@ export function ProductCard({
         {/* Target Audience & Tone */}
         <div className="grid grid-cols-2 gap-2 pt-1">
           {product.targetAudience && (
-            <div className="rounded-xl bg-white p-2.5 border border-surface-border/70 text-[11px] space-y-0.5">
-              <span className="text-[10px] font-bold text-ink-muted flex items-center gap-1">
+            <div className="rounded-retro-xs bg-white p-2 border-2 border-[#181816] text-[11px] space-y-0.5 shadow-[1.5px_1.5px_0px_0px_#181816]">
+              <span className="text-[10px] font-black text-[#7A7468] flex items-center gap-1 uppercase">
                 <Users className="h-3 w-3" /> Target
               </span>
-              <p className="text-ink font-semibold truncate">{product.targetAudience}</p>
+              <p className="text-[#181816] font-black truncate">{product.targetAudience}</p>
             </div>
           )}
 
           {product.toneOfVoice && (
-            <div className="rounded-xl bg-white p-2.5 border border-surface-border/70 text-[11px] space-y-0.5">
-              <span className="text-[10px] font-bold text-ink-muted flex items-center gap-1">
+            <div className="rounded-retro-xs bg-white p-2 border-2 border-[#181816] text-[11px] space-y-0.5 shadow-[1.5px_1.5px_0px_0px_#181816]">
+              <span className="text-[10px] font-black text-[#7A7468] flex items-center gap-1 uppercase">
                 <MessageSquareQuote className="h-3 w-3" /> Tone
               </span>
-              <p className="text-ink font-semibold truncate">{product.toneOfVoice}</p>
+              <p className="text-[#181816] font-black truncate">{product.toneOfVoice}</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Footer Action Bar */}
-      <div className="pt-5 mt-5 border-t border-surface-border flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
+      <div className="pt-4 mt-4 border-t-2 border-[#181816] flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleCopyContext}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white hover:bg-surface-hover text-ink text-xs font-semibold border border-surface-border transition-all tap-effect shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-retro-xs bg-white hover:bg-[#FAF6EE] text-[#181816] text-xs font-black border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
             title="Salin Context JSON untuk LLM"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-600 stroke-[3]" /> : <Copy className="h-3.5 w-3.5 stroke-[2.5]" />}
             <span>{copied ? 'Disalin' : 'Copy AI Context'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => onEdit(product)}
-            className="p-2 rounded-full bg-white hover:bg-surface-hover text-ink border border-surface-border transition-all tap-effect shadow-xs"
+            className="p-1.5 rounded-retro-xs bg-[#D8C49D] hover:bg-[#E2D2B0] text-[#181816] border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
             title="Edit Produk"
           >
-            <Edit3 className="h-3.5 w-3.5" />
+            <Edit3 className="h-4 w-4 stroke-[2.5]" />
           </button>
         </div>
 
         <button
           type="button"
           onClick={() => setShowDeleteConfirm(true)}
-          className="p-2 rounded-full text-zinc-400 hover:text-rose-600 hover:bg-rose-50 transition-colors tap-effect"
+          className="p-1.5 rounded-retro-xs text-zinc-400 hover:text-white hover:bg-[#C95D53] hover:border-2 hover:border-[#181816] transition-colors"
           title="Hapus Produk"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-4 w-4 stroke-[2.2]" />
         </button>
       </div>
 
@@ -249,25 +247,25 @@ export function ProductCard({
       >
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-600">
-              <Trash2 className="h-5 w-5" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-retro-xs bg-rose-100 text-[#C95D53] border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816]">
+              <Trash2 className="h-5 w-5 stroke-[2.5]" />
             </div>
             <div className="space-y-0.5">
-              <h3 className="text-sm font-bold text-ink">Hapus Produk Ini?</h3>
-              <p className="text-xs text-ink-muted">Tindakan ini permanen.</p>
+              <h3 className="text-sm font-black text-[#181816] uppercase">Hapus Produk Ini?</h3>
+              <p className="text-xs text-[#7A7468] font-medium">Tindakan ini permanen.</p>
             </div>
           </div>
 
-          <p className="text-xs text-ink-secondary bg-surface p-3 rounded-xl border border-surface-border/80 font-medium">
+          <p className="text-xs text-[#181816] bg-white p-3 rounded-retro-xs border-2 border-[#181816] font-black shadow-[2px_2px_0px_0px_#181816]">
             &quot;{product.name}&quot;
           </p>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="flex items-center justify-end gap-2.5 pt-2">
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(false)}
               disabled={isDeleting}
-              className="px-4 py-2 rounded-full border border-surface-border text-xs font-semibold text-ink hover:bg-surface transition-colors"
+              className="px-4 py-2 rounded-retro-xs border-2 border-[#181816] text-xs font-bold text-[#181816] hover:bg-white shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
             >
               Batal
             </button>
@@ -276,9 +274,9 @@ export function ProductCard({
               type="button"
               onClick={handleDelete}
               disabled={isDeleting}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all tap-effect"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-retro-xs bg-[#C95D53] hover:bg-[#D45D52] text-white text-xs font-black border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>{isDeleting ? 'Menghapus...' : 'Hapus Sekarang'}</span>
             </button>
           </div>
