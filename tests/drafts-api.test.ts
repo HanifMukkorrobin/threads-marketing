@@ -8,6 +8,10 @@ import {
   PATCH as patchDraft,
   DELETE as deleteDraft,
 } from '../src/app/api/drafts/[id]/route';
+import {
+  GET as getDraftStatus,
+  PATCH as patchDraftStatus,
+} from '../src/app/api/drafts/[id]/status/route';
 
 describe('Content Drafts Internal API Routes (`/api/drafts`)', () => {
   let sampleProduct1: any;
@@ -535,6 +539,86 @@ describe('Content Drafts Internal API Routes (`/api/drafts`)', () => {
     it('returns 404 when deleting a non-existent draft', async () => {
       const req = new NextRequest('http://localhost:3000/api/drafts/not-found-id');
       const res = await deleteDraft(req, { params: { id: 'not-found-id' } });
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('/api/drafts/[id]/status', () => {
+    it('GET returns current status and info of draft', async () => {
+      const draft = await prisma.contentDraft.create({
+        data: {
+          title: 'Status Check Draft',
+          status: 'PENDING_REVIEW',
+        },
+      });
+
+      const req = new NextRequest(`http://localhost:3000/api/drafts/${draft.id}/status`);
+      const res = await getDraftStatus(req, { params: { id: draft.id } });
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.id).toBe(draft.id);
+      expect(body.status).toBe('PENDING_REVIEW');
+    });
+
+    it('GET returns 404 for non-existent draft', async () => {
+      const req = new NextRequest('http://localhost:3000/api/drafts/nonexistent-id/status');
+      const res = await getDraftStatus(req, { params: { id: 'nonexistent-id' } });
+      expect(res.status).toBe(404);
+    });
+
+    it('PATCH updates draft status to APPROVED', async () => {
+      const draft = await prisma.contentDraft.create({
+        data: {
+          title: 'Draft to approve',
+          status: 'PENDING_REVIEW',
+        },
+      });
+
+      const req = new NextRequest(`http://localhost:3000/api/drafts/${draft.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'APPROVED' }),
+      });
+
+      const res = await patchDraftStatus(req, { params: { id: draft.id } });
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.draft.status).toBe('APPROVED');
+
+      const inDb = await prisma.contentDraft.findUnique({ where: { id: draft.id } });
+      expect(inDb?.status).toBe('APPROVED');
+    });
+
+    it('PATCH returns 400 for invalid status', async () => {
+      const draft = await prisma.contentDraft.create({
+        data: {
+          title: 'Draft invalid status',
+          status: 'PENDING_REVIEW',
+        },
+      });
+
+      const req = new NextRequest(`http://localhost:3000/api/drafts/${draft.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'INVALID_STATUS_XYZ' }),
+      });
+
+      const res = await patchDraftStatus(req, { params: { id: draft.id } });
+      expect(res.status).toBe(400);
+    });
+
+    it('PATCH returns 404 for non-existent draft', async () => {
+      const req = new NextRequest('http://localhost:3000/api/drafts/missing-id/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'APPROVED' }),
+      });
+
+      const res = await patchDraftStatus(req, { params: { id: 'missing-id' } });
       expect(res.status).toBe(404);
     });
   });
