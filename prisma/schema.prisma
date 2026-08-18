@@ -70,3 +70,17 @@ model SystemConfig {
   description String?
   updatedAt   DateTime      @updatedAt
 }
+
+model ThreadsMetricSnapshot {
+  id             String    @id @default(cuid())
+  date           String    @unique // Format YYYY-MM-DD
+  views          Int       @default(0)
+  likes          Int       @default(0)
+  replies        Int       @default(0)
+  reposts        Int       @default(0)
+  followersCount Int       @default(0)
+  isLiveSynced   Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+

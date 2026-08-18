@@ -163,6 +163,41 @@ async function main() {
     console.log('✅ Sample content draft with 3 thread posts seeded.');
   }
 
+  // 4. Threads Metric Snapshots (Last 14 days baseline)
+  const today = new Date();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const factor = 1 + (i % 5) * 0.15;
+    const baseViews = Math.round((3500 + Math.floor(Math.sin(i) * 1200 + 1500)) * factor);
+    const baseLikes = Math.round(baseViews * 0.065);
+    const baseReplies = Math.round(baseViews * 0.022);
+    const baseReposts = Math.round(baseViews * 0.012);
+
+    await prisma.threadsMetricSnapshot.upsert({
+      where: { date: dateStr },
+      update: {
+        views: baseViews,
+        likes: baseLikes,
+        replies: baseReplies,
+        reposts: baseReposts,
+        followersCount: 1200 + (14 - i) * 18,
+        isLiveSynced: false,
+      },
+      create: {
+        date: dateStr,
+        views: baseViews,
+        likes: baseLikes,
+        replies: baseReplies,
+        reposts: baseReposts,
+        followersCount: 1200 + (14 - i) * 18,
+        isLiveSynced: false,
+      },
+    });
+  }
+  console.log('✅ 14-day Threads metric snapshots seeded.');
+
   console.log('🚀 Seeding complete!');
 }
 
