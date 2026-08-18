@@ -92,7 +92,7 @@ export async function POST(req: NextRequest | Request) {
   try {
     const body = await req.json();
 
-    if (body.action === 'regenerate-key') {
+    if (body.action === 'regenerate-key' || body.action === 'regenerate_key') {
       const randomPart = crypto.randomBytes(16).toString('hex');
       const newApiKey = `hermes_${randomPart}`;
 
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest | Request) {
       });
     }
 
-    if (body.action === 'verify-threads-token') {
+    if (body.action === 'verify-threads-token' || body.action === 'verify_threads_token') {
       const token =
         body.token ||
         (await prisma.systemConfig.findUnique({ where: { key: 'THREADS_ACCESS_TOKEN' } }))?.value;
@@ -170,6 +170,38 @@ export async function POST(req: NextRequest | Request) {
           { status: 500 }
         );
       }
+    }
+
+    // If body contains settings or is an update payload, save settings
+    const settingsToUpdate = body.settings || (body.action ? null : body);
+    if (settingsToUpdate && typeof settingsToUpdate === 'object') {
+      const entries = Object.entries(settingsToUpdate);
+
+      for (const [key, value] of entries) {
+        if (typeof key === 'string' && value !== undefined && value !== null) {
+          const stringVal = String(value);
+          await prisma.systemConfig.upsert({
+            where: { key },
+            update: { value: stringVal },
+            create: {
+              key,
+              value: stringVal,
+              description: `Auto-managed config for ${key}`,
+            },
+          });
+        }
+      }
+
+      const allConfigs = await prisma.systemConfig.findMany();
+      const fullConfigMap: Record<string, string> = { ...DEFAULT_SETTINGS };
+      for (const item of allConfigs) {
+        fullConfigMap[item.key] = item.value;
+      }
+
+      return NextResponse.json({
+        success: true,
+        settings: fullConfigMap,
+      });
     }
 
     return NextResponse.json(

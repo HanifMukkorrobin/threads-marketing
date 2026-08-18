@@ -190,39 +190,87 @@ export async function PATCH(
 
     const body = await req.json();
     const {
+      title,
+      productId,
+      type,
       status,
+      hookAngle,
+      scheduledAt,
+      publishedAt,
       threadPostId,
       threadPostUrl,
       errorMessage,
-      publishedAt,
-      scheduledAt,
+      source,
+      metadata,
+      posts,
     } = body;
 
-    const updateData: any = {};
-
-    if (status !== undefined) {
-      if (!isValidDraftStatus(status)) {
-        return NextResponse.json(
-          { success: false, error: `Invalid status '${status}'` },
-          { status: 400 }
-        );
-      }
-      updateData.status = status;
+    if (status && !isValidDraftStatus(status)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid status '${status}'` },
+        { status: 400 }
+      );
     }
 
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = String(title).trim();
+    if (productId !== undefined) updateData.productId = productId || null;
+    if (hookAngle !== undefined) updateData.hookAngle = hookAngle ? String(hookAngle).trim() : null;
+    if (status !== undefined) updateData.status = status;
+    if (source !== undefined) updateData.source = source;
     if (threadPostId !== undefined) updateData.threadPostId = threadPostId;
     if (threadPostUrl !== undefined) updateData.threadPostUrl = threadPostUrl;
     if (errorMessage !== undefined) updateData.errorMessage = errorMessage;
-    if (publishedAt !== undefined) {
-      updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
-    }
     if (scheduledAt !== undefined) {
       updateData.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
     }
+    if (publishedAt !== undefined) {
+      updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
+    }
+    if (metadata !== undefined) {
+      updateData.metadata = typeof metadata === 'string' ? metadata : JSON.stringify(metadata);
+    }
 
-    const updated = await prisma.contentDraft.update({
+    if (type !== undefined) {
+      updateData.type = type;
+    } else if (Array.isArray(posts)) {
+      updateData.type = posts.length > 1 ? 'THREAD_CHAIN' : 'SINGLE';
+    }
+
+    // Execute in transaction if posts are being replaced
+    if (Array.isArray(posts)) {
+      await prisma.$transaction(async (tx) => {
+        await tx.draftPostItem.deleteMany({
+          where: { draftId: id },
+        });
+
+        const postCreates = posts.map((p: any, idx: number) => ({
+          draftId: id,
+          orderIndex: typeof p.orderIndex === 'number' ? p.orderIndex : idx,
+          content: p.content ? String(p.content) : '',
+          mediaUrl: p.mediaUrl ? String(p.mediaUrl).trim() : null,
+        }));
+
+        if (postCreates.length > 0) {
+          await tx.draftPostItem.createMany({
+            data: postCreates,
+          });
+        }
+
+        await tx.contentDraft.update({
+          where: { id },
+          data: updateData,
+        });
+      });
+    } else {
+      await prisma.contentDraft.update({
+        where: { id },
+        data: updateData,
+      });
+    }
+
+    const updated = await prisma.contentDraft.findUnique({
       where: { id },
-      data: updateData,
       include: {
         product: true,
         posts: {
@@ -241,7 +289,7 @@ export async function PATCH(
   } catch (error) {
     console.error(`Error in PATCH /api/drafts/${params.id}:`, error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error while updating draft status' },
+      { success: false, error: 'Internal server error while updating draft' },
       { status: 500 }
     );
   }

@@ -120,8 +120,8 @@ export default function DashboardOverviewPage() {
 
       if (overviewData.success) {
         setCounts(overviewData.counts || {});
-        setRecentPendingDrafts(overviewData.recentPending || []);
-        setRecentPublishedDrafts(overviewData.recentPublished || []);
+        setRecentPendingDrafts(overviewData.recentPendingDrafts || overviewData.recentPending || []);
+        setRecentPublishedDrafts(overviewData.recentPublishedDrafts || overviewData.recentPublished || []);
         setHermesStatus(
           overviewData.hermesStatus || {
             isConfigured: false,
