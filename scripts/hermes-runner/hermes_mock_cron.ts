@@ -12,6 +12,7 @@
  */
 
 import { selectLRUProduct, selectRotatedAngle } from '../../src/lib/rotation-engine';
+import { generateDraftWithHermes, GENERATION_ANGLES } from '../../src/lib/generation-engine';
 
 export interface RunnerOptions {
   baseUrl?: string;
@@ -432,18 +433,43 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
       if (products.length > 0) {
         const targetProducts = products.slice(0, 2);
         for (const product of targetProducts) {
-          const allAngles = HUMANIZED_HOOK_ARCHETYPES.map((a) => a.angle);
+          const allAngles = GENERATION_ANGLES.map((a) => a.name);
           const chosenAngle = selectRotatedAngle(allAngles, []);
-          const matchedArchetype = HUMANIZED_HOOK_ARCHETYPES.find((a) => a.angle === chosenAngle) || HUMANIZED_HOOK_ARCHETYPES[0];
-          const generatedData = matchedArchetype.generate(product, store);
+          console.log(`✍️  [AI Product Generator] Menghasilkan draft untuk "${product.name}" (${chosenAngle})...`);
 
-          console.log(`✍️  [AI Product Generator] Menghasilkan draft untuk "${product.name}" (${matchedArchetype.angle})...`);
+          let generatedData;
+          try {
+            generatedData = await generateDraftWithHermes({
+              product: {
+                id: product.id,
+                name: product.name,
+                category: product.category,
+                description: product.description,
+                variants: product.variants,
+                usp: product.usp,
+                targetAudience: product.targetAudience,
+                toneOfVoice: product.toneOfVoice,
+                ctaTemplate: product.ctaTemplate,
+              },
+              store,
+              angle: chosenAngle,
+            });
+          } catch {
+            const matchedArchetype = HUMANIZED_HOOK_ARCHETYPES.find((a) => a.angle === chosenAngle) || HUMANIZED_HOOK_ARCHETYPES[0];
+            const fallback = matchedArchetype.generate(product, store);
+            generatedData = {
+              title: fallback.title,
+              hookAngle: matchedArchetype.angle,
+              posts: fallback.posts,
+              metadata: { generatorSource: 'hermes-archetype-fallback' },
+            };
+          }
 
           const draftPayload = {
             productId: product.id,
             title: generatedData.title,
-            type: 'THREAD_CHAIN',
-            hookAngle: matchedArchetype.angle,
+            type: generatedData.posts.length > 1 ? 'THREAD_CHAIN' : 'SINGLE',
+            hookAngle: generatedData.hookAngle,
             posts: generatedData.posts,
             metadata: {
               runner: 'hermes-cron-runner-ts',
@@ -451,7 +477,8 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
               contentType: 'PRODUCT_PROMO',
               storeUsername: store.username,
               generatedAt: new Date().toISOString(),
-              model: 'hermes-3-llama-3.1-8b',
+              model: 'ag/gemini-3.6-flash-high',
+              ...(generatedData.metadata || {}),
             },
           };
 
@@ -474,23 +501,50 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
       }
 
       // 2. Generate Organic / Non-Product Engagement Draft (productId: null)
-      const organicArchetypes = getOrganicArchetypes(store);
-      const randomOrganic = organicArchetypes[Math.floor(Math.random() * organicArchetypes.length)];
-      console.log(`✍️  [AI Organic Generator] Menghasilkan konten edukasi non-produk: "${randomOrganic.title}"...`);
+      const organicTopics = [
+        '5 ekstensi AI browser penunjang kerja & nugas 2026',
+        'Cara maintain ritme fokus & anti-burnout kerja digital',
+        'Trik prompt AI anti-gagal buat riset & copywriting',
+        'Mitos tools bajakan vs keuntungan akun legal bergaransi',
+        'Shortcut esensial keyboard laptop hemat waktu berjam-jam',
+      ];
+      const selectedTopic = organicTopics[Math.floor(Math.random() * organicTopics.length)];
+      console.log(`✍️  [AI Organic Generator] Menghasilkan konten edukasi non-produk: "${selectedTopic}"...`);
+
+      let orgGenerated;
+      try {
+        orgGenerated = await generateDraftWithHermes({
+          product: null,
+          store,
+          angle: 'Edukasi & Produktivitas Organik',
+          customTopic: selectedTopic,
+        });
+      } catch {
+        const organicArchetypes = getOrganicArchetypes(store);
+        const randomOrganic = organicArchetypes[Math.floor(Math.random() * organicArchetypes.length)];
+        orgGenerated = {
+          title: randomOrganic.title,
+          hookAngle: randomOrganic.hookAngle,
+          posts: randomOrganic.posts,
+          metadata: { generatorSource: 'hermes-archetype-fallback' },
+        };
+      }
 
       const organicDraftPayload = {
         productId: null,
-        title: randomOrganic.title,
-        type: 'THREAD_CHAIN',
-        hookAngle: randomOrganic.hookAngle,
-        posts: randomOrganic.posts,
+        title: orgGenerated.title,
+        type: orgGenerated.posts.length > 1 ? 'THREAD_CHAIN' : 'SINGLE',
+        hookAngle: orgGenerated.hookAngle,
+        posts: orgGenerated.posts,
         metadata: {
           runner: 'hermes-cron-runner-ts',
           skill: 'ecommerce-copy-humanizer-id',
           contentType: 'ORGANIC_ENGAGEMENT',
           storeUsername: store.username,
           generatedAt: new Date().toISOString(),
-          model: 'hermes-3-llama-3.1-8b',
+          model: 'ag/gemini-3.6-flash-high',
+          customTopic: selectedTopic,
+          ...(orgGenerated.metadata || {}),
         },
       };
 
