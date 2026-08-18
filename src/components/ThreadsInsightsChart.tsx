@@ -81,7 +81,7 @@ export function ThreadsInsightsChart({ onToast }: ThreadsInsightsChartProps) {
   const getMetricValue = useCallback((point: InsightDataPoint): number => {
     if (metric === 'views') return point.views;
     if (metric === 'engagements') return point.engagements;
-    return point.followers;
+    return point.followersCount;
   }, [metric]);
 
   const maxValue = useMemo(() => {
