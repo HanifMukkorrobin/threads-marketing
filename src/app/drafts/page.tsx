@@ -198,14 +198,13 @@ function DraftsContent() {
       </div>
 
       {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 border-b-2 border-[#181816] pb-5">
+      <header className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 border-b-2 border-[#181816] pb-5">
         <div className="space-y-1.5 max-w-2xl">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#181816] tracking-tight flex flex-wrap items-center gap-x-2.5 gap-y-2 uppercase">
             <span>Managing</span>
             <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-retro-xs bg-[#6B9AC4] border-2 border-[#181816] text-white shadow-[2px_2px_0px_0px_#181816]">
               Drafts Pipeline
             </span>
-            <span>// 90s Edition</span>
           </h1>
           <p className="text-xs sm:text-sm text-[#4A463F] font-semibold">
             Kelola, review, atau minta Hermes AI meracik rangkaian thread baru berkonversi tinggi.
@@ -231,7 +230,7 @@ function DraftsContent() {
             className="flex items-center gap-2 px-5 py-2 rounded-retro-xs bg-[#C95D53] hover:bg-[#D45D52] text-white font-black text-xs border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all tap-effect uppercase tracking-wider"
           >
             <Plus className="h-4 w-4 stroke-[3]" />
-            <span>+ Buat Draft Baru</span>
+            <span>Buat Draft Baru</span>
           </button>
         </div>
       </header>
@@ -361,7 +360,7 @@ function DraftsContent() {
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-retro-xs bg-[#C95D53] text-white text-xs font-black border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all tap-effect uppercase tracking-wider"
             >
               <Sparkles className="h-4 w-4 fill-white" />
-              <span>+ Buat Draft Baru</span>
+              <span>Buat Draft Baru</span>
             </button>
           </div>
         </div>

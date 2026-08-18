@@ -102,7 +102,7 @@ export function SidebarDock() {
             className="flex items-center gap-2 px-4 sm:px-5 py-2 rounded-retro-xs bg-[#C95D53] hover:bg-[#D45D52] text-white text-xs font-black border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all tap-effect"
           >
             <Plus className="h-4 w-4 stroke-[3]" />
-            <span className="tracking-wider uppercase">+ Buat Draft</span>
+            <span className="tracking-wider uppercase">Buat Draft</span>
           </Link>
 
           {/* Mobile Menu Toggle */}

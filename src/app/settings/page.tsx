@@ -407,14 +407,13 @@ export default function SettingsPage() {
       </div>
 
       {/* Top Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 border-b-2 border-[#181816] pb-5">
+      <header className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 border-b-2 border-[#181816] pb-5">
         <div className="space-y-1.5 max-w-2xl">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#181816] tracking-tight flex flex-wrap items-center gap-x-2.5 gap-y-2 uppercase">
             <span>Konfigurasi</span>
             <span className="inline-flex items-center justify-center px-3 py-0.5 rounded-retro-xs bg-[#6B9AC4] border-2 border-[#181816] text-white shadow-[2px_2px_0px_0px_#181816]">
               Sistem & API
             </span>
-            <span>// 90s Edition</span>
           </h1>
           <p className="text-xs sm:text-sm text-[#4A463F] font-semibold">
             Kelola branding toko, integrasi background scheduler Hermes, Meta Threads Graph API, dan keamanan dashboard.
