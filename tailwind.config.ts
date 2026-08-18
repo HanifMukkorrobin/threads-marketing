@@ -9,42 +9,58 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas: '#E3E9E5', // Soft Sage outer background
-        island: '#FFFFFF', // Main floating white island
-        dock: '#121214',   // Pitch black sidebar dock
+        canvas: '#D9C5A3',       // Warm Oatmeal Sand (from reference image)
+        island: '#FAF6EE',       // Cream Paper Interior
+        dock: '#181816',         // Deep Charcoal Espresso
+        retro: {
+          canvas: '#D9C5A3',     // Warm Oatmeal Sand Canvas
+          paper: '#FAF6EE',      // Cream Paper
+          denim: '#6B9AC4',      // Retro Denim / Steel Blue
+          'denim-dark': '#5386B4',
+          coral: '#C95D53',      // Vintage Dusty Coral / Terracotta Red
+          'coral-dark': '#B74F45',
+          sand: '#D8C49D',       // Vintage Sand / Ochre
+          'sand-light': '#E8DBC0',
+          ink: '#181816',        // Deep Espresso Outline & Text
+          yellow: '#FFE600',     // Electric Accent
+          mint: '#00E699',       // Mint Green
+          cyan: '#53C2D0',       // Soft Cyan
+          dark: '#181816',       // Espresso Charcoal
+          surface: '#FAF6EE',
+          border: '#181816',
+        },
         surface: {
-          DEFAULT: '#F4F6F5',
-          hover: '#EAEFEA',
-          border: '#E1E6E2',
-          muted: '#ECEFEF',
+          DEFAULT: '#FAF6EE',
+          hover: '#F2ECE0',
+          border: '#181816',
+          muted: '#E6DCCB',
         },
         lime: {
-          DEFAULT: '#E2FD52', // Electric Lime accent
-          hover: '#D4F63D',
-          light: '#F4FED4',
-          dark: '#8DAA0E',
+          DEFAULT: '#C95D53',    // Dusty Coral as default primary CTA accent
+          hover: '#B74F45',
+          light: '#F8D7D4',
+          dark: '#963C33',
         },
         ink: {
-          DEFAULT: '#121214',   // Dark charcoal/black
-          secondary: '#646A72', // Slate secondary
-          muted: '#9DA3AE',     // Muted caption
+          DEFAULT: '#181816',    // Deep Charcoal
+          secondary: '#4A463F',  // Vintage Slate
+          muted: '#7A7468',      // Muted Sand Caption
         },
-        // Backwards compatibility aliases
         threads: {
-          bg: '#E3E9E5',
-          card: '#F4F6F5',
-          surface: '#FFFFFF',
-          elevated: '#ECEFEF',
-          border: '#E1E6E2',
-          'border-subtle': '#EEF2EE',
-          'border-active': '#121214',
-          text: '#121214',
-          secondary: '#646A72',
-          muted: '#9DA3AE',
-          accent: '#121214',
-          success: '#10B981',
-          warning: '#F59E0B',
-          danger: '#EF4444',
+          bg: '#D9C5A3',
+          card: '#FAF6EE',
+          surface: '#FAF6EE',
+          elevated: '#F2ECE0',
+          border: '#181816',
+          'border-subtle': '#C8BCAC',
+          'border-active': '#181816',
+          text: '#181816',
+          secondary: '#4A463F',
+          muted: '#7A7468',
+          accent: '#6B9AC4',
+          success: '#00E699',
+          warning: '#D8C49D',
+          danger: '#C95D53',
         },
       },
       fontFamily: {
@@ -69,47 +85,48 @@ const config: Config = {
           'monospace',
         ],
       },
-      letterSpacing: {
-        tightest: '-0.04em',
-        tighter: '-0.025em',
-        tight: '-0.015em',
-        widest: '0.08em',
-      },
       borderRadius: {
-        island: '36px',
-        bento: '26px',
+        'retro-xs': '3px',
+        'retro-sm': '6px',
+        retro: '10px',
+        'retro-lg': '14px',
+        'retro-xl': '18px',
+        island: '16px',
+        bento: '12px',
         capsule: '9999px',
-        threads: '16px',
+        threads: '12px',
       },
       boxShadow: {
-        island: '0 20px 60px -15px rgba(0, 0, 0, 0.07), 0 0 1px 1px rgba(0, 0, 0, 0.04)',
-        bento: '0 4px 20px -2px rgba(0, 0, 0, 0.03)',
-        dock: '0 12px 40px -8px rgba(0, 0, 0, 0.35)',
-        pill: '0 2px 8px -1px rgba(0, 0, 0, 0.06)',
-      },
-      transitionTimingFunction: {
-        spring: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        bounce: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'retro-xs': '1.5px 1.5px 0px 0px #181816',
+        'retro-sm': '2.5px 2.5px 0px 0px #181816',
+        retro: '4px 4px 0px 0px #181816',
+        'retro-md': '5px 5px 0px 0px #181816',
+        'retro-lg': '8px 8px 0px 0px #181816',
+        'retro-xl': '12px 12px 0px 0px #181816',
+        island: '10px 10px 0px 0px #181816',
+        bento: '4px 4px 0px 0px #181816',
+        dock: '5px 5px 0px 0px #181816',
+        pill: '2.5px 2.5px 0px 0px #181816',
       },
       keyframes: {
         pop: {
           '0%': { transform: 'scale(1)' },
-          '50%': { transform: 'scale(1.25)' },
+          '50%': { transform: 'scale(1.1)' },
           '100%': { transform: 'scale(1)' },
         },
         slideUpFade: {
-          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         scaleIn: {
-          '0%': { opacity: '0', transform: 'scale(0.96)' },
+          '0%': { opacity: '0', transform: 'scale(0.97)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
       },
       animation: {
-        pop: 'pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        'slide-up': 'slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-        'scale-in': 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        pop: 'pop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'slide-up': 'slideUpFade 0.25s ease-out forwards',
+        'scale-in': 'scaleIn 0.2s ease-out forwards',
       },
     },
   },
@@ -117,4 +134,3 @@ const config: Config = {
 };
 
 export default config;
-

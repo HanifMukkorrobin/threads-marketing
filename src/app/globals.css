@@ -1,18 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --canvas: #E3E9E5;
-  --island: #FFFFFF;
-  --dock: #121214;
-  --surface: #F4F6F5;
-  --surface-border: #E1E6E2;
-  --lime: #E2FD52;
-  --ink: #121214;
-  --ink-secondary: #646A72;
+  --canvas: #D9C5A3;
+  --island: #FAF6EE;
+  --dock: #181816;
+  --surface: #FAF6EE;
+  --surface-border: #181816;
+  --coral: #C95D53;
+  --denim: #6B9AC4;
+  --sand: #D8C49D;
+  --ink: #181816;
+  --ink-secondary: #4A463F;
 }
 
 * {
@@ -20,51 +22,140 @@
 }
 
 ::selection {
-  background-color: #E2FD52;
-  color: #121214;
+  background-color: #6B9AC4;
+  color: #FFFFFF;
 }
 
 body {
-  background-color: var(--canvas);
-  color: var(--ink);
+  background-color: #D9C5A3;
+  color: #181816;
   font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom minimal smooth scrollbar */
+/* Custom crisp retro scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #E8DEC8;
+  border-left: 2px solid #181816;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D1D8D3;
-  border-radius: 9999px;
+  background: #181816;
+  border: 1px solid #181816;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #AAB3AC;
+  background: #C95D53;
 }
 
-/* Tactile micro-motion utilities */
-.tap-effect {
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.tap-effect:active {
-  transform: scale(0.96);
+/* Retro Tactile Micro-Interactions */
+.retro-card {
+  background-color: #FAF6EE;
+  border: 2.5px solid #181816;
+  box-shadow: 4px 4px 0px 0px #181816;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
 }
 
-.bento-card {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+.retro-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0px 0px #181816;
 }
-.bento-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06);
+
+.retro-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 900;
+  border: 2px solid #181816;
+  box-shadow: 3px 3px 0px 0px #181816;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  user-select: none;
+  cursor: pointer;
+}
+
+.retro-btn:hover {
+  transform: translate(-1.5px, -1.5px);
+  box-shadow: 4.5px 4.5px 0px 0px #181816;
+}
+
+.retro-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px 0px #181816;
+}
+
+.retro-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 2px 2px 0px 0px #181816 !important;
+}
+
+.retro-btn-coral {
+  background-color: #C95D53;
+  color: #FFFFFF;
+}
+.retro-btn-coral:hover {
+  background-color: #D45D52;
+}
+
+.retro-btn-denim {
+  background-color: #6B9AC4;
+  color: #FFFFFF;
+}
+.retro-btn-denim:hover {
+  background-color: #79A5CD;
+}
+
+.retro-btn-sand {
+  background-color: #D8C49D;
+  color: #181816;
+}
+.retro-btn-sand:hover {
+  background-color: #E2D2B0;
+}
+
+.retro-btn-black {
+  background-color: #181816;
+  color: #FFFFFF;
+}
+.retro-btn-black:hover {
+  background-color: #2D2C28;
+}
+
+.retro-btn-white {
+  background-color: #FFFFFF;
+  color: #181816;
+}
+.retro-btn-white:hover {
+  background-color: #F7F3EB;
+}
+
+.retro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1.5px solid #181816;
+  box-shadow: 1.5px 1.5px 0px 0px #181816;
+  font-weight: 800;
+}
+
+.retro-input {
+  border: 2px solid #181816;
+  box-shadow: 2.5px 2.5px 0px 0px #181816;
+  transition: all 0.15s ease;
+}
+
+.retro-input:focus {
+  outline: none;
+  border-color: #181816;
+  box-shadow: 4px 4px 0px 0px #6B9AC4, 4px 4px 0px 1.5px #181816;
 }
 
 @keyframes shake {
@@ -86,12 +177,11 @@ body {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes pulseSubtle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(0.95); }
+/* Staged animation */
+.tap-effect {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-
-.animate-pulse-subtle {
-  animation: pulseSubtle 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.tap-effect:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: none !important;
 }
-

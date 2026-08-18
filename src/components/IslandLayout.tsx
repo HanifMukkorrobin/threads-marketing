@@ -13,18 +13,28 @@ export function IslandLayout({ children }: IslandLayoutProps) {
   const isLoginPage = pathname === '/login';
 
   if (isLoginPage) {
-    return <main className="min-h-screen bg-canvas">{children}</main>;
+    return <main className="min-h-screen bg-[#D9C5A3] flex items-center justify-center p-4">{children}</main>;
   }
 
   return (
-    <div className="min-h-screen bg-canvas p-3 sm:p-5 lg:p-7 flex gap-4 lg:gap-6">
-      {/* Persistent Left Dock */}
-      <SidebarDock />
+    <div className="min-h-screen bg-[#D9C5A3] p-4 sm:p-7 lg:p-10 flex flex-col items-center justify-start">
+      {/* Top Retro Banner Title */}
+      <div className="w-full max-w-7xl text-center pb-4 select-none">
+        <span className="text-white text-lg sm:text-2xl font-black tracking-[0.25em] uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,0.15)]">
+          THREADS MARKETING STUDIO
+        </span>
+      </div>
 
-      {/* Main Floating Island Container */}
-      <main className="flex-1 bg-island rounded-[28px] sm:rounded-[36px] shadow-island border border-surface-border/60 overflow-hidden flex flex-col min-h-[calc(100vh-2.5rem)] lg:min-h-[calc(100vh-3.5rem)] mt-12 lg:mt-0">
-        {children}
-      </main>
+      {/* Main Retro Paper Frame Window */}
+      <div className="w-full max-w-7xl bg-[#FAF6EE] rounded-none sm:rounded-retro-sm border-[2.5px] sm:border-[3px] border-[#181816] shadow-[6px_6px_0px_0px_#181816] sm:shadow-[12px_12px_0px_0px_#181816] flex flex-col overflow-hidden relative z-10 min-h-[calc(100vh-8rem)]">
+        {/* Top Retro Header Bar */}
+        <SidebarDock />
+
+        {/* Interior Workspace */}
+        <main className="flex-1 w-full bg-[#FAF6EE]">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

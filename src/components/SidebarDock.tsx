@@ -11,9 +11,6 @@ import {
   Plus,
   Lock,
   Zap,
-  Globe,
-  MoreHorizontal,
-  ChevronRight,
   Menu,
   X,
   Sparkles,
@@ -25,16 +22,16 @@ export function SidebarDock() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // If on login page, hide dock
+  // If on login page, hide dock/nav
   if (pathname === '/login') {
     return null;
   }
 
   const navItems = [
-    { href: '/', label: 'Overview', icon: LayoutGrid },
-    { href: '/drafts', label: 'Drafts Hub', icon: FileText },
-    { href: '/products', label: 'Products', icon: Package },
-    { href: '/settings', label: 'Settings', icon: Sliders },
+    { href: '/', label: 'OVERVIEW' },
+    { href: '/drafts', label: 'DRAFTS PIPELINE' },
+    { href: '/products', label: 'KATALOG PRODUK' },
+    { href: '/settings', label: 'PENGATURAN' },
   ];
 
   const handleQuickLock = async () => {
@@ -48,131 +45,93 @@ export function SidebarDock() {
 
   return (
     <>
-      {/* Desktop Vertical Pill Dock */}
-      <aside className="hidden lg:flex flex-col items-center justify-between w-16 py-5 bg-[#121214] rounded-[28px] shadow-dock select-none shrink-0 sticky top-7 h-[calc(100vh-3.5rem)] z-30">
-        {/* Top: Circular Add Button */}
-        <div className="flex flex-col items-center gap-4">
-          <Link
-            href="/drafts?create=true"
-            title="Create New Draft"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#222226] text-white hover:bg-lime hover:text-ink transition-all duration-200 tap-effect group"
-          >
-            <Plus className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90 stroke-[2.5]" />
-          </Link>
-
-          <div className="w-6 h-[1px] bg-white/10" />
-
-          {/* Navigation Links */}
-          <nav className="flex flex-col items-center gap-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                item.href === '/'
-                  ? pathname === '/'
-                  : pathname.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={item.label}
-                  className={cn(
-                    'relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 tap-effect',
-                    isActive
-                      ? 'bg-white text-ink shadow-pill font-bold'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/10'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {isActive && (
-                    <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-3 rounded-full bg-lime" />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Bottom Actions: Hermes Status & Lock & Avatar */}
-        <div className="flex flex-col items-center gap-3">
-          {/* Hermes Agent Pulse Badge */}
-          <div
-            title="Hermes Autonomous Engine: Active"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1C1C20] text-lime border border-lime/20"
-          >
-            <Zap className="h-3.5 w-3.5 animate-pulse" />
+      {/* Top Editorial Retro Navigation Bar */}
+      <header className="w-full bg-[#FAF6EE] border-b-[2.5px] border-[#181816] px-5 sm:px-8 py-3.5 flex items-center justify-between select-none z-30">
+        {/* Left: Retro Brand Logo */}
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="flex items-center gap-1">
+            <span className="h-3 w-3 bg-[#6B9AC4] border border-[#181816] inline-block shadow-[1px_1px_0px_0px_#181816]" />
+            <span className="h-3 w-3 bg-[#C95D53] border border-[#181816] inline-block shadow-[1px_1px_0px_0px_#181816]" />
+            <span className="h-3 w-3 bg-[#D8C49D] border border-[#181816] inline-block shadow-[1px_1px_0px_0px_#181816]" />
           </div>
+          <span className="font-black text-xs sm:text-sm tracking-wider uppercase text-[#181816]">
+            Threads Marketing
+          </span>
+        </Link>
 
-          {/* Quick Lock Action */}
+        {/* Center: Desktop Nav Links */}
+        <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+          {navItems.map((item) => {
+            const isActive =
+              item.href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'text-xs font-black tracking-widest transition-all uppercase py-1',
+                  isActive
+                    ? 'text-[#181816] border-b-2 border-[#181816] shadow-[0_2px_0px_0px_#6B9AC4]'
+                    : 'text-[#4A463F] hover:text-[#181816] hover:border-b-2 hover:border-[#181816]'
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3">
+          {/* Lock Dashboard */}
           <button
             type="button"
             onClick={handleQuickLock}
-            title="Lock Dashboard (PIN)"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors tap-effect"
+            title="Kunci Dashboard (PIN)"
+            className="hidden sm:flex h-9 w-9 items-center justify-center rounded-retro-xs bg-white hover:bg-[#D8C49D] text-[#181816] border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
           >
-            <Lock className="h-3.5 w-3.5" />
+            <Lock className="h-4 w-4 stroke-[2.5]" />
           </button>
 
-          {/* User / Store Avatar */}
-          <Link
-            href="/settings"
-            title="Store Profile & Settings"
-            className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-lime to-emerald-400 p-[2px] tap-effect"
-          >
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#121214] text-[10px] font-bold text-white uppercase">
-              @
-            </div>
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-lime border-2 border-[#121214]" />
-          </Link>
-        </div>
-      </aside>
-
-      {/* Mobile Top App Bar & Drawer */}
-      <div className="lg:hidden fixed top-3 left-3 right-3 z-40 bg-[#121214]/95 backdrop-blur-md rounded-full px-4 py-2.5 shadow-dock flex items-center justify-between border border-white/10">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-lime text-ink font-extrabold text-xs">
-            @
-          </div>
-          <span className="font-bold text-xs tracking-tight text-white">
-            Threads Studio
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
+          {/* Primary Action Button (Dusty Coral with shopping bag / draft icon) */}
           <Link
             href="/drafts?create=true"
-            className="flex h-7 px-3 items-center justify-center rounded-full bg-lime text-ink text-[11px] font-bold tap-effect"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2 rounded-retro-xs bg-[#C95D53] hover:bg-[#D45D52] text-white text-xs font-black border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816] active:translate-x-[1.5px] active:translate-y-[1.5px] active:shadow-none transition-all tap-effect"
           >
-            + Draft
+            <Plus className="h-4 w-4 stroke-[3]" />
+            <span className="tracking-wider uppercase">+ Buat Draft</span>
           </Link>
 
+          {/* Mobile Menu Toggle */}
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-1.5 rounded-full bg-white/10 text-white"
+            className="md:hidden flex h-9 w-9 items-center justify-center rounded-retro-xs bg-white text-[#181816] border-2 border-[#181816] shadow-[2px_2px_0px_0px_#181816]"
           >
-            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            {mobileOpen ? <X className="h-4 w-4 stroke-[3]" /> : <Menu className="h-4 w-4 stroke-[3]" />}
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Mobile Drawer Backdrop */}
       {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm pt-16 px-4 pb-6">
-          <div className="bg-[#121214] rounded-[28px] p-5 shadow-2xl border border-white/10 space-y-4 animate-scale-in">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                Navigation
+        <div className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-xs pt-16 px-4 pb-6">
+          <div className="bg-[#FAF6EE] rounded-retro p-5 shadow-[6px_6px_0px_0px_#181816] border-2 border-[#181816] space-y-4 animate-scale-in">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-[#181816]">
+              <span className="text-xs font-black text-[#181816] uppercase tracking-wider">
+                Navigasi Menu
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] text-lime font-mono">
-                <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse" />
-                Hermes Online
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-retro-xs bg-[#D8C49D] text-[#181816] border border-[#181816] text-[10px] font-black">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#181816] animate-pulse" />
+                Hermes 90s
               </span>
             </div>
 
-            <nav className="grid grid-cols-2 gap-2">
+            <nav className="flex flex-col gap-2">
               {navItems.map((item) => {
-                const Icon = item.icon;
                 const isActive =
                   item.href === '/'
                     ? pathname === '/'
@@ -184,24 +143,24 @@ export function SidebarDock() {
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      'flex items-center gap-2.5 px-4 py-3 rounded-2xl text-xs font-semibold transition-all',
+                      'flex items-center justify-between px-4 py-2.5 rounded-retro-xs text-xs font-black border-2 border-[#181816] transition-all',
                       isActive
-                        ? 'bg-white text-ink shadow-sm'
-                        : 'bg-white/5 text-zinc-300 hover:bg-white/10'
+                        ? 'bg-[#6B9AC4] text-white shadow-[2px_2px_0px_0px_#181816]'
+                        : 'bg-white text-[#181816] hover:bg-[#FAF6EE] shadow-[1.5px_1.5px_0px_0px_#181816]'
                     )}
                   >
-                    <Icon className="h-4 w-4" />
                     <span>{item.label}</span>
+                    <span>→</span>
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-2 border-t-2 border-[#181816] flex items-center justify-between">
               <button
                 type="button"
                 onClick={handleQuickLock}
-                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white"
+                className="flex items-center gap-1.5 text-xs font-bold text-[#181816] hover:underline"
               >
                 <Lock className="h-3.5 w-3.5" />
                 <span>Kunci Dashboard</span>
@@ -210,7 +169,7 @@ export function SidebarDock() {
               <Link
                 href="/settings"
                 onClick={() => setMobileOpen(false)}
-                className="text-xs text-lime font-medium"
+                className="text-xs font-black text-[#181816] underline"
               >
                 Pengaturan ↗
               </Link>
