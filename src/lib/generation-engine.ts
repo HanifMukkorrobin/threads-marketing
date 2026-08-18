@@ -1,9 +1,12 @@
 /**
- * Dynamic Content Generation Engine
+ * Dynamic Content Generation Engine (Overhaul v2)
  * Powered by Hermes AI Agent (ag/gemini-3.6-flash-high)
- * Adheres to /ecommerce-copy-humanizer-id
- * Generates fresh, non-generic, high-converting Threads marketing campaigns
- * Integrated with Hybrid Deduplication & Freshness Guard
+ * 
+ * Core Principles:
+ * 1. Zero Template Mad-Libs: Directives instead of sentence fill-in-the-blanks.
+ * 2. Authentic Practitioner Persona: Natural Indonesian without forced slang wordlists.
+ * 3. Strict Separation: Commercial Promos (high conversion) vs Pure Organic (100% value, zero selling).
+ * 4. Hybrid Deduplication & Freshness Guard (Ollama Vector + Lexical Fallback + Negative Context).
  */
 
 import { callHermesChatCompletion } from './hermes-client';
@@ -18,57 +21,45 @@ export interface GenerationAngle {
   id: string;
   name: string;
   description: string;
-  hookHint: string;
+  directive: string;
 }
 
 export const GENERATION_ANGLES: GenerationAngle[] = [
   {
-    id: 'contrarian',
-    name: 'Contrarian / Unpopular Opinion',
-    description: 'Menentang anggapan umum atau mitos keliru terkait produk/layanan digital',
-    hookHint: 'Banyak orang ngira ..., padahal aslinya ...',
+    id: 'unpopular_truth',
+    name: 'Unpopular Industry Truth',
+    description: 'Menentang kebiasaan umum yang keliru dengan logika teknis atau realita pahit.',
+    directive: 'Mulai langsung dengan fakta mengejutkan, konsekuensi tak terduga, atau paradoks industri tanpa basa-basi.',
   },
   {
-    id: 'micro_story',
-    name: 'Specific Micro-Story & Curhat Relate',
-    description: 'Cerita skenario kehidupan nyata (nugas malam, meeting klien, kuota mepet, dll)',
-    hookHint: 'Pernah gak lagi asik ... tiba-tiba ...? Rasanya pengen ...',
+    id: 'real_case_study',
+    name: 'Real Case & Breakdown Skenario',
+    description: 'Bedah skenario nyata saat deadline, workflow macet, atau risiko keamanan.',
+    directive: 'Mulai dengan deskripsi situasi spesifik (waktu, jenis project, kepanikan nyata) tanpa kalimat pengantar klise.',
   },
   {
-    id: 'price_breakdown',
-    name: 'Value Breakdown & Coffee Comparison',
-    description: 'Bandingkan biaya langganan dengan pengeluaran remeh harian (segelas kopi/rokok)',
-    hookHint: 'Harga 1 gelas kopi kekinian vs langganan pro sebulan penuh...',
+    id: 'workflow_teardown',
+    name: 'Workflow & Tool Teardown',
+    description: 'Perbandingan tajam antara cara lama yang melelahkan vs cara modern yang efektif.',
+    directive: 'Tunjukkan kontras jam kerja (misal: 4 jam manual vs 10 menit otomatis) atau efisiensi proses.',
   },
   {
-    id: 'productivity_hack',
-    name: 'Productivity & Workflow Hack',
-    description: 'Trik hemat waktu berjam-jam untuk kerjaan atau tugas sehari-hari',
-    hookHint: 'Trik rahasia beresin kerjaan 3x lebih cepet tanpa pusing...',
+    id: 'cost_math_contrast',
+    name: 'Real Math & Cost Analysis',
+    description: 'Perhitungan matematis pengeluaran tersembunyi vs nilai investasi jangka panjang.',
+    directive: 'Tampilkan perbandingan rupiah konkret atau rasio biaya harian vs risiko kerugian waktu.',
   },
   {
-    id: 'fomo_urgency',
-    name: 'FOMO & Limited Slot Restock',
-    description: 'Urgensi ketersediaan akun resmi yang sering rebutan',
-    hookHint: 'Akhirnya restock juga hari ini! Cuma buka slot terbatas...',
+    id: 'actionable_framework',
+    name: 'Actionable Framework / Step-by-Step',
+    description: 'Panduan taktis step-by-step yang bisa langsung dipraktekkan hari ini.',
+    directive: 'Bagi menjadi 3 langkah konkret yang bisa dieksekusi tanpa teori bertele-tele.',
   },
   {
-    id: 'mistakes_to_avoid',
-    name: 'Mistakes to Avoid & Red Flags',
-    description: 'Edukasi bahaya beli akun ilegal/mod/apk abal-abal vs legal bergaransi',
-    hookHint: 'Jangan sampai kejebak akun murah tapi tiap 3 hari ke-ban...',
-  },
-  {
-    id: 'secret_features',
-    name: 'Secret Pro Features',
-    description: 'Eksplorasi fitur tersembunyi yang jarang dimaksimalkan pengguna',
-    hookHint: 'Fitur tersembunyi di ... yang bikin workflow kamu naik kelas:',
-  },
-  {
-    id: 'organic_tips',
-    name: 'Edukasi & Tips Digital Organik',
-    description: 'Konten non-produk bernilai tinggi untuk menaikkan engagement & follower',
-    hookHint: '5 tools/shortcut gratis yang wajib ada di laptop kamu di 2026...',
+    id: 'tool_curation',
+    name: 'Curation & High-Utility Insights',
+    description: 'Kurasi tools atau teknik tersembunyi yang jarang diketahui orang.',
+    directive: 'Langsung sorot fungsi terkuat dan problem nyata yang diselesaikan tanpa pengantar panjang.',
   },
 ];
 
@@ -110,45 +101,17 @@ export function buildGenerationPrompt(input: GenerationInput): string {
   const storeName = store?.name || 'Toko Digital ID';
   const storeHandle = store?.username || 'tokodigital.id';
 
-  const selectedAngleObj = GENERATION_ANGLES.find((a) => a.id === angle || a.name === angle) || GENERATION_ANGLES[0];
-  const angleName = selectedAngleObj?.name || 'Storytelling & Relate';
-  const hookHint = selectedAngleObj?.hookHint || '';
-
-  let contextDescription = '';
-  if (product) {
-    const variantsStr = product.variants?.length
-      ? product.variants.map((v) => `• ${v.name}: Rp ${v.price.toLocaleString('id-ID')}${v.duration ? ` (${v.duration})` : ''}`).join('\n')
-      : '• Harga hemat terjangkau';
-    const uspsStr = product.usp?.length
-      ? product.usp.map((u) => `✅ ${u}`).join('\n')
-      : '✅ Full garansi replace\n✅ Proses instan hitungan menit';
-
-    contextDescription = `
-PRODUK YANG AKAN DIPROMOSIKAN:
-- Nama Produk: ${product.name}
-- Kategori: ${product.category || 'Digital Service'}
-- Target Audiens Spesifik: ${targetAudience || product.targetAudience || 'Mahasiswa, Pekerja Kreatif, Freelancer'}
-- Varian & Harga Resmi:
-${variantsStr}
-- Keunggulan Utama (USP):
-${uspsStr}
-- Call to Action Template: ${product.ctaTemplate || `Langsung DM @${storeHandle} buat order sekarang!`}
-`.trim();
-  } else {
-    contextDescription = `
-KONTEN ORGANIK / EDUKASI / ENGAGEMENT (TANPA PRODUK JUALAN LANGSUNG):
-- Topik / Fokus: ${customTopic || 'Tips produktivitas kerja digital, tools AI, atau tips freelance 2026'}
-- Target Audiens: ${targetAudience || 'Pengguna Threads aktif, kreator, profesional muda'}
-- Tujuan: Memberikan insight bernilai tinggi, memancing replies/repost, dan soft-follow ke @${storeHandle}.
-`.trim();
-  }
+  const selectedAngleObj =
+    GENERATION_ANGLES.find((a) => a.id === angle || a.name === angle) || GENERATION_ANGLES[0];
+  const angleName = selectedAngleObj?.name || 'Unpopular Industry Truth';
+  const angleDirective = selectedAngleObj?.directive || 'Langsung masuk ke inti masalah secara tajam.';
 
   let negativeContextSection = '';
   if (historyHooksToAvoid && historyHooksToAvoid.length > 0) {
     negativeContextSection = `
 HINDARI FORMULA & HOOK SEBELUMNYA (NEGATIVE CONTEXT / ANTI-REPETISI):
-Berikut adalah hook/ide yang SUDAH PERNAH DITERBITKAN sebelumnya. DILARANG membuat hook, analogi, atau formula kalimat pembuka yang mirip dengan daftar ini:
-${historyHooksToAvoid.slice(0, 10).map((h, idx) => `${idx + 1}. "${h}"`).join('\n')}
+Berikut adalah hook yang SUDAH PERNAH DITERBITKAN sebelumnya. DILARANG membuat hook, analogi, atau formula kalimat yang mirip dengan daftar ini:
+${historyHooksToAvoid.slice(0, 15).map((h, idx) => `${idx + 1}. "${h}"`).join('\n')}
 Wajib buat sudut pandang, analogi, dan gaya pembuka yang 100% segar, unik, dan tidak mengulang pola di atas!
 `.trim();
   }
@@ -158,43 +121,99 @@ Wajib buat sudut pandang, analogi, dan gaya pembuka yang 100% segar, unik, dan t
     collisionWarningSection = `
 PERINGATAN COLLISION SEBELUMNYA (RETRY GENERATION):
 ${excludeCollisions.map((c) => `⚠️ ${c}`).join('\n')}
-Gunakan sudut pandang baru yang sama sekali berbeda dari percobaan sebelumnya!
+Gunakan konsep pembuka yang sama sekali berbeda dari percobaan sebelumnya!
 `.trim();
   }
 
-  return `
-PANDUAN PEMBUATAN KONTEN THREADS (META):
-Kamu adalah Hermes AI Copywriting Agent yang ahli membuat konten viral, segar, dan berkonversi tinggi di platform Threads.
-Gunakan standar copywriting "ecommerce-copy-humanizer-id".
+  // BRANCH 1: PRODUCT PROMOTIONAL THREAD (Commercial / High-Converting)
+  if (product) {
+    const variantsStr = product.variants?.length
+      ? product.variants.map((v) => `• ${v.name}: Rp ${v.price.toLocaleString('id-ID')}${v.duration ? ` (${v.duration})` : ''}`).join('\n')
+      : '• Harga hemat terjangkau';
+    const uspsStr = product.usp?.length
+      ? product.usp.map((u) => `✅ ${u}`).join('\n')
+      : '✅ Full garansi replace\n✅ Proses instan hitungan menit';
 
-INFORMASI BISNIS:
+    return `
+PANDUAN PEMBUATAN THREAD PROMOSI PRODUK (THREADS META):
+Kamu adalah Digital Copywriter profesional yang ahli membuat konten viral berkonversi tinggi. Gaya bahasa: Indonesia kasual, cerdas, percaya diri, tanpa basa-basi marketing murahan.
+
+INFORMASI BISNIS & PRODUK:
 - Toko: ${storeName} (@${storeHandle})
-${contextDescription}
+PRODUK YANG AKAN DIPROMOSIKAN:
+- Nama Produk: ${product.name}
+- Kategori: ${product.category || 'Digital Service'}
+- Target Audiens: ${targetAudience || product.targetAudience || 'Mahasiswa, Profesional, Freelancer'}
+- Varian & Harga Resmi:
+${variantsStr}
+- Keunggulan Utama (USP):
+${uspsStr}
+- Call to Action: ${product.ctaTemplate || `Amankan slot resmi via link di bio @${storeHandle}!`}
 
-SUDUT PANDANG / ANGLE KONTEN:
+ARAHAN SUDUT PANDANG (ANGLE):
 - Angle: ${angleName}
-- Inspirasi Hook: "${hookHint}"
-${customTopic ? `- Topik Tambahan dari Pengguna: "${customTopic}"` : ''}
+- Taktik Eksekusi: ${angleDirective}
+${customTopic ? `- Fokus Tambahan: "${customTopic}"` : ''}
 
-${negativeContextSection ? `${negativeContextSection}\n` : ''}${collisionWarningSection ? `${collisionWarningSection}\n` : ''}ATURAN ANTI-KLISE & ANTI-GENERIC (SANGAT KETAT & WAJIB PATUH):
-1. DAFTAR FORMULA HARAM (DILARANG KERAS DIGUNAKAN):
-   - JANGAN pakai: "Lagi asik nugas...", "Tahukah kamu...", "Di era digital/modern ini...", "Pernah gak sih ngerasa...", "Jangan lewatkan kesempatan...", "Kabar gembira...", "Siapa sangka...".
-   - Wajib mulai dengan skenario super spesifik, kontras angka nyata, atau opini berani to-the-point!
-2. Bahasa Indonesia santai, luwes, dan natural (e.g. gess, sat-set, boncos, worth it, nugas, gak pake ribet, cuan).
+${negativeContextSection ? `${negativeContextSection}\n\n` : ''}${collisionWarningSection ? `${collisionWarningSection}\n\n` : ''}ATURAN PENULISAN KETAT:
+1. DILARANG MEMAKAI PEMBUKA KLISE:
+   - JANGAN mulai dengan: "Banyak orang ngira...", "Pernah gak sih...", "Tahukah kamu...", "Di era digital...", "Siapa sangka...", "Jangan lewatkan...", "Kabar gembira...".
+   - Buka langsung dengan: Angka riil, kerugian konkret, situasi spesifik, atau opini berani to-the-point!
+2. JANGAN memaksakan daftar kata slang template. Tulis mengalir secara natural selayaknya praktisi digital yang sedang berbagi solusi.
 3. Struktur 3 Post Thread:
-   - Post 1 (Hook): Masalah relatable / pertanyaan / kontrarian yang memicu rasa penasaran + diakhiri "🧵👇".
-   - Post 2 (Value / Proof): Solusi nyata, breakdown keunggulan, daftar harga / tips konkret.
-   - Post 3 (Call to Action): CTA ajakan diskusi / order mengarah ke bio @${storeHandle}.
+   - Post #1 (Hook Utama): Ketegangan masalah / kontras fakta + diakhiri indikator thread "🧵👇".
+   - Post #2 (Solusi & Bukti Nilai): Nilai produk nyata, daftar paket/harga resmi, dan jaminan keamanan.
+   - Post #3 (Action & CTA Transaksional): Ajakan order jelas mengarah ke bio/DM @${storeHandle}.
 4. Setiap post HARUS DI BAWAH 500 KARAKTER (Batas Threads).
 
-KEMBALIKAN OUTPUT HANYA DALAM FORMAT JSON BERIKUT (TANPA MARKDOWN FENCES / TEXT LAIN):
+KEMBALIKAN OUTPUT HANYA DALAM FORMAT JSON BERIKUT (TANPA MARKDOWN FENCES / TEKS LAIN):
 {
-  "title": "Judul Draft yang Menarik & Singkat",
+  "title": "Judul Draft Singkat & Menarik",
   "hookAngle": "${angleName}",
   "posts": [
     { "orderIndex": 0, "content": "Teks post 1 (Hook)... 🧵👇" },
-    { "orderIndex": 1, "content": "Teks post 2 (Value & Benefit)..." },
-    { "orderIndex": 2, "content": "Teks post 3 (Action & CTA ke @${storeHandle})..." }
+    { "orderIndex": 1, "content": "Teks post 2 (Value & Harga)..." },
+    { "orderIndex": 2, "content": "Teks post 3 (CTA ke @${storeHandle})..." }
+  ]
+}
+`.trim();
+  }
+
+  // BRANCH 2: PURE ORGANIC EDUCATIONAL THREAD (100% Value, Zero Selling)
+  return `
+PANDUAN PEMBUATAN THREAD ORGANIK EDUKASI (THREADS META):
+Kamu adalah Edukator & Praktisi Digital Tech yang berbagi wawasan berbobot tinggi. Gaya bahasa: Cerdas, santai, to-the-point, sangat aplikatif.
+
+KONTEN ORGANIK MURNI (100% EDUKASI & INSIGHT BERBOBOT):
+- Topik / Fokus Materi: ${customTopic || 'Framework produktivitas kerja, tips prompt AI, atau efisiensi tools digital 2026'}
+- Target Audiens: ${targetAudience || 'Pengguna Threads aktif, mahasiswa, freelancer, digital creator'}
+- Profil Penulis: @${storeHandle}
+
+ARAHAN SUDUT PANDANG (ANGLE):
+- Angle: ${angleName}
+- Taktik Eksekusi: ${angleDirective}
+
+${negativeContextSection ? `${negativeContextSection}\n\n` : ''}${collisionWarningSection ? `${collisionWarningSection}\n\n` : ''}ATURAN PENULISAN KETAT:
+1. DILARANG KERAS BERJUALAN:
+   - DILARANG menyebut harga produk jualan, stok, promo akun, atau embel-embel jualan.
+   - Konten ini 100% murni edukasi, insight teknis, atau tips praktis yang langsung bisa dicoba.
+2. DILARANG MEMAKAI PEMBUKA KLISE:
+   - JANGAN mulai dengan: "Banyak orang ngira...", "Pernah gak sih...", "Tahukah kamu...", "Di era modern...", "Siapa sangka...".
+   - Buka langsung dengan inti insight atau pernyataan menohok.
+3. Struktur 3 Post Thread:
+   - Post #1 (Hook Wawasan): Masalah / konsep menarik yang memicu rasa ingin tahu + diakhiri "🧵👇".
+   - Post #2 (Daging Materi / Actionable Value): Breakdown langkah nyata, formula, atau poin praktis.
+   - Post #3 (Penutup Komunitas): Bookmark / save thread buat referensi nanti, ajakan diskusi di replies, atau soft-follow ke @${storeHandle} untuk tips seputar digital harian.
+4. Setiap post HARUS DI BAWAH 500 KARAKTER.
+
+KEMBALIKAN OUTPUT HANYA DALAM FORMAT JSON BERIKUT (TANPA MARKDOWN FENCES / TEKS LAIN):
+{
+  "title": "Judul Wawasan Edukasi",
+  "hookAngle": "${angleName}",
+  "posts": [
+    { "orderIndex": 0, "content": "Teks post 1 (Hook wawasan)... 🧵👇" },
+    { "orderIndex": 1, "content": "Teks post 2 (Langkah & Value)..." },
+    { "orderIndex": 2, "content": "Teks post 3 (Penutup & Diskusi)..." }
   ]
 }
 `.trim();
@@ -215,7 +234,7 @@ export function parseHermesGenerationResponse(rawText: string): GenerationResult
     if (obj && Array.isArray(obj.posts) && obj.posts.length >= 2) {
       return {
         title: String(obj.title || 'Draft Threads Baru'),
-        hookAngle: String(obj.hookAngle || 'Storytelling & Relate'),
+        hookAngle: String(obj.hookAngle || 'Unpopular Industry Truth'),
         posts: obj.posts.map((p: any, idx: number) => ({
           orderIndex: typeof p.orderIndex === 'number' ? p.orderIndex : idx,
           content: String(p.content || '').slice(0, 500),
@@ -260,7 +279,7 @@ export function parseHermesGenerationResponse(rawText: string): GenerationResult
 export async function generateDraftWithHermes(input: GenerationInput): Promise<GenerationResult> {
   let history: HistoricalDraftItem[] = [];
   try {
-    history = await getRecentDraftHistory(input.product?.id || null, 10);
+    history = await getRecentDraftHistory(input.product?.id || null, 15);
   } catch {
     history = [];
   }
@@ -311,24 +330,52 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
 
   // Fallback dynamic generator if AI is unreachable
   const storeHandle = input.store?.username || 'tokodigital.id';
-  const prodName = input.product?.name || 'layanan digital';
   const selectedAngle = GENERATION_ANGLES.find((a) => a.id === input.angle) || GENERATION_ANGLES[0];
 
+  if (input.product) {
+    const prodName = input.product.name || 'layanan digital';
+    return {
+      title: `[${selectedAngle.name.split('/')[0].trim()}] ${prodName}`,
+      hookAngle: selectedAngle.name,
+      posts: [
+        {
+          orderIndex: 0,
+          content: `Kehilangan waktu berjam-jam gara-gara akun kerja bermasalah di tengah deadline itu bencana nyata 💡\n\nNih solusi stabil untuk ${prodName} resmi 🧵👇`,
+        },
+        {
+          orderIndex: 1,
+          content: `Benefit yang kamu dapatkan:\n${(input.product.usp || ['100% Legal & Bergaransi', 'Aktivasi Instan']).slice(0, 3).map((u) => `✅ ${u}`).join('\n')}\n\nLogin resmi tanpa VPN aneh-aneh.`,
+        },
+        {
+          orderIndex: 2,
+          content: `Amankan slot resmi sekarang sebelum kehabisan kuota hari ini.\n\n👉 Info lengkap & order langsung cek bio @${storeHandle}! 🚀`,
+        },
+      ],
+      metadata: {
+        generatedBy: 'hermes-fallback-engine',
+        generatedAt: new Date().toISOString(),
+        freshnessCheck: lastFreshnessCheck || { isFresh: true, method: 'none', score: 0, threshold: 0.7 },
+      },
+    };
+  }
+
+  // Fallback for organic education (Zero Selling)
+  const topicTitle = input.customTopic || '3 Trik Workflow Digital 2026';
   return {
-    title: `[${selectedAngle.name.split('/')[0].trim()}] ${prodName}`,
+    title: `[Insight] ${topicTitle}`,
     hookAngle: selectedAngle.name,
     posts: [
       {
         orderIndex: 0,
-        content: `Banyak yang belum sadar kalau langganan ${prodName} resmi itu sekarang bisa hemat banget tanpa boncos! 💡\n\nNih insight yang wajib kamu tahu 🧵👇`,
+        content: `Bekerja lebih cerdas bukan berarti nambah jam kerja, tapi mengeliminasi hal repetitif yang buang energi 🧠\n\n3 prinsip workflow digital yang wajib kamu tahu 🧵👇`,
       },
       {
         orderIndex: 1,
-        content: `Keuntungan yang kamu dapetin:\n${(input.product?.usp || ['100% Legal & Bergaransi', 'Aktivasi Instan']).slice(0, 3).map((u) => `✅ ${u}`).join('\n')}\n\nProses sat-set tanpa VPN, langsung siap pakai buat harian.`,
+        content: `1. Otomasi tugas kecil yang makan waktu > 10 menit harian.\n2. Buat template reusable untuk dokumen dan komunikasi berulang.\n3. Blokir waktu fokus tanpa notifikasi di pagi hari.`,
       },
       {
         orderIndex: 2,
-        content: `Yuk upgrade sekarang mumpung slot promo masih ready!\n\n👉 Cek info lengkap & order via bio @${storeHandle} ya gess! 🚀`,
+        content: `Simpan thread ini biar gak lupa pas butuh nanti! ✨\n\nFollow @${storeHandle} untuk update seputar insight tools digital & tips produktivitas harian.`,
       },
     ],
     metadata: {
