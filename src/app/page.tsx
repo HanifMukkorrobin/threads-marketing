@@ -28,6 +28,7 @@ import { Product, CreateProductInput } from '@/types/product';
 import { CreateDraftModal } from '@/components/CreateDraftModal';
 import { ProductModal } from '@/components/ProductModal';
 import { DraftStatusBadge, BatteryCapacityDots } from '@/components/DraftStatusBadge';
+import { ThreadsInsightsChart } from '@/components/ThreadsInsightsChart';
 import { cn } from '@/lib/utils';
 
 interface OverviewCounts {
@@ -492,68 +493,11 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {/* Middle Split Section: Statistics Visualizer & Quick Action Directory */}
+      {/* Middle Split Section: Threads Insights Visualizer & Quick Action Directory */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Interactive Statistics & Capsule Bar Schedule Chart */}
-        <div className="lg:col-span-2 rounded-bento bg-surface border border-surface-border p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <h3 className="text-sm font-bold text-ink flex items-center gap-2">
-                <span>Statistics</span>
-                <span className="text-xs font-normal text-ink-muted">// Pipeline Performance</span>
-              </h3>
-            </div>
-
-            <div className="flex items-center gap-4 text-xs font-medium text-ink-secondary">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-ink" />
-                <span>Drafts Active</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-lime" />
-                <span>Approved / Live</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Capsule Pill Double-Bar Chart Visualizer */}
-          <div className="pt-4 pb-2">
-            <div className="grid grid-cols-7 gap-3 sm:gap-6 items-end h-48 border-b border-surface-border pb-4">
-              {[
-                { day: 'Sen', draftVal: 70, liveVal: 40, pill: '87%' },
-                { day: 'Sel', draftVal: 50, liveVal: 25, pill: null },
-                { day: 'Rab', draftVal: 85, liveVal: 60, pill: null },
-                { day: 'Kam', draftVal: 30, liveVal: 15, pill: null },
-                { day: 'Jum', draftVal: 95, liveVal: 75, pill: '92%' },
-                { day: 'Sab', draftVal: 60, liveVal: 45, pill: null },
-                { day: 'Min', draftVal: 75, liveVal: 50, pill: '68%' },
-              ].map((bar, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end group">
-                  {bar.pill && (
-                    <span className="rounded-full bg-ink px-2 py-0.5 text-[9px] font-bold text-white shadow-sm mb-1 animate-pulse-subtle">
-                      {bar.pill}
-                    </span>
-                  )}
-                  <div className="relative w-6 sm:w-8 flex flex-col justify-end items-center h-36 bg-surface-muted rounded-full p-1">
-                    {/* Dark Upper Capsule */}
-                    <div
-                      style={{ height: `${bar.draftVal}%` }}
-                      className="w-full bg-ink rounded-full transition-all duration-500 relative group-hover:bg-zinc-800"
-                    >
-                      {/* Lime Lower Capsule Overlay */}
-                      <div
-                        style={{ height: `${(bar.liveVal / bar.draftVal) * 100}%` }}
-                        className="w-full absolute bottom-0 bg-lime rounded-full"
-                      />
-                    </div>
-                  </div>
-                  <span className="text-[11px] font-semibold text-ink-secondary">
-                    {bar.day}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Left 2 Cols: Interactive Threads Account Insights Visualizer */}
+        <div className="lg:col-span-2">
+          <ThreadsInsightsChart onToast={addToast} />
         </div>
 
         {/* Right 1 Col: Quick Directory Navigation Grid */}
