@@ -11,6 +11,8 @@
  *   npx tsx scripts/hermes-runner/hermes_mock_cron.ts --action=all
  */
 
+import { selectLRUProduct, selectRotatedAngle } from '../../src/lib/rotation-engine';
+
 export interface RunnerOptions {
   baseUrl?: string;
   apiKey?: string;
@@ -426,19 +428,22 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
       console.log(`   Ditemukan ${products.length} produk aktif.`);
       console.log(`   Store Profile: ${store.name} (@${store.username})`);
 
-      // 1. Generate Product Drafts
+      // 1. Generate Product Drafts with LRU Product and Angle Rotation
       if (products.length > 0) {
-        for (const product of products.slice(0, 2)) {
-          const randomArchetype = HUMANIZED_HOOK_ARCHETYPES[Math.floor(Math.random() * HUMANIZED_HOOK_ARCHETYPES.length)];
-          const generatedData = randomArchetype.generate(product, store);
+        const targetProducts = products.slice(0, 2);
+        for (const product of targetProducts) {
+          const allAngles = HUMANIZED_HOOK_ARCHETYPES.map((a) => a.angle);
+          const chosenAngle = selectRotatedAngle(allAngles, []);
+          const matchedArchetype = HUMANIZED_HOOK_ARCHETYPES.find((a) => a.angle === chosenAngle) || HUMANIZED_HOOK_ARCHETYPES[0];
+          const generatedData = matchedArchetype.generate(product, store);
 
-          console.log(`✍️  [AI Product Generator] Menghasilkan draft untuk "${product.name}" (${randomArchetype.angle})...`);
+          console.log(`✍️  [AI Product Generator] Menghasilkan draft untuk "${product.name}" (${matchedArchetype.angle})...`);
 
           const draftPayload = {
             productId: product.id,
             title: generatedData.title,
             type: 'THREAD_CHAIN',
-            hookAngle: randomArchetype.angle,
+            hookAngle: matchedArchetype.angle,
             posts: generatedData.posts,
             metadata: {
               runner: 'hermes-cron-runner-ts',

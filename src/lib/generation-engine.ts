@@ -3,9 +3,16 @@
  * Powered by Hermes AI Agent (ag/gemini-3.6-flash-high)
  * Adheres to /ecommerce-copy-humanizer-id
  * Generates fresh, non-generic, high-converting Threads marketing campaigns
+ * Integrated with Hybrid Deduplication & Freshness Guard
  */
 
 import { callHermesChatCompletion } from './hermes-client';
+import {
+  getRecentDraftHistory,
+  validateDraftFreshness,
+  FreshnessValidationResult,
+  HistoricalDraftItem,
+} from './content-deduplication';
 
 export interface GenerationAngle {
   id: string;
@@ -84,6 +91,8 @@ export interface GenerationInput {
   angle?: string | null;
   customTopic?: string | null;
   targetAudience?: string | null;
+  historyHooksToAvoid?: string[];
+  excludeCollisions?: string[];
 }
 
 export interface GenerationResult {
@@ -94,10 +103,10 @@ export interface GenerationResult {
 }
 
 /**
- * Builds the AI generation prompt with strict anti-cliche and humanizer rules
+ * Builds the AI generation prompt with strict anti-cliche, negative context, and humanizer rules
  */
 export function buildGenerationPrompt(input: GenerationInput): string {
-  const { product, store, angle, customTopic, targetAudience } = input;
+  const { product, store, angle, customTopic, targetAudience, historyHooksToAvoid, excludeCollisions } = input;
   const storeName = store?.name || 'Toko Digital ID';
   const storeHandle = store?.username || 'tokodigital.id';
 
@@ -134,6 +143,25 @@ KONTEN ORGANIK / EDUKASI / ENGAGEMENT (TANPA PRODUK JUALAN LANGSUNG):
 `.trim();
   }
 
+  let negativeContextSection = '';
+  if (historyHooksToAvoid && historyHooksToAvoid.length > 0) {
+    negativeContextSection = `
+HINDARI FORMULA & HOOK SEBELUMNYA (NEGATIVE CONTEXT / ANTI-REPETISI):
+Berikut adalah hook/ide yang SUDAH PERNAH DITERBITKAN sebelumnya. DILARANG membuat hook, analogi, atau formula kalimat pembuka yang mirip dengan daftar ini:
+${historyHooksToAvoid.slice(0, 10).map((h, idx) => `${idx + 1}. "${h}"`).join('\n')}
+Wajib buat sudut pandang, analogi, dan gaya pembuka yang 100% segar, unik, dan tidak mengulang pola di atas!
+`.trim();
+  }
+
+  let collisionWarningSection = '';
+  if (excludeCollisions && excludeCollisions.length > 0) {
+    collisionWarningSection = `
+PERINGATAN COLLISION SEBELUMNYA (RETRY GENERATION):
+${excludeCollisions.map((c) => `⚠️ ${c}`).join('\n')}
+Gunakan sudut pandang baru yang sama sekali berbeda dari percobaan sebelumnya!
+`.trim();
+  }
+
   return `
 PANDUAN PEMBUATAN KONTEN THREADS (META):
 Kamu adalah Hermes AI Copywriting Agent yang ahli membuat konten viral, segar, dan berkonversi tinggi di platform Threads.
@@ -148,8 +176,10 @@ SUDUT PANDANG / ANGLE KONTEN:
 - Inspirasi Hook: "${hookHint}"
 ${customTopic ? `- Topik Tambahan dari Pengguna: "${customTopic}"` : ''}
 
-ATURAN ANTI-KLISE & ANTI-GENERIC (SANGAT PENTING):
-1. JANGAN gunakan pembuka klise seperti "Lagi asik nugas..." atau formula robotik yang kaku. Ciptakan skenario spesifik dan segar!
+${negativeContextSection ? `${negativeContextSection}\n` : ''}${collisionWarningSection ? `${collisionWarningSection}\n` : ''}ATURAN ANTI-KLISE & ANTI-GENERIC (SANGAT KETAT & WAJIB PATUH):
+1. DAFTAR FORMULA HARAM (DILARANG KERAS DIGUNAKAN):
+   - JANGAN pakai: "Lagi asik nugas...", "Tahukah kamu...", "Di era digital/modern ini...", "Pernah gak sih ngerasa...", "Jangan lewatkan kesempatan...", "Kabar gembira...", "Siapa sangka...".
+   - Wajib mulai dengan skenario super spesifik, kontras angka nyata, atau opini berani to-the-point!
 2. Bahasa Indonesia santai, luwes, dan natural (e.g. gess, sat-set, boncos, worth it, nugas, gak pake ribet, cuan).
 3. Struktur 3 Post Thread:
    - Post 1 (Hook): Masalah relatable / pertanyaan / kontrarian yang memicu rasa penasaran + diakhiri "🧵👇".
@@ -225,21 +255,61 @@ export function parseHermesGenerationResponse(rawText: string): GenerationResult
 
 /**
  * Generates fresh, non-generic thread drafts via Hermes AI Agent
+ * Validates freshness and auto-retries up to 2 times on collision
  */
 export async function generateDraftWithHermes(input: GenerationInput): Promise<GenerationResult> {
-  const prompt = buildGenerationPrompt(input);
-
+  let history: HistoricalDraftItem[] = [];
   try {
-    const rawResponse = await callHermesChatCompletion(prompt);
-    const parsed = parseHermesGenerationResponse(rawResponse);
-    if (parsed) {
-      return parsed;
-    }
-  } catch (err: any) {
-    console.warn('Hermes AI generation failed, using dynamic fallback:', err?.message || err);
+    history = await getRecentDraftHistory(input.product?.id || null, 10);
+  } catch {
+    history = [];
   }
 
-  // Fallback dynamic generator if AI is temporarily unreachable
+  const historyHooks = input.historyHooksToAvoid || history.map((h) => h.hookContent);
+  const excludeCollisions: string[] = [...(input.excludeCollisions || [])];
+
+  const maxAttempts = 2;
+  let lastFreshnessCheck: FreshnessValidationResult | null = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const prompt = buildGenerationPrompt({
+      ...input,
+      historyHooksToAvoid: historyHooks,
+      excludeCollisions: excludeCollisions.length > 0 ? excludeCollisions : undefined,
+    });
+
+    try {
+      const rawResponse = await callHermesChatCompletion(prompt);
+      const candidate = parseHermesGenerationResponse(rawResponse);
+
+      if (candidate && candidate.posts.length >= 2) {
+        const hookText = candidate.posts[0]?.content || candidate.title;
+        const fullText = candidate.posts.map((p) => p.content).join('\n\n');
+
+        const freshness = await validateDraftFreshness(hookText, fullText, history);
+        lastFreshnessCheck = freshness;
+
+        if (freshness.isFresh || attempt === maxAttempts) {
+          candidate.metadata = {
+            ...(candidate.metadata || {}),
+            freshnessCheck: freshness,
+            attemptsCount: attempt,
+          };
+          return candidate;
+        }
+
+        // Collision detected, record warning for next attempt
+        console.warn(`[Hermes Generation] Collision attempt ${attempt}: ${freshness.reason}`);
+        if (freshness.reason) {
+          excludeCollisions.push(freshness.reason);
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[Hermes AI Attempt ${attempt}] Failed:`, err?.message || err);
+    }
+  }
+
+  // Fallback dynamic generator if AI is unreachable
   const storeHandle = input.store?.username || 'tokodigital.id';
   const prodName = input.product?.name || 'layanan digital';
   const selectedAngle = GENERATION_ANGLES.find((a) => a.id === input.angle) || GENERATION_ANGLES[0];
@@ -264,6 +334,7 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
     metadata: {
       generatedBy: 'hermes-fallback-engine',
       generatedAt: new Date().toISOString(),
+      freshnessCheck: lastFreshnessCheck || { isFresh: true, method: 'none', score: 0, threshold: 0.7 },
     },
   };
 }
