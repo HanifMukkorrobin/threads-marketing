@@ -6,7 +6,8 @@
  * 1. Zero Template Mad-Libs: Directives instead of sentence fill-in-the-blanks.
  * 2. Authentic Practitioner Persona: Natural Indonesian without forced slang wordlists.
  * 3. Strict Separation: Commercial Promos (high conversion) vs Pure Organic (100% value, zero selling).
- * 4. Hybrid Deduplication & Freshness Guard (Ollama Vector + Lexical Fallback + Negative Context).
+ * 4. Obsidian Knowledge Vault Integration: Ingests real research notes for organic streams.
+ * 5. Hybrid Deduplication & Freshness Guard (Ollama Vector + Lexical Fallback + Negative Context).
  */
 
 import { callHermesChatCompletion } from './hermes-client';
@@ -16,6 +17,11 @@ import {
   FreshnessValidationResult,
   HistoricalDraftItem,
 } from './content-deduplication';
+import {
+  KnowledgeTopic,
+  loadAllKnowledgeTopics,
+  selectLRUKnowledgeTopic,
+} from './knowledge-wiki';
 
 export interface GenerationAngle {
   id: string;
@@ -79,6 +85,7 @@ export interface GenerationInput {
     name?: string;
     username?: string;
   } | null;
+  knowledgeTopic?: KnowledgeTopic | null;
   angle?: string | null;
   customTopic?: string | null;
   targetAudience?: string | null;
@@ -97,7 +104,7 @@ export interface GenerationResult {
  * Builds the AI generation prompt with strict anti-cliche, negative context, and humanizer rules
  */
 export function buildGenerationPrompt(input: GenerationInput): string {
-  const { product, store, angle, customTopic, targetAudience, historyHooksToAvoid, excludeCollisions } = input;
+  const { product, store, angle, customTopic, knowledgeTopic, targetAudience, historyHooksToAvoid, excludeCollisions } = input;
   const storeName = store?.name || 'Toko Digital ID';
   const storeHandle = store?.username || 'tokodigital.id';
 
@@ -180,14 +187,32 @@ KEMBALIKAN OUTPUT HANYA DALAM FORMAT JSON BERIKUT (TANPA MARKDOWN FENCES / TEKS 
   }
 
   // BRANCH 2: PURE ORGANIC EDUCATIONAL THREAD (100% Value, Zero Selling)
-  return `
-PANDUAN PEMBUATAN THREAD ORGANIK EDUKASI (THREADS META):
-Kamu adalah Edukator & Praktisi Digital Tech yang berbagi wawasan berbobot tinggi. Gaya bahasa: Cerdas, santai, to-the-point, sangat aplikatif.
-
+  let topicContext = '';
+  if (knowledgeTopic) {
+    topicContext = `
+KONTEN ORGANIK MURNI (100% EDUKASI & INSIGHT BERBOBOT DARI KNOWLEDGE VAULT):
+- Judul Materi: ${knowledgeTopic.title}
+- Kategori: ${knowledgeTopic.category}
+- Ringkasan Inti: ${knowledgeTopic.summary || 'Insight bernilai tinggi'}
+- Target Audiens: ${targetAudience || knowledgeTopic.targetAudience || 'Pengguna Threads aktif, mahasiswa, freelancer, digital creator'}
+- Bahan Riset / Poin Pengetahuan:
+${knowledgeTopic.content}
+- Profil Penulis: @${storeHandle}
+`.trim();
+  } else {
+    topicContext = `
 KONTEN ORGANIK MURNI (100% EDUKASI & INSIGHT BERBOBOT):
 - Topik / Fokus Materi: ${customTopic || 'Framework produktivitas kerja, tips prompt AI, atau efisiensi tools digital 2026'}
 - Target Audiens: ${targetAudience || 'Pengguna Threads aktif, mahasiswa, freelancer, digital creator'}
 - Profil Penulis: @${storeHandle}
+`.trim();
+  }
+
+  return `
+PANDUAN PEMBUATAN THREAD ORGANIK EDUKASI (THREADS META):
+Kamu adalah Edukator & Praktisi Digital Tech yang berbagi wawasan berbobot tinggi. Gaya bahasa: Cerdas, santai, to-the-point, sangat aplikatif.
+
+${topicContext}
 
 ARAHAN SUDUT PANDANG (ANGLE):
 - Angle: ${angleName}
@@ -284,6 +309,24 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
     history = [];
   }
 
+  // Auto-feed from Obsidian Knowledge Vault if organic and no topic provided
+  let activeKnowledgeTopic = input.knowledgeTopic || null;
+  if (!input.product && !activeKnowledgeTopic && !input.customTopic) {
+    try {
+      const allTopics = await loadAllKnowledgeTopics();
+      if (allTopics.length > 0) {
+        activeKnowledgeTopic = selectLRUKnowledgeTopic(allTopics, history as any);
+      }
+    } catch (err) {
+      console.warn('[Knowledge Sourcing] Could not load vault topics:', err);
+    }
+  }
+
+  const effectiveInput: GenerationInput = {
+    ...input,
+    knowledgeTopic: activeKnowledgeTopic,
+  };
+
   const historyHooks = input.historyHooksToAvoid || history.map((h) => h.hookContent);
   const excludeCollisions: string[] = [...(input.excludeCollisions || [])];
 
@@ -292,7 +335,7 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const prompt = buildGenerationPrompt({
-      ...input,
+      ...effectiveInput,
       historyHooksToAvoid: historyHooks,
       excludeCollisions: excludeCollisions.length > 0 ? excludeCollisions : undefined,
     });
@@ -313,6 +356,14 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
             ...(candidate.metadata || {}),
             freshnessCheck: freshness,
             attemptsCount: attempt,
+            ...(activeKnowledgeTopic
+              ? {
+                  generatedFrom: 'OBSIDIAN_KNOWLEDGE_VAULT',
+                  sourceTopicId: activeKnowledgeTopic.id,
+                  sourceTopicTitle: activeKnowledgeTopic.title,
+                  sourceCategory: activeKnowledgeTopic.category,
+                }
+              : {}),
           };
           return candidate;
         }
@@ -360,7 +411,7 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
   }
 
   // Fallback for organic education (Zero Selling)
-  const topicTitle = input.customTopic || '3 Trik Workflow Digital 2026';
+  const topicTitle = activeKnowledgeTopic?.title || input.customTopic || '3 Trik Workflow Digital 2026';
   return {
     title: `[Insight] ${topicTitle}`,
     hookAngle: selectedAngle.name,
@@ -382,6 +433,14 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
       generatedBy: 'hermes-fallback-engine',
       generatedAt: new Date().toISOString(),
       freshnessCheck: lastFreshnessCheck || { isFresh: true, method: 'none', score: 0, threshold: 0.7 },
+      ...(activeKnowledgeTopic
+        ? {
+            generatedFrom: 'OBSIDIAN_KNOWLEDGE_VAULT',
+            sourceTopicId: activeKnowledgeTopic.id,
+            sourceTopicTitle: activeKnowledgeTopic.title,
+            sourceCategory: activeKnowledgeTopic.category,
+          }
+        : {}),
     },
   };
 }

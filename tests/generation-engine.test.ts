@@ -60,6 +60,29 @@ describe('Hermes Content Generation Engine Overhaul', () => {
     expect(prompt).toContain('Bookmark / save thread');
   });
 
+  it('injects rich knowledge vault notes into prompt when knowledgeTopic is provided', () => {
+    const prompt = buildGenerationPrompt({
+      product: null,
+      store: {
+        name: 'Toko Digital ID',
+        username: 'tokodigital.id',
+      },
+      knowledgeTopic: {
+        id: 'prompt-engineering-framework',
+        title: 'Formula 4 Langkah Prompting AI',
+        category: 'AI & Tech',
+        tags: ['ai', 'prompting'],
+        summary: 'Cara membuat prompt AI tanpa gaya robotik.',
+        content: '1. Role persona\n2. Context\n3. Constraint\n4. Few-shot example',
+      },
+    });
+
+    expect(prompt).toContain('Formula 4 Langkah Prompting AI');
+    expect(prompt).toContain('AI & Tech');
+    expect(prompt).toContain('1. Role persona');
+    expect(prompt).toContain('DILARANG KERAS BERJUALAN');
+  });
+
   it('injects negative historical hooks to avoid into prompt when provided', () => {
     const prompt = buildGenerationPrompt({
       product: { name: 'Canva Pro' },
