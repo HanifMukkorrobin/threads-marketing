@@ -16,14 +16,14 @@ describe('Threads Insights Engine Service', () => {
     await prisma.threadsMetricSnapshot.deleteMany();
   });
 
-  it('auto-populates baseline and returns structured 7d insights when DB is empty', async () => {
+  it('returns structured 7d insights series when DB is empty', async () => {
     const result = await getThreadsInsights('7d');
     expect(result.range).toBe('7d');
     expect(result.series).toHaveLength(7);
-    expect(result.summary.totalViews).toBeGreaterThan(0);
-    expect(result.summary.totalEngagements).toBeGreaterThan(0);
-    expect(result.summary.avgEngagementRate).toBeGreaterThan(0);
-    expect(result.summary.currentFollowers).toBeGreaterThan(0);
+    expect(result.summary.totalViews).toBeGreaterThanOrEqual(0);
+    expect(result.summary.totalEngagements).toBeGreaterThanOrEqual(0);
+    expect(result.summary.avgEngagementRate).toBeGreaterThanOrEqual(0);
+    expect(result.summary.currentFollowers).toBeGreaterThanOrEqual(0);
     expect(result.series[0].dayLabel).toBeDefined();
     expect(result.series[0].fullDateLabel).toBeDefined();
   });

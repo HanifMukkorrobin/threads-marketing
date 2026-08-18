@@ -81,6 +81,18 @@ export async function getThreadsInsights(range: InsightRange = '7d'): Promise<Th
   const days = getRangeDays(range);
   const today = new Date();
 
+  const [tokenConfig, userConfig, usernameConfig] = await Promise.all([
+    prisma.systemConfig.findUnique({ where: { key: 'THREADS_ACCESS_TOKEN' } }),
+    prisma.systemConfig.findUnique({ where: { key: 'THREADS_USER_ID' } }),
+    prisma.systemConfig.findUnique({ where: { key: 'STORE_USERNAME' } }),
+  ]);
+
+  const token = tokenConfig?.value || process.env.THREADS_ACCESS_TOKEN;
+  const isLiveConnected = Boolean(token);
+  const accountHandle = usernameConfig?.value
+    ? (usernameConfig.value.startsWith('@') ? usernameConfig.value : `@${usernameConfig.value}`)
+    : (userConfig?.value || '@hades.zshrc');
+
   const targetDates: string[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
@@ -96,7 +108,31 @@ export async function getThreadsInsights(range: InsightRange = '7d'): Promise<Th
   });
 
   if (snapshots.length < days) {
-    await generateRealisticBaseline(days);
+    if (isLiveConnected) {
+      // For live connected accounts, insert 0 for missing dates (true real activity)
+      for (const dateStr of targetDates) {
+        const exists = snapshots.some((s) => s.date === dateStr);
+        if (!exists) {
+          await prisma.threadsMetricSnapshot.upsert({
+            where: { date: dateStr },
+            update: {},
+            create: {
+              date: dateStr,
+              views: 0,
+              likes: 0,
+              replies: 0,
+              reposts: 0,
+              followersCount: 0,
+              isLiveSynced: true,
+            },
+          });
+        }
+      }
+    } else {
+      // Offline/unconnected demo mode fallback
+      await generateRealisticBaseline(days);
+    }
+
     snapshots = await prisma.threadsMetricSnapshot.findMany({
       where: {
         date: { in: targetDates },
@@ -104,14 +140,6 @@ export async function getThreadsInsights(range: InsightRange = '7d'): Promise<Th
       orderBy: { date: 'asc' },
     });
   }
-
-  const [tokenConfig, userConfig] = await Promise.all([
-    prisma.systemConfig.findUnique({ where: { key: 'THREADS_ACCESS_TOKEN' } }),
-    prisma.systemConfig.findUnique({ where: { key: 'THREADS_USER_ID' } }),
-  ]);
-
-  const isLiveConnected = Boolean(tokenConfig?.value);
-  const accountHandle = userConfig?.value || '@hades.zshrc';
 
   let totalViews = 0;
   let totalLikes = 0;
@@ -161,13 +189,13 @@ export async function getThreadsInsights(range: InsightRange = '7d'): Promise<Th
   const avgEngagementRate = totalViews > 0 ? Number(((totalEngagements / totalViews) * 100).toFixed(1)) : 0;
   const currentFollowers = series.length > 0 ? series[series.length - 1].followersCount : 0;
 
-  // Approximate growth rate based on first half vs second half of series
+  // Growth rate calculation based on first half vs second half of series
   const halfLen = Math.floor(series.length / 2);
-  const firstHalfTotal = series.slice(0, halfLen).reduce((acc, curr) => acc + curr.views, 0);
-  const secondHalfTotal = series.slice(halfLen).reduce((acc, curr) => acc + curr.views, 0);
+  const firstHalfTotal = series.slice(0, halfLen).reduce((acc, curr) => acc + curr.views + curr.engagements, 0);
+  const secondHalfTotal = series.slice(halfLen).reduce((acc, curr) => acc + curr.views + curr.engagements, 0);
   const percentageGrowth = firstHalfTotal > 0
     ? Number((((secondHalfTotal - firstHalfTotal) / firstHalfTotal) * 100).toFixed(1))
-    : 14.5;
+    : secondHalfTotal > 0 ? 100.0 : 0.0;
 
   const summary: ThreadsInsightSummary = {
     totalViews,
@@ -224,7 +252,32 @@ export async function syncThreadsMetricsFromMeta(
       };
     }
 
-    // Call Meta Graph API
+    // 1. Fetch Profile info from Meta Graph API
+    try {
+      const profileUrl = `https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url,threads_biography&access_token=${token}`;
+      const profileRes = await fetch(profileUrl);
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        if (profileData.username) {
+          await prisma.systemConfig.upsert({
+            where: { key: 'STORE_USERNAME' },
+            update: { value: profileData.username },
+            create: { key: 'STORE_USERNAME', value: profileData.username, description: 'Threads Store Username' },
+          });
+        }
+        if (profileData.threads_profile_picture_url) {
+          await prisma.systemConfig.upsert({
+            where: { key: 'STORE_AVATAR_URL' },
+            update: { value: profileData.threads_profile_picture_url },
+            create: { key: 'STORE_AVATAR_URL', value: profileData.threads_profile_picture_url, description: 'Threads Avatar URL' },
+          });
+        }
+      }
+    } catch (profErr) {
+      console.warn('Could not sync profile metadata from Meta:', profErr);
+    }
+
+    // 2. Fetch User-Level Daily Insights from Meta Graph API
     const metaApiUrl = `https://graph.threads.net/v1.0/${userId || 'me'}/threads_insights?metric=views,likes,replies,reposts,quotes&period=day&access_token=${token}`;
     const response = await fetch(metaApiUrl, {
       headers: { 'Content-Type': 'application/json' },
@@ -232,46 +285,106 @@ export async function syncThreadsMetricsFromMeta(
 
     if (!response.ok) {
       const errBody = await response.text();
-      console.warn('Meta Threads Graph API sync returned error, falling back to cached baseline:', errBody);
-      await generateRealisticBaseline(14);
+      console.warn('Meta Threads Graph API sync returned error, keeping real cache:', errBody);
       return {
         success: true,
-        message: 'Koneksi Meta Threads merespons dengan kendala akses. Menggunakan cache baseline terakhir.',
+        message: 'Koneksi Meta Threads merespons dengan kendala akses. Menggunakan cache terakhir.',
         isLive: false,
-        syncedDays: 14,
+        syncedDays: 0,
       };
     }
 
     const data = await response.json();
-    // Parse Meta API response payload
-    const today = new Date().toISOString().split('T')[0];
-    await prisma.threadsMetricSnapshot.upsert({
-      where: { date: today },
-      update: {
-        views: data.data?.[0]?.total_value?.value || 1200,
-        isLiveSynced: true,
-      },
-      create: {
-        date: today,
-        views: data.data?.[0]?.total_value?.value || 1200,
-        isLiveSynced: true,
-      },
-    });
+    const dailyMetrics: Record<string, { views: number; likes: number; replies: number; reposts: number }> = {};
+
+    if (Array.isArray(data.data)) {
+      for (const metric of data.data) {
+        if (Array.isArray(metric.values)) {
+          for (const v of metric.values) {
+            const dateStr = v.end_time.split('T')[0];
+            if (!dailyMetrics[dateStr]) {
+              dailyMetrics[dateStr] = { views: 0, likes: 0, replies: 0, reposts: 0 };
+            }
+            if (metric.name === 'views') dailyMetrics[dateStr].views = (dailyMetrics[dateStr].views || 0) + (v.value || 0);
+            if (metric.name === 'likes') dailyMetrics[dateStr].likes = (dailyMetrics[dateStr].likes || 0) + (v.value || 0);
+            if (metric.name === 'replies') dailyMetrics[dateStr].replies = (dailyMetrics[dateStr].replies || 0) + (v.value || 0);
+            if (metric.name === 'reposts' || metric.name === 'quotes') dailyMetrics[dateStr].reposts = (dailyMetrics[dateStr].reposts || 0) + (v.value || 0);
+          }
+        }
+      }
+    }
+
+    // 3. Fetch Post-Level Insights to enrich daily metrics
+    try {
+      const postsUrl = `https://graph.threads.net/v1.0/me/threads?fields=id,timestamp&limit=50&access_token=${token}`;
+      const postsRes = await fetch(postsUrl);
+      if (postsRes.ok) {
+        const postsData = await postsRes.json();
+        if (Array.isArray(postsData.data)) {
+          for (const post of postsData.data) {
+            const postDate = post.timestamp.split('T')[0];
+            if (!dailyMetrics[postDate]) {
+              dailyMetrics[postDate] = { views: 0, likes: 0, replies: 0, reposts: 0 };
+            }
+
+            const postInsightsUrl = `https://graph.threads.net/v1.0/${post.id}/insights?metric=views,likes,replies,reposts,quotes&access_token=${token}`;
+            const postInsRes = await fetch(postInsightsUrl);
+            if (postInsRes.ok) {
+              const postInsData = await postInsRes.json();
+              if (Array.isArray(postInsData.data)) {
+                for (const m of postInsData.data) {
+                  const val = m.values?.[0]?.value || m.total_value?.value || 0;
+                  if (m.name === 'views') dailyMetrics[postDate].views = Math.max(dailyMetrics[postDate].views || 0, val);
+                  if (m.name === 'likes') dailyMetrics[postDate].likes = (dailyMetrics[postDate].likes || 0) + val;
+                  if (m.name === 'replies') dailyMetrics[postDate].replies = (dailyMetrics[postDate].replies || 0) + val;
+                  if (m.name === 'reposts' || m.name === 'quotes') dailyMetrics[postDate].reposts = (dailyMetrics[postDate].reposts || 0) + val;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (postErr) {
+      console.warn('Could not fetch detailed post metrics:', postErr);
+    }
+
+    // 4. Upsert aggregated real metrics into database
+    let syncedDaysCount = 0;
+    for (const [dateStr, metric] of Object.entries(dailyMetrics)) {
+      await prisma.threadsMetricSnapshot.upsert({
+        where: { date: dateStr },
+        update: {
+          views: metric.views,
+          likes: metric.likes,
+          replies: metric.replies,
+          reposts: metric.reposts,
+          isLiveSynced: true,
+        },
+        create: {
+          date: dateStr,
+          views: metric.views,
+          likes: metric.likes,
+          replies: metric.replies,
+          reposts: metric.reposts,
+          isLiveSynced: true,
+        },
+      });
+      syncedDaysCount++;
+    }
 
     return {
       success: true,
-      message: 'Berhasil menyinkronkan data langsung dari Meta Threads Graph API!',
+      message: `Berhasil menyinkronkan ${syncedDaysCount} hari data metrik langsung dari Meta Threads Graph API!`,
       isLive: true,
-      syncedDays: 1,
+      syncedDays: syncedDaysCount,
     };
   } catch (err: any) {
     console.error('Error during Threads metric sync:', err);
-    await generateRealisticBaseline(14);
     return {
-      success: true,
-      message: 'Sinkronisasi offline: data baseline aktif diperbarui.',
+      success: false,
+      message: `Gagal sinkronisasi dari Meta: ${err.message}`,
       isLive: false,
-      syncedDays: 14,
+      syncedDays: 0,
     };
   }
 }
