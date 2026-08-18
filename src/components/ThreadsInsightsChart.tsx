@@ -232,21 +232,49 @@ export function ThreadsInsightsChart({ onToast }: ThreadsInsightsChartProps) {
             <RefreshCw className="h-4 w-4 animate-spin mr-2" />
             <span>Memuat insight grafik...</span>
           </div>
+        ) : series.length === 0 ? (
+          <div className="flex items-center justify-center h-44 text-xs text-ink-muted">
+            <span>Tidak ada data metrik untuk rentang waktu ini.</span>
+          </div>
         ) : (
           <>
             <div
+              style={{ gridTemplateColumns: `repeat(${series.length}, minmax(0, 1fr))` }}
               className={cn(
-                'grid items-end h-44 border-b border-surface-border pb-4 gap-1.5 sm:gap-3',
-                range === '7d' && 'grid-cols-7',
-                range === '14d' && 'grid-cols-14',
-                range === '30d' && 'grid-cols-15 sm:grid-cols-30'
+                'grid items-end h-44 border-b border-surface-border pb-4 w-full',
+                range === '7d' && 'gap-2 sm:gap-3',
+                range === '14d' && 'gap-1 sm:gap-1.5',
+                range === '30d' && 'gap-0.5 sm:gap-1'
               )}
             >
               {series.map((point, idx) => {
                 const val = getMetricValue(point);
-                const heightPercent = Math.max(10, Math.min(100, Math.round((val / maxValue) * 100)));
+                // Safe height calculation: min 6% base for aesthetic slot indicator
+                const heightPercent = maxValue > 0 && val > 0
+                  ? Math.max(12, Math.min(100, Math.round((val / maxValue) * 100)))
+                  : 6;
+
                 const isHovered = hoveredPoint?.date === point.date;
-                const isPeak = summary?.peakDay === point.date;
+                const isPeak = maxValue > 0 && val > 0 && summary?.peakDay === point.date;
+
+                // Tooltip alignment to avoid clipping on edges
+                const tooltipAlignClass =
+                  idx < (range === '30d' ? 6 : 2)
+                    ? 'left-0'
+                    : idx > series.length - (range === '30d' ? 7 : 3)
+                    ? 'right-0'
+                    : 'left-1/2 -translate-x-1/2';
+
+                // Label visibility rule for 14d and 30d
+                const showLabelOnMobile =
+                  range === '7d' ||
+                  (range === '14d' && (idx % 2 === 0 || idx === series.length - 1)) ||
+                  (range === '30d' && (idx === 0 || idx === series.length - 1 || (idx + 1) % 5 === 0));
+
+                const showLabelOnDesktop =
+                  range === '7d' ||
+                  range === '14d' ||
+                  (range === '30d' && (idx === 0 || idx === series.length - 1 || (idx + 1) % 3 === 0));
 
                 return (
                   <div
@@ -257,10 +285,22 @@ export function ThreadsInsightsChart({ onToast }: ThreadsInsightsChartProps) {
                   >
                     {/* Floating Tooltip */}
                     {isHovered && (
-                      <div className="absolute -top-28 z-30 flex flex-col gap-1 p-2.5 rounded-xl bg-dock text-white text-[10px] shadow-2xl border border-zinc-800 pointer-events-none min-w-[130px] animate-scale-in">
-                        <span className="font-bold text-lime text-[11px] border-b border-zinc-800 pb-1">
-                          {point.fullDateLabel}
-                        </span>
+                      <div
+                        className={cn(
+                          'absolute -top-28 z-30 flex flex-col gap-1 p-2.5 rounded-xl bg-dock text-white text-[10px] shadow-2xl border border-zinc-800 pointer-events-none min-w-[135px] animate-scale-in',
+                          tooltipAlignClass
+                        )}
+                      >
+                        <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
+                          <span className="font-bold text-lime text-[11px] truncate max-w-[110px]">
+                            {point.fullDateLabel}
+                          </span>
+                          {isPeak && (
+                            <span className="px-1 py-0.2 rounded bg-lime text-ink text-[8px] font-black">
+                              PEAK
+                            </span>
+                          )}
+                        </div>
                         <div className="flex justify-between items-center pt-0.5">
                           <span className="text-zinc-400">Views:</span>
                           <span className="font-bold">{point.views.toLocaleString('id-ID')}</span>
@@ -280,21 +320,23 @@ export function ThreadsInsightsChart({ onToast }: ThreadsInsightsChartProps) {
                       </div>
                     )}
 
-                    {/* Peak badge indicator for 7d */}
-                    {range === '7d' && isPeak && (
-                      <span className="rounded-full bg-ink px-1.5 py-0.2 text-[8px] font-black text-lime shadow-sm mb-0.5">
-                        PEAK ✦
-                      </span>
-                    )}
-
                     {/* Capsule Pill Column */}
-                    <div className="relative w-full max-w-[28px] flex flex-col justify-end items-center h-32 bg-surface-muted rounded-full p-0.5 overflow-hidden transition-all duration-300 group-hover:ring-2 group-hover:ring-lime">
+                    <div
+                      className={cn(
+                        'relative w-full flex flex-col justify-end items-center h-32 bg-surface-muted rounded-full overflow-hidden transition-all duration-200 group-hover:ring-2 group-hover:ring-lime',
+                        range === '7d' && 'max-w-[28px] p-0.5',
+                        range === '14d' && 'max-w-[16px] p-0.5',
+                        range === '30d' && 'max-w-[10px] p-[1px]'
+                      )}
+                    >
                       <div
                         style={{ height: `${heightPercent}%` }}
                         className={cn(
                           'w-full rounded-full transition-all duration-500 relative',
-                          isHovered || isPeak
-                            ? 'bg-lime'
+                          val === 0
+                            ? 'bg-zinc-300 dark:bg-zinc-700/40'
+                            : isHovered || isPeak
+                            ? 'bg-lime shadow-[0_0_8px_rgba(226,253,82,0.6)]'
                             : 'bg-ink group-hover:bg-zinc-800'
                         )}
                       >
@@ -309,15 +351,34 @@ export function ThreadsInsightsChart({ onToast }: ThreadsInsightsChartProps) {
                     </div>
 
                     {/* Day / Date Label */}
-                    <span
-                      className={cn(
-                        'text-[10px] font-semibold transition-colors',
-                        isHovered ? 'text-ink font-bold' : 'text-ink-secondary',
-                        range === '30d' && idx % 3 !== 0 && 'hidden sm:block'
+                    <div className="h-4 flex items-center justify-center">
+                      {range === '7d' ? (
+                        <span
+                          className={cn(
+                            'text-[10px] font-semibold transition-colors',
+                            isHovered ? 'text-ink font-bold' : 'text-ink-secondary'
+                          )}
+                        >
+                          {point.dayLabel}
+                        </span>
+                      ) : (
+                        <>
+                          <span
+                            className={cn(
+                              'text-[9px] font-semibold transition-colors',
+                              isHovered ? 'text-ink font-bold' : 'text-ink-muted',
+                              showLabelOnMobile ? 'block' : 'hidden',
+                              showLabelOnDesktop ? 'sm:block' : 'sm:hidden'
+                            )}
+                          >
+                            {point.date.slice(8)}
+                          </span>
+                          {!showLabelOnMobile && !showLabelOnDesktop && (
+                            <span className="h-1 w-1 rounded-full bg-surface-border hidden sm:block" />
+                          )}
+                        </>
                       )}
-                    >
-                      {range === '7d' ? point.dayLabel : point.date.slice(8)}
-                    </span>
+                    </div>
                   </div>
                 );
               })}
