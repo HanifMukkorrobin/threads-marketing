@@ -417,6 +417,38 @@ describe('Content Drafts Internal API Routes (`/api/drafts`)', () => {
       expect(inDb?.status).toBe('APPROVED');
     });
 
+    it('supports full/partial content and posts update via PATCH', async () => {
+      const draft = await prisma.contentDraft.create({
+        data: {
+          title: 'Old Title',
+          status: 'PENDING_REVIEW',
+          posts: { create: [{ orderIndex: 0, content: 'Old Post' }] },
+        },
+      });
+
+      const req = new NextRequest(`http://localhost:3000/api/drafts/${draft.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: 'Updated Title via PATCH',
+          hookAngle: 'New Hook Angle',
+          posts: [
+            { orderIndex: 0, content: 'New Post 1' },
+            { orderIndex: 1, content: 'New Post 2' },
+          ],
+        }),
+      });
+
+      const res = await patchDraft(req, { params: { id: draft.id } });
+      expect(res.status).toBe(200);
+
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.data.title).toBe('Updated Title via PATCH');
+      expect(body.data.posts.length).toBe(2);
+      expect(body.data.posts[0].content).toBe('New Post 1');
+      expect(body.data.type).toBe('THREAD_CHAIN');
+    });
+
     it('updates status to PUBLISHED with threadPostUrl and publishedAt', async () => {
       const draft = await prisma.contentDraft.create({
         data: {

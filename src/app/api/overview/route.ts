@@ -75,6 +75,8 @@ export async function GET(req: Request | NextRequest) {
         },
         recentPendingDrafts,
         recentPublishedDrafts,
+        recentPending: recentPendingDrafts,
+        recentPublished: recentPublishedDrafts,
         hermesStatus: {
           isConfigured: Boolean(apiKey),
           hasApiKey: Boolean(apiKey),

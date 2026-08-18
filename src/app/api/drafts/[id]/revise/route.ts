@@ -17,7 +17,8 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { instruction, targetPartIndex, autoSave = false } = body;
+    const { instruction, targetPartIndex, autoSave = false, saveDirectly = false } = body;
+    const shouldAutoSave = Boolean(autoSave || saveDirectly);
 
     if (!instruction || typeof instruction !== 'string' || !instruction.trim()) {
       return NextResponse.json(
@@ -64,8 +65,8 @@ export async function POST(
       targetPartIndex: typeof targetPartIndex === 'number' ? targetPartIndex : null,
     });
 
-    // If autoSave is requested, persist directly to database
-    if (autoSave) {
+    // If autoSave/saveDirectly is requested, persist directly to database
+    if (shouldAutoSave) {
       await prisma.$transaction(async (tx) => {
         await tx.draftPostItem.deleteMany({
           where: { draftId: id },
