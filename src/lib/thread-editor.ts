@@ -141,8 +141,8 @@ export function updateThreadPartMedia(
 
 export function validateThreadDraft(
   posts: ThreadPartState[],
-  title: string
-): { isValid: boolean; errors: string[] } {
+  title: string = 'Draft'
+): { isValid: boolean; errors: string[]; errorMessage?: string } {
   const errors: string[] = [];
 
   if (!title || !title.trim()) {
@@ -164,6 +164,7 @@ export function validateThreadDraft(
   return {
     isValid: errors.length === 0,
     errors,
+    errorMessage: errors.length > 0 ? errors[0] : undefined,
   };
 }
 

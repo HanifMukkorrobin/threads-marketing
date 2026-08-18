@@ -183,9 +183,9 @@ export default function DraftDetailPage() {
 
   // Save changes
   const handleSave = async () => {
-    const validation = validateThreadDraft(posts);
+    const validation = validateThreadDraft(posts, title);
     if (!validation.isValid) {
-      addToast(validation.errorMessage || 'Ada bagian post yang melebihi batas 500 karakter', 'error');
+      addToast(validation.errorMessage || validation.errors[0] || 'Ada bagian post yang melebihi batas 500 karakter', 'error');
       return;
     }
 

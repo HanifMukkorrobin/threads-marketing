@@ -33,3 +33,7 @@ export interface ThreadsInsightData {
   summary: ThreadsInsightSummary;
   series: DailyInsightPoint[];
 }
+
+export type ThreadsInsightsResponse = ThreadsInsightData;
+export type InsightDataPoint = DailyInsightPoint;
+
