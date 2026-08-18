@@ -22,6 +22,7 @@ import {
   Lock,
   Share2,
   Globe,
+  Zap,
 } from 'lucide-react';
 import { ModalPortal } from '@/components/ModalPortal';
 import { cn } from '@/lib/utils';
@@ -74,6 +75,10 @@ export default function SettingsPage() {
   // Test Connection
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+
+  // Threads Insight Sync state
+  const [syncingInsights, setSyncingInsights] = useState(false);
+  const [insightSyncResult, setInsightSyncResult] = useState<{ isLive: boolean; message: string } | null>(null);
 
   // Code Snippet state
   const [codeLang, setCodeLang] = useState<CodeLang>('curl');
@@ -280,6 +285,52 @@ export default function SettingsPage() {
       addToast('Koneksi endpoint gagal', 'error');
     } finally {
       setTesting(false);
+    }
+  };
+
+  // Test & Sync Threads Graph API Insights
+  const handleSyncInsights = async () => {
+    try {
+      setSyncingInsights(true);
+      setInsightSyncResult(null);
+
+      // First save current token/userId if user typed them
+      if (settings.THREADS_ACCESS_TOKEN || settings.THREADS_USER_ID) {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settings: {
+              THREADS_ACCESS_TOKEN: settings.THREADS_ACCESS_TOKEN,
+              THREADS_USER_ID: settings.THREADS_USER_ID,
+            },
+          }),
+        });
+      }
+
+      const res = await fetch('/api/insights/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: settings.THREADS_ACCESS_TOKEN,
+          userId: settings.THREADS_USER_ID,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setInsightSyncResult({
+          isLive: data.isLiveSynced,
+          message: data.message,
+        });
+        addToast(data.message, data.isLiveSynced ? 'success' : 'info');
+      } else {
+        throw new Error(data.error || 'Gagal sinkronisasi');
+      }
+    } catch (err: any) {
+      addToast(err?.message || 'Gagal sinkronisasi insight', 'error');
+    } finally {
+      setSyncingInsights(false);
     }
   };
 
@@ -619,8 +670,46 @@ export default function SettingsPage() {
                 className="w-full rounded-full bg-white border border-surface-border px-4 py-2 text-xs text-ink font-mono shadow-xs focus:outline-none"
               />
             </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-ink-muted">
+                {settings.THREADS_ACCESS_TOKEN ? 'Token terisi' : 'Mode Baseline Aktif'}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleSyncInsights}
+                disabled={syncingInsights}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white hover:bg-surface-hover text-ink text-xs font-bold border border-surface-border shadow-xs tap-effect disabled:opacity-50"
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5 text-ink', syncingInsights && 'animate-spin')} />
+                <span>Sync Insights Sekarang</span>
+              </button>
+            </div>
+
+            {insightSyncResult && (
+              <div
+                className={cn(
+                  'rounded-2xl p-3.5 border text-xs space-y-1 animate-scale-in',
+                  insightSyncResult.isLive
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-amber-50 border-amber-200 text-amber-900'
+                )}
+              >
+                <div className="flex items-center gap-1.5 font-bold">
+                  {insightSyncResult.isLive ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  ) : (
+                    <Zap className="h-3.5 w-3.5 text-amber-600" />
+                  )}
+                  <span>{insightSyncResult.isLive ? 'Meta Live Connected' : 'Hermes Baseline Active'}</span>
+                </div>
+                <p className="text-[11px]">{insightSyncResult.message}</p>
+              </div>
+            )}
           </div>
         </div>
+
 
         {/* Bento Card 4: Security & PIN Management */}
         <div className="rounded-bento border border-surface-border bg-surface p-6 sm:p-7 space-y-5 shadow-xs">
