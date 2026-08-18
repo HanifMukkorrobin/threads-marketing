@@ -81,14 +81,16 @@ export async function getThreadsInsights(range: InsightRange = '7d'): Promise<Th
   const days = getRangeDays(range);
   const today = new Date();
 
-  const [tokenConfig, userConfig, usernameConfig] = await Promise.all([
+  const [tokenConfig, userConfig, usernameConfig, followersConfig] = await Promise.all([
     prisma.systemConfig.findUnique({ where: { key: 'THREADS_ACCESS_TOKEN' } }),
     prisma.systemConfig.findUnique({ where: { key: 'THREADS_USER_ID' } }),
     prisma.systemConfig.findUnique({ where: { key: 'STORE_USERNAME' } }),
+    prisma.systemConfig.findUnique({ where: { key: 'THREADS_FOLLOWERS_COUNT' } }),
   ]);
 
   const token = tokenConfig?.value || process.env.THREADS_ACCESS_TOKEN;
   const isLiveConnected = Boolean(token);
+  const realLiveFollowers = followersConfig?.value ? parseInt(followersConfig.value, 10) : 0;
   const accountHandle = usernameConfig?.value
     ? (usernameConfig.value.startsWith('@') ? usernameConfig.value : `@${usernameConfig.value}`)
     : (userConfig?.value || '@hades.zshrc');
@@ -122,7 +124,7 @@ export async function getThreadsInsights(range: InsightRange = '7d'): Promise<Th
               likes: 0,
               replies: 0,
               reposts: 0,
-              followersCount: 0,
+              followersCount: realLiveFollowers,
               isLiveSynced: true,
             },
           });
@@ -159,7 +161,9 @@ export async function getThreadsInsights(range: InsightRange = '7d'): Promise<Th
     const replies = found?.replies || 0;
     const reposts = found?.reposts || 0;
     const engagements = likes + replies + reposts;
-    const followersCount = found?.followersCount || 0;
+    const followersCount = isLiveConnected
+      ? (realLiveFollowers || found?.followersCount || 0)
+      : (found?.followersCount || 0);
 
     totalViews += views;
     totalLikes += likes;
@@ -187,7 +191,9 @@ export async function getThreadsInsights(range: InsightRange = '7d'): Promise<Th
 
   const totalEngagements = totalLikes + totalReplies + totalReposts;
   const avgEngagementRate = totalViews > 0 ? Number(((totalEngagements / totalViews) * 100).toFixed(1)) : 0;
-  const currentFollowers = series.length > 0 ? series[series.length - 1].followersCount : 0;
+  const currentFollowers = isLiveConnected
+    ? realLiveFollowers
+    : (series.length > 0 ? series[series.length - 1].followersCount : 0);
 
   // Growth rate calculation based on first half vs second half of series
   const halfLen = Math.floor(series.length / 2);
@@ -277,8 +283,8 @@ export async function syncThreadsMetricsFromMeta(
       console.warn('Could not sync profile metadata from Meta:', profErr);
     }
 
-    // 2. Fetch User-Level Daily Insights from Meta Graph API
-    const metaApiUrl = `https://graph.threads.net/v1.0/${userId || 'me'}/threads_insights?metric=views,likes,replies,reposts,quotes&period=day&access_token=${token}`;
+    // 2. Fetch User-Level Daily Insights from Meta Graph API (including followers_count)
+    const metaApiUrl = `https://graph.threads.net/v1.0/${userId || 'me'}/threads_insights?metric=views,likes,replies,reposts,quotes,followers_count&period=day&access_token=${token}`;
     const response = await fetch(metaApiUrl, {
       headers: { 'Content-Type': 'application/json' },
     });
@@ -296,9 +302,17 @@ export async function syncThreadsMetricsFromMeta(
 
     const data = await response.json();
     const dailyMetrics: Record<string, { views: number; likes: number; replies: number; reposts: number }> = {};
+    let latestFollowersCount: number | undefined;
 
     if (Array.isArray(data.data)) {
       for (const metric of data.data) {
+        if (metric.name === 'followers_count') {
+          const fVal = metric.total_value?.value ?? (Array.isArray(metric.values) && metric.values.length > 0 ? metric.values[metric.values.length - 1]?.value : undefined);
+          if (typeof fVal === 'number') {
+            latestFollowersCount = fVal;
+          }
+        }
+
         if (Array.isArray(metric.values)) {
           for (const v of metric.values) {
             const dateStr = v.end_time.split('T')[0];
@@ -312,6 +326,14 @@ export async function syncThreadsMetricsFromMeta(
           }
         }
       }
+    }
+
+    if (latestFollowersCount !== undefined) {
+      await prisma.systemConfig.upsert({
+        where: { key: 'THREADS_FOLLOWERS_COUNT' },
+        update: { value: String(latestFollowersCount) },
+        create: { key: 'THREADS_FOLLOWERS_COUNT', value: String(latestFollowersCount), description: 'Total Live Followers' },
+      });
     }
 
     // 3. Fetch Post-Level Insights to enrich daily metrics
@@ -358,6 +380,7 @@ export async function syncThreadsMetricsFromMeta(
           likes: metric.likes,
           replies: metric.replies,
           reposts: metric.reposts,
+          followersCount: latestFollowersCount ?? 0,
           isLiveSynced: true,
         },
         create: {
@@ -366,6 +389,7 @@ export async function syncThreadsMetricsFromMeta(
           likes: metric.likes,
           replies: metric.replies,
           reposts: metric.reposts,
+          followersCount: latestFollowersCount ?? 0,
           isLiveSynced: true,
         },
       });
