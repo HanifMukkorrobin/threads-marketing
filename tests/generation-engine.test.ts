@@ -51,6 +51,23 @@ describe('Hermes Content Generation Engine', () => {
     expect(prompt).toContain('KONTEN ORGANIK');
   });
 
+  it('injects negative historical hooks to avoid into prompt when provided', () => {
+    const prompt = buildGenerationPrompt({
+      product: { name: 'Canva Pro' },
+      store: { name: 'Toko Digital ID', username: 'tokodigital.id' },
+      historyHooksToAvoid: [
+        'Banyak orang ngira langganan resmi mahal 🧵👇',
+        'Trik rahasia beresin tugas desain dalam 5 menit 🧵👇',
+      ],
+      excludeCollisions: ['Jangan gunakan formula klise Photoshop vs Canva'],
+    });
+
+    expect(prompt).toContain('HINDARI FORMULA & HOOK SEBELUMNYA (NEGATIVE CONTEXT');
+    expect(prompt).toContain('Banyak orang ngira langganan resmi mahal');
+    expect(prompt).toContain('Trik rahasia beresin tugas desain');
+    expect(prompt).toContain('Jangan gunakan formula klise Photoshop vs Canva');
+  });
+
   it('parses valid JSON generation response from Hermes AI', () => {
     const raw = JSON.stringify({
       title: 'Trik Rahasia Hemat Desain 2026',
