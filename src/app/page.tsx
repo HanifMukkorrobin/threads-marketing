@@ -238,13 +238,13 @@ export default function DashboardOverviewPage() {
           {/* Retro Headline with Denim Blue Highlight Box */}
           <div className="space-y-3">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#181816] tracking-tight leading-none uppercase">
-              <span>Retro </span>
+              <span>Threads </span>
               <span className="inline-block bg-[#6B9AC4] text-white px-3 py-0.5 border-2 border-[#181816] shadow-[3px_3px_0px_0px_#181816]">
                 Marketing
               </span>
             </h1>
             <p className="text-lg sm:text-xl font-black text-[#181816] tracking-tight">
-              Back To The 90s Autonomous Engine
+              Threads Autonomous Engine Content
             </p>
             <p className="text-xs sm:text-sm text-[#4A463F] font-semibold leading-relaxed">
               Pusat kendali konten autopilot Threads, katalog produk digital, dan antrean posting mandiri berskala tinggi.

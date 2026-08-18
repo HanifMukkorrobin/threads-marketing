@@ -104,7 +104,6 @@ export function ThreadsInsightsChart({ onToast }: ThreadsInsightsChartProps) {
             <h3 className="text-sm sm:text-base font-black text-[#181816] uppercase tracking-wide">
               Threads Insights
             </h3>
-            <span className="text-[10px] font-mono text-[#7A7468] font-bold">// 90s Analytics</span>
           </div>
 
           <div className="flex items-center gap-2">
