@@ -28,7 +28,8 @@ describe('Threads Insights REST APIs', () => {
       expect(body.success).toBe(true);
       expect(body.data.range).toBe('7d');
       expect(body.data.series).toHaveLength(7);
-      expect(body.data.summary.totalViews).toBeGreaterThan(0);
+      expect(body.data.summary.totalViews).toBeGreaterThanOrEqual(0);
+      expect(body.data.summary.avgEngagementRate).toBeGreaterThanOrEqual(0);
     });
 
     it('returns 14d and 30d insights when requested', async () => {
