@@ -72,15 +72,35 @@ export function parseMarkdownFrontmatter(rawContent: string, defaultId?: string)
     }
   }
 
-  const id = metadata.id || defaultId || String(metadata.title || 'topic').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const firstHeading = bodyContent.match(/^#\s+(.+)$/m);
+  const inferredTitle = String(metadata.title || (firstHeading ? firstHeading[1].trim() : (defaultId || 'Untitled Topic')));
+  const id = metadata.id || defaultId || inferredTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+  // Infer category if not explicitly set
+  let inferredCategory = metadata.category;
+  if (!inferredCategory) {
+    if (metadata.type === 'entity') inferredCategory = 'Product Intelligence';
+    else if (metadata.type === 'concept') inferredCategory = 'Content & Hooks';
+    else inferredCategory = 'Digital Tech';
+  }
+
+  // Infer summary if not explicitly set
+  let inferredSummary = metadata.summary;
+  if (!inferredSummary && bodyContent) {
+    const cleanBody = bodyContent.replace(/^#[^\n]+\n/g, '').trim();
+    const firstParagraph = cleanBody.split(/\n\s*\n/)[0];
+    if (firstParagraph && firstParagraph.length > 10) {
+      inferredSummary = firstParagraph.replace(/^[#\-*\s]+/, '').slice(0, 200).trim();
+    }
+  }
 
   return {
     id: String(id),
-    title: String(metadata.title || defaultId || 'Untitled Topic'),
-    category: String(metadata.category || 'Digital Tech'),
+    title: inferredTitle,
+    category: String(inferredCategory),
     tags: Array.isArray(metadata.tags) ? metadata.tags.map(String) : [],
     targetAudience: metadata.targetAudience ? String(metadata.targetAudience) : undefined,
-    summary: metadata.summary ? String(metadata.summary) : undefined,
+    summary: inferredSummary ? String(inferredSummary) : undefined,
     priority: metadata.priority || 'NORMAL',
     sourceUrl: metadata.sourceUrl ? String(metadata.sourceUrl) : undefined,
     content: bodyContent,
@@ -116,9 +136,13 @@ export async function loadAllKnowledgeTopics(customDir?: string): Promise<Knowle
       // Ignore hidden directories like .git or .obsidian
       if (entry.name.startsWith('.')) continue;
 
-      // Ignore raw/ directory (raw articles/papers) and root meta files
-      if (entry.name.toLowerCase() === 'raw') continue;
-      if (['schema.md', 'index.md', 'log.md'].includes(entry.name.toLowerCase())) continue;
+      const lowerName = entry.name.toLowerCase();
+
+      // Ignore non-content directories (raw sources, schema configs, internal sources)
+      if (['raw', 'schema', 'sources'].includes(lowerName)) continue;
+
+      // Ignore root and meta files
+      if (['schema.md', 'index.md', 'log.md', 'config.md', 'readme.md'].includes(lowerName)) continue;
 
       const fullPath = path.join(currentDir, entry.name);
       if (entry.isDirectory()) {

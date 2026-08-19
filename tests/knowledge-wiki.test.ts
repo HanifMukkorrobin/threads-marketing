@@ -65,11 +65,21 @@ Konten shortcut Mac...`
     if (fs.existsSync(topic1Path)) fs.unlinkSync(topic1Path);
   });
 
-  it('strictly ignores raw/ directory, SCHEMA.md, index.md, and log.md', async () => {
+  it('strictly ignores raw/, schema/, sources/ directories and config/log/index/readme meta files', async () => {
     const rawDir = path.join(testKnowledgeDir, 'raw', 'articles');
     fs.mkdirSync(rawDir, { recursive: true });
     const rawArticle = path.join(rawDir, 'long-article.md');
     fs.writeFileSync(rawArticle, '# Long Raw Article');
+
+    const schemaDir = path.join(testKnowledgeDir, 'wiki', 'schema');
+    fs.mkdirSync(schemaDir, { recursive: true });
+    const configPath = path.join(schemaDir, 'config.md');
+    fs.writeFileSync(configPath, '# Schema Config');
+
+    const sourcesDir = path.join(testKnowledgeDir, 'wiki', 'sources');
+    fs.mkdirSync(sourcesDir, { recursive: true });
+    const sourceSummaryPath = path.join(sourcesDir, 'raw-article-summary.md');
+    fs.writeFileSync(sourceSummaryPath, '# Source Summary');
 
     const schemaPath = path.join(testKnowledgeDir, 'SCHEMA.md');
     fs.writeFileSync(schemaPath, '# Schema Definition');
@@ -80,7 +90,7 @@ Konten shortcut Mac...`
     const logPath = path.join(testKnowledgeDir, 'log.md');
     fs.writeFileSync(logPath, '# Log Actions');
 
-    const conceptDir = path.join(testKnowledgeDir, 'concepts');
+    const conceptDir = path.join(testKnowledgeDir, 'wiki', 'concepts');
     fs.mkdirSync(conceptDir, { recursive: true });
     const conceptPath = path.join(conceptDir, 'doubt-driven.md');
     fs.writeFileSync(
@@ -98,16 +108,37 @@ Concept content`
 
     expect(ids).toContain('doubt-driven');
     expect(ids).not.toContain('long-article');
+    expect(ids).not.toContain('config');
+    expect(ids).not.toContain('raw-article-summary');
     expect(ids).not.toContain('schema');
     expect(ids).not.toContain('index');
     expect(ids).not.toContain('log');
 
     // Clean up
     fs.rmSync(path.join(testKnowledgeDir, 'raw'), { recursive: true, force: true });
-    fs.rmSync(path.join(testKnowledgeDir, 'concepts'), { recursive: true, force: true });
+    fs.rmSync(path.join(testKnowledgeDir, 'wiki'), { recursive: true, force: true });
     if (fs.existsSync(schemaPath)) fs.unlinkSync(schemaPath);
     if (fs.existsSync(indexPath)) fs.unlinkSync(indexPath);
     if (fs.existsSync(logPath)) fs.unlinkSync(logPath);
+  });
+
+  it('infers title, category, and summary when not explicitly specified in frontmatter', () => {
+    const rawMarkdown = `---
+type: concept
+tags: ["frameworks"]
+---
+
+# Doubt-Driven Development
+
+Doubt-Driven Development adalah pola review AI di mana kita mendispatch agen baru dengan bias skeptis.
+
+## Detail
+Langkah 1...`;
+
+    const parsed = parseMarkdownFrontmatter(rawMarkdown, 'fallback-id');
+    expect(parsed.title).toBe('Doubt-Driven Development');
+    expect(parsed.category).toBe('Content & Hooks');
+    expect(parsed.summary).toContain('Doubt-Driven Development adalah pola review AI');
   });
 
   it('selects the least-recently used (LRU) knowledge topic based on draft history', () => {
