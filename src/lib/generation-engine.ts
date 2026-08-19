@@ -10,7 +10,11 @@
  * 5. Hybrid Deduplication & Freshness Guard (Ollama Vector + Lexical Fallback + Negative Context).
  */
 
-import { callHermesChatCompletion } from './hermes-client';
+import {
+  callHermesChatCompletion,
+  HERMES_TECH_PRACTITIONER_SYSTEM_PROMPT,
+  HERMES_COMMERCIAL_PROMO_SYSTEM_PROMPT,
+} from './hermes-client';
 import {
   getRecentDraftHistory,
   validateDraftFreshness,
@@ -143,7 +147,7 @@ Gunakan konsep pembuka yang sama sekali berbeda dari percobaan sebelumnya!
 
     return `
 PANDUAN PEMBUATAN THREAD PROMOSI PRODUK (THREADS META):
-Kamu adalah Digital Copywriter profesional yang ahli membuat konten viral berkonversi tinggi. Gaya bahasa: Indonesia kasual, cerdas, percaya diri, tanpa basa-basi marketing murahan.
+Kamu adalah Digital Specialist & Solutions Consultant yang ahli menyusun komunikasi produk secara profesional, jujur, mengedepankan value nyata, varian harga transparan, dan jaminan resmi tanpa tipu-tipu atau bahasa jualan murahan.
 
 INFORMASI BISNIS & PRODUK:
 - Toko: ${storeName} (@${storeHandle})
@@ -166,7 +170,7 @@ ${negativeContextSection ? `${negativeContextSection}\n\n` : ''}${collisionWarni
 1. DILARANG MEMAKAI PEMBUKA KLISE:
    - JANGAN mulai dengan: "Banyak orang ngira...", "Pernah gak sih...", "Tahukah kamu...", "Di era digital...", "Siapa sangka...", "Jangan lewatkan...", "Kabar gembira...".
    - Buka langsung dengan: Angka riil, kerugian konkret, situasi spesifik, atau opini berani to-the-point!
-2. JANGAN memaksakan daftar kata slang template. Tulis mengalir secara natural selayaknya praktisi digital yang sedang berbagi solusi.
+2. JANGAN memaksakan daftar kata slang template atau gaya e-commerce murahan. Tulis mengalir secara profesional selayaknya konsultan solusi digital yang sedang membagikan solusi nyata.
 3. Struktur 3 Post Thread:
    - Post #1 (Hook Utama): Ketegangan masalah / kontras fakta + diakhiri indikator thread "🧵👇".
    - Post #2 (Solusi & Bukti Nilai): Nilai produk nyata, daftar paket/harga resmi, dan jaminan keamanan.
@@ -194,7 +198,7 @@ KONTEN ORGANIK MURNI (100% EDUKASI & INSIGHT BERBOBOT DARI KNOWLEDGE VAULT):
 - Judul Materi: ${knowledgeTopic.title}
 - Kategori: ${knowledgeTopic.category}
 - Ringkasan Inti: ${knowledgeTopic.summary || 'Insight bernilai tinggi'}
-- Target Audiens: ${targetAudience || knowledgeTopic.targetAudience || 'Pengguna Threads aktif, mahasiswa, freelancer, digital creator'}
+- Target Audiens: ${targetAudience || knowledgeTopic.targetAudience || 'Pengguna Threads aktif, software engineer, AI builder, digital creator'}
 - Bahan Riset / Poin Pengetahuan:
 ${knowledgeTopic.content}
 - Profil Penulis: @${storeHandle}
@@ -202,15 +206,15 @@ ${knowledgeTopic.content}
   } else {
     topicContext = `
 KONTEN ORGANIK MURNI (100% EDUKASI & INSIGHT BERBOBOT):
-- Topik / Fokus Materi: ${customTopic || 'Framework produktivitas kerja, tips prompt AI, atau efisiensi tools digital 2026'}
-- Target Audiens: ${targetAudience || 'Pengguna Threads aktif, mahasiswa, freelancer, digital creator'}
+- Topik / Fokus Materi: ${customTopic || 'Framework produktivitas engineering, arsitektur AI agent, atau efisiensi tools digital 2026'}
+- Target Audiens: ${targetAudience || 'Pengguna Threads aktif, software engineer, AI builder, digital creator'}
 - Profil Penulis: @${storeHandle}
 `.trim();
   }
 
   return `
 PANDUAN PEMBUATAN THREAD ORGANIK EDUKASI (THREADS META):
-Kamu adalah Edukator & Praktisi Digital Tech yang berbagi wawasan berbobot tinggi. Gaya bahasa: Cerdas, santai, to-the-point, sangat aplikatif.
+Kamu adalah Senior Software Engineer & AI Systems Architect / Tech Practitioner yang membagikan wawasan teknis berbobot tinggi. Gaya bahasa: Lugas, berbasis pengalaman praktik nyata, sistemik, dan zero slang/jargon murahan.
 
 ${topicContext}
 
@@ -224,11 +228,11 @@ ${negativeContextSection ? `${negativeContextSection}\n\n` : ''}${collisionWarni
    - Konten ini 100% murni edukasi, insight teknis, atau tips praktis yang langsung bisa dicoba.
 2. DILARANG MEMAKAI PEMBUKA KLISE:
    - JANGAN mulai dengan: "Banyak orang ngira...", "Pernah gak sih...", "Tahukah kamu...", "Di era modern...", "Siapa sangka...".
-   - Buka langsung dengan inti insight atau pernyataan menohok.
+   - Buka langsung dari problem arsitektur nyata, paradoxical reality, bottleneck di production, atau skenario kegagalan sistem. JANGAN gunakan pertanyaan retoris klise atau gaya e-commerce.
 3. Struktur 3 Post Thread:
-   - Post #1 (Hook Wawasan): Masalah / konsep menarik yang memicu rasa ingin tahu + diakhiri "🧵👇".
-   - Post #2 (Daging Materi / Actionable Value): Breakdown langkah nyata, formula, atau poin praktis.
-   - Post #3 (Penutup Komunitas): Bookmark / save thread buat referensi nanti, ajakan diskusi di replies, atau soft-follow ke @${storeHandle} untuk tips seputar digital harian.
+   - Post #1 (Hook Wawasan): Masalah arsitektur / konsep teknis menohok yang memicu rasa ingin tahu praktisi + diakhiri "🧵👇".
+   - Post #2 (Daging Materi / Tangible Execution): Wajib menjelaskan alur kerja operasional, mental model arsitektur, atau mekanisme teknis konkret (misal: Input ➔ Eksekusi Tool CLI/API ➔ Validasi Error) alih-alih sekadar listicle 5 butir definisi kata atau rangkuman kamus.
+   - Post #3 (Diskusi Komunitas / Open Technical Question): Akhiri dengan pertanyaan teknis terbuka yang memicu diskusi engineering berkualitas antar-praktisi, ajakan bookmark referensi (Bookmark / save thread buat referensi nanti), dan mention @${storeHandle} untuk update arsitektur AI harian.
 4. Setiap post HARUS DI BAWAH 500 KARAKTER.
 
 KEMBALIKAN OUTPUT HANYA DALAM FORMAT JSON BERIKUT (TANPA MARKDOWN FENCES / TEKS LAIN):
@@ -327,6 +331,11 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
     knowledgeTopic: activeKnowledgeTopic,
   };
 
+  const isOrganic = !input.product;
+  const selectedSystemPrompt = isOrganic
+    ? HERMES_TECH_PRACTITIONER_SYSTEM_PROMPT
+    : HERMES_COMMERCIAL_PROMO_SYSTEM_PROMPT;
+
   const historyHooks = input.historyHooksToAvoid || history.map((h) => h.hookContent);
   const excludeCollisions: string[] = [...(input.excludeCollisions || [])];
 
@@ -341,7 +350,7 @@ export async function generateDraftWithHermes(input: GenerationInput): Promise<G
     });
 
     try {
-      const rawResponse = await callHermesChatCompletion(prompt);
+      const rawResponse = await callHermesChatCompletion(prompt, selectedSystemPrompt);
       const candidate = parseHermesGenerationResponse(rawResponse);
 
       if (candidate && candidate.posts.length >= 2) {

@@ -1,12 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   buildGenerationPrompt,
   parseHermesGenerationResponse,
   generateDraftWithHermes,
   GENERATION_ANGLES,
 } from '../src/lib/generation-engine';
+import * as hermesClient from '../src/lib/hermes-client';
 
 describe('Hermes Content Generation Engine Overhaul', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('provides tactical directives instead of rigid sentence templates in angles', () => {
     expect(GENERATION_ANGLES.length).toBeGreaterThanOrEqual(5);
     GENERATION_ANGLES.forEach((angle) => {
@@ -36,12 +41,14 @@ describe('Hermes Content Generation Engine Overhaul', () => {
     expect(prompt).toContain('Canva Pro Lifetime');
     expect(prompt).toContain('tokodigital.id');
     expect(prompt).toContain('PRODUK YANG AKAN DIPROMOSIKAN');
+    expect(prompt).toContain('Digital Specialist & Solutions Consultant');
     expect(prompt).toContain('DILARANG MEMAKAI PEMBUKA KLISE');
     // Ensure slang shopping list is removed
     expect(prompt).not.toContain('e.g. gess, sat-set, boncos, worth it, nugas');
+    expect(prompt).not.toContain('gaya e-commerce santai');
   });
 
-  it('builds a 100% pure educational prompt with ZERO SELLING when product is null', () => {
+  it('builds a 100% pure educational prompt with deep practitioner directives when product is null', () => {
     const prompt = buildGenerationPrompt({
       product: null,
       store: {
@@ -53,10 +60,14 @@ describe('Hermes Content Generation Engine Overhaul', () => {
     });
 
     expect(prompt).toContain('KONTEN ORGANIK MURNI (100% EDUKASI & INSIGHT BERBOBOT)');
+    expect(prompt).toContain('Senior Software Engineer & AI Systems Architect');
+    expect(prompt).toContain('problem arsitektur nyata');
+    expect(prompt).toContain('alur kerja operasional, mental model arsitektur, atau mekanisme teknis konkret');
+    expect(prompt).toContain('pertanyaan teknis terbuka yang memicu diskusi engineering berkualitas antar-praktisi');
     expect(prompt).toContain('DILARANG KERAS BERJUALAN');
     expect(prompt).toContain('DILARANG menyebut harga');
     expect(prompt).toContain('4 Langkah Mengatur Workspace Digital');
-    // Ensure CTA is soft-community, not transactional
+    // Ensure CTA is soft-community and practitioner-focused
     expect(prompt).toContain('Bookmark / save thread');
   });
 
@@ -80,6 +91,7 @@ describe('Hermes Content Generation Engine Overhaul', () => {
     expect(prompt).toContain('Formula 4 Langkah Prompting AI');
     expect(prompt).toContain('AI & Tech');
     expect(prompt).toContain('1. Role persona');
+    expect(prompt).toContain('Senior Software Engineer & AI Systems Architect');
     expect(prompt).toContain('DILARANG KERAS BERJUALAN');
   });
 
@@ -114,5 +126,52 @@ describe('Hermes Content Generation Engine Overhaul', () => {
     expect(parsed).not.toBeNull();
     expect(parsed?.title).toBe('Realita Workflow Desain 2026');
     expect(parsed?.posts.length).toBe(3);
+  });
+
+  it('passes HERMES_COMMERCIAL_PROMO_SYSTEM_PROMPT when generating product promo draft', async () => {
+    const mockChat = vi.spyOn(hermesClient, 'callHermesChatCompletion').mockResolvedValue(
+      JSON.stringify({
+        title: 'Promo Canva Pro',
+        hookAngle: 'Unpopular Industry Truth',
+        posts: [
+          { orderIndex: 0, content: 'Hook promo produk 🧵👇' },
+          { orderIndex: 1, content: 'Value produk Canva Pro' },
+          { orderIndex: 2, content: 'Order sekarang di bio @tokodigital.id' },
+        ],
+      })
+    );
+
+    const result = await generateDraftWithHermes({
+      product: { id: 'p1', name: 'Canva Pro' },
+      store: { name: 'Toko Digital ID', username: 'tokodigital.id' },
+    });
+
+    expect(mockChat).toHaveBeenCalled();
+    expect(mockChat.mock.calls[0][1]).toBe(hermesClient.HERMES_COMMERCIAL_PROMO_SYSTEM_PROMPT);
+    expect(result.posts.length).toBe(3);
+  });
+
+  it('passes HERMES_TECH_PRACTITIONER_SYSTEM_PROMPT when generating pure organic draft', async () => {
+    const mockChat = vi.spyOn(hermesClient, 'callHermesChatCompletion').mockResolvedValue(
+      JSON.stringify({
+        title: 'Architecture Insight',
+        hookAngle: 'Unpopular Industry Truth',
+        posts: [
+          { orderIndex: 0, content: 'Hook arsitektur AI 🧵👇' },
+          { orderIndex: 1, content: 'Mekanisme eksekusi tool calling' },
+          { orderIndex: 2, content: 'Bagaimana arsitektur prompt di tim kalian? Diskusi di bawah!' },
+        ],
+      })
+    );
+
+    const result = await generateDraftWithHermes({
+      product: null,
+      customTopic: 'Deep-dive LLM Tool-Calling Architecture',
+      store: { name: 'Toko Digital ID', username: 'tokodigital.id' },
+    });
+
+    expect(mockChat).toHaveBeenCalled();
+    expect(mockChat.mock.calls[0][1]).toBe(hermesClient.HERMES_TECH_PRACTITIONER_SYSTEM_PROMPT);
+    expect(result.posts.length).toBe(3);
   });
 });
