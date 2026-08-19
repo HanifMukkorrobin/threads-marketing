@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { reviseDraftContent, detectTargetPostIndex } from '../src/lib/revision-engine';
 
-describe('AI Revision Engine (ecommerce-copy-humanizer-id)', () => {
+describe('AI Revision Engine', () => {
   const mockProduct = {
     id: 'prod-1',
     name: 'Youtube Premium',
@@ -14,7 +14,7 @@ describe('AI Revision Engine (ecommerce-copy-humanizer-id)', () => {
     usp: ['Full Garansi', 'Aktivasi Instan', 'Support 24/7'],
     targetAudience: 'Mahasiswa, Pekerja',
     toneOfVoice: 'Storytelling & Relate',
-    ctaTemplate: 'Stok terbatas, langsung DM aja gess',
+    ctaTemplate: 'Stok terbatas, langsung DM admin untuk klaim',
   };
 
   const initialPosts = [
@@ -44,7 +44,7 @@ describe('AI Revision Engine (ecommerce-copy-humanizer-id)', () => {
     const result = await reviseDraftContent({
       posts: initialPosts,
       product: mockProduct,
-      instruction: 'ubah post 3 menjadi stok terbatas langsung DM aja gess',
+      instruction: 'ubah post 3 menjadi stok terbatas langsung DM admin ya',
     });
 
     expect(result.posts.length).toBe(3);
