@@ -49,4 +49,7 @@ prisma/*.db-journal
 logs/
 .claude/
 .impeccable/
+.superpowers/
+__pycache__/
+*.pyc
 
