@@ -17,7 +17,12 @@ function loadLocalEnv() {
           if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
             val = val.slice(1, -1);
           }
-          if (!process.env[key]) {
+          // Do not override environment variables if running in Vitest test suite
+          if (process.env.VITEST) {
+            if (!process.env[key]) {
+              process.env[key] = val;
+            }
+          } else {
             process.env[key] = val;
           }
         }
@@ -26,9 +31,7 @@ function loadLocalEnv() {
   } catch {}
 }
 
-if (!process.env.DATABASE_URL) {
-  loadLocalEnv();
-}
+loadLocalEnv();
 
 function normalizeDatabaseUrl(url?: string): string | undefined {
   if (!url) return undefined;
