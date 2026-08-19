@@ -330,6 +330,14 @@ describe('Task 7: Dashboard Overview, Settings API & Hermes Runner Integration',
           }
 
           if (url.includes('/api/hermes/drafts') && method === 'POST') {
+            const parsedBody = JSON.parse(body || '{}');
+            if (parsedBody.productId) {
+              expect(parsedBody.metadata?.persona).toBe('CLEAN_COMMERCIAL_PROMO');
+              expect(parsedBody.metadata?.skill).toBeUndefined();
+            } else {
+              expect(parsedBody.metadata?.persona).toBe('TECH_SYSTEMS_PRACTITIONER');
+              expect(parsedBody.metadata?.skill).toBeUndefined();
+            }
             return {
               ok: true,
               status: 201,
@@ -369,6 +377,43 @@ describe('Task 7: Dashboard Overview, Settings API & Hermes Runner Integration',
         expect(fetchCalls.length).toBeGreaterThanOrEqual(4);
       } finally {
         global.fetch = originalFetch;
+      }
+    });
+
+    it('verifies fallback archetypes produce clean, substantive practitioner content without forced slang', async () => {
+      const { HUMANIZED_HOOK_ARCHETYPES, getOrganicArchetypes } = await import('../scripts/hermes-runner/hermes_mock_cron');
+
+      const mockProduct = {
+        id: 'test-p1',
+        name: 'GitHub Copilot Enterprise',
+        slug: 'github-copilot',
+        category: 'Development',
+        variants: [{ name: '1 Bulan', price: 150000 }],
+        usp: ['Full Private', 'Garansi Resmi'],
+      };
+
+      const mockStore = { name: 'Hades Tech', username: 'hades.zshrc' };
+      const bannedSlangRegex = /\b(gess|sat-set|boncos|nugas)\b/i;
+
+      // Test commercial promo archetypes
+      for (const archetype of HUMANIZED_HOOK_ARCHETYPES) {
+        const generated = archetype.generate(mockProduct, mockStore);
+        expect(generated.posts.length).toBeGreaterThanOrEqual(2);
+        for (const post of generated.posts) {
+          expect(post.content.length).toBeLessThanOrEqual(500);
+          expect(bannedSlangRegex.test(post.content)).toBe(false);
+        }
+      }
+
+      // Test organic archetypes
+      const organicList = getOrganicArchetypes(mockStore);
+      expect(organicList.length).toBeGreaterThanOrEqual(4);
+      for (const item of organicList) {
+        expect(item.posts.length).toBeGreaterThanOrEqual(2);
+        for (const post of item.posts) {
+          expect(post.content.length).toBeLessThanOrEqual(500);
+          expect(bannedSlangRegex.test(post.content)).toBe(false);
+        }
       }
     });
 
@@ -432,7 +477,7 @@ describe('Task 7: Dashboard Overview, Settings API & Hermes Runner Integration',
                     status: 'APPROVED',
                     type: 'THREAD_CHAIN',
                     posts: [
-                      { orderIndex: 0, content: 'Hook 1: Belajar coding sat-set' },
+                      { orderIndex: 0, content: 'Hook 1: Belajar coding efisien' },
                       { orderIndex: 1, content: 'Value 2: Tips produktif 2026' },
                     ],
                   },

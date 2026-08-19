@@ -236,106 +236,102 @@ export interface HermesStoreInfo {
   avatarUrl?: string;
 }
 
-// Copy generator adhering strictly to /ecommerce-copy-humanizer-id (Natural, Native, Slang-balanced Indonesian)
-const HUMANIZED_HOOK_ARCHETYPES = [
+// Commercial Promo Hook Archetypes (Clean, Professional, and Value-Driven)
+export const HUMANIZED_HOOK_ARCHETYPES = [
   {
-    angle: 'Storytelling & Curhat Relate',
-    skill: 'ecommerce-copy-humanizer-id',
+    angle: 'Storytelling & Real Case',
     generate: (p: HermesProduct, store?: HermesStoreInfo) => {
       const audience = p.targetAudience ? `buat ${p.targetAudience.toLowerCase()}` : 'buat harian';
       const cta = p.ctaTemplate || `Yuk amankan slot promo kamu sekarang, langsung DM @${store?.username || 'tokodigital.id'} atau cek link di bio ya! 🚀`;
       const storeName = store?.name || 'Toko Digital ID';
 
       return {
-        title: `[Story] Rahasia Hemat ${p.name} Tanpa Boncos`,
+        title: `[Kasus Nyata] Efisiensi Biaya ${p.name} untuk Workflow Harian`,
         posts: [
           {
             orderIndex: 0,
-            content: `Lagi seru-serunya nugas, kerja, atau dengerin playlist favorit, tiba-tiba kepotong iklan atau kena limit akun? 😤\n\nPadahal ada cara cerdas langganan ${p.name} legal dan bergaransi yang ${getPricePreview(p)} doang. Simak ceritanya di bawah 🧵👇`,
+            content: `Sering mengalami limit akun atau kendala akses saat mengejar deadline penting? 💡\n\nAda cara berlangganan ${p.name} resmi dan bergaransi dengan biaya terjangkau (${getPricePreview(p)}). Simak pembahasannya di bawah 🧵👇`,
           },
           {
             orderIndex: 1,
-            content: `Nih benefit yang kamu dapetin di ${storeName}:\n${getUspBulletList(p)}\n\nPilihan paket ready:\n${getVariantListText(p)}\n\nCocok banget ${audience} yang pengen serba sat-set tanpa ribet! ✨`,
+            content: `Keunggulan layanan di ${storeName}:\n${getUspBulletList(p)}\n\nPilihan paket tersedia:\n${getVariantListText(p)}\n\nDirancang untuk ${audience} yang membutuhkan stabilitas akun tanpa kendala teknis.`,
           },
           {
             orderIndex: 2,
-            content: `Gak perlu kartu kredit luar negeri atau setup VPN aneh-aneh. Akun langsung aktif tinggal pakai.\n\n${cta}`,
+            content: `Proses aktivasi langsung dan transparan tanpa perlu setup rumit.\n\n${cta}`,
           },
         ],
       };
     },
   },
   {
-    angle: 'Solusi Cerdas & Anti-Boncos',
-    skill: 'ecommerce-copy-humanizer-id',
+    angle: 'Solusi Cerdas & Efisiensi Biaya',
     generate: (p: HermesProduct, store?: HermesStoreInfo) => {
       const handle = store?.username || 'tokodigital.id';
       const cta = p.ctaTemplate || 'Stok slot terbatas, amankan sekarang sebelum kehabisan!';
 
       return {
-        title: `[Hemat] Tips Upgrade ${p.name} Paling Masuk Akal`,
+        title: `[Efisiensi] Optimasi Biaya Berlangganan ${p.name}`,
         posts: [
           {
             orderIndex: 0,
-            content: `Kenapa harus bayar ratusan ribu kalau fitur ${p.name} yang kamu dapet 100% sama dengan harga jauh lebih hemat? 💡\n\nBuat yang mau cerdas atur pengeluaran digital bulanan, baca ini 🧵👇`,
+            content: `Memaksimalkan anggaran digital bulanan bisa dimulai dari memilih paket langganan ${p.name} yang tepat dan bergaransi 💡\n\nBerikut perbandingan nilai dan opsi paket resmi 🧵👇`,
           },
           {
             orderIndex: 1,
-            content: `Bandingin keuntungannya:\n${getUspBulletList(p)}\n\n💰 Varian harga terbaik:\n${getVariantListText(p)}\n\nSemua paket include garansi replace & full support admin ramah 24/7.`,
+            content: `Benefit utama:\n${getUspBulletList(p)}\n\n💰 Varian paket resmi:\n${getVariantListText(p)}\n\nSetiap paket mencakup garansi replace dan bantuan teknis.`,
           },
           {
             orderIndex: 2,
-            content: `Jangan nunggu harga normal naik lagi gess.\n\n👉 ${cta} (Link pemesanan resmi ada di bio profil @${handle})`,
+            content: `Optimalkan workflow digital Anda hari ini.\n\n👉 ${cta} (Detail pemesanan resmi tersedia di bio profil @${handle})`,
           },
         ],
       };
     },
   },
   {
-    angle: 'Productivity & Feature Hack',
-    skill: 'ecommerce-copy-humanizer-id',
+    angle: 'Productivity & Feature Optimization',
     generate: (p: HermesProduct, store?: HermesStoreInfo) => {
       const cta = p.ctaTemplate || `Langsung order via link di bio @${store?.username || 'tokodigital.id'} untuk aktivasi instan!`;
 
       return {
-        title: `[Hack] Maksimalkan Fitur Pro ${p.name}`,
+        title: `[Optimasi] Maksimalkan Fitur Pro ${p.name}`,
         posts: [
           {
             orderIndex: 0,
-            content: `Trik rahasia biar kerjaan, konten, dan riset kamu selesai 3x lebih cepet pakai ${p.name} di tahun 2026! ✨\n\nBikin workflow harian makin smooth tanpa drama 🧵👇`,
+            content: `Memanfaatkan fitur pro pada ${p.name} secara optimal dapat meningkatkan kecepatan eksekusi kerja secara signifikan ⚡️\n\nTips integrasi fitur ke dalam workflow harian 🧵👇`,
           },
           {
             orderIndex: 1,
-            content: `Kenapa order di kami paling recommended?\n${getUspBulletList(p)}\n\nKatalog paket tersedia (${getPricePreview(p)}):\n${getVariantListText(p)}`,
+            content: `Kenapa memilih layanan kami?\n${getUspBulletList(p)}\n\nKatalog paket tersedia (${getPricePreview(p)}):\n${getVariantListText(p)}`,
           },
           {
             orderIndex: 2,
-            content: `Upgrade akun kamu sekarang dan rasain bedanya produktif pakai akun premium.\n\n⚡️ ${cta}`,
+            content: `Tingkatkan produktivitas kerja dengan akun resmi bergaransi.\n\n⚡️ ${cta}`,
           },
         ],
       };
     },
   },
   {
-    angle: 'FOMO & Slot Terbatas',
-    skill: 'ecommerce-copy-humanizer-id',
+    angle: 'Slot & Kuota Promo Terbatas',
     generate: (p: HermesProduct, store?: HermesStoreInfo) => {
-      const cta = p.ctaTemplate || 'Slot rebutan, langsung amankan sebelum kehabisan promo hari ini!';
+      const cta = p.ctaTemplate || 'Slot kuota terbatas, langsung amankan sebelum periode promo berakhir!';
 
       return {
-        title: `[Limited] Slot Promo Spesial ${p.name}`,
+        title: `[Informasi] Alokasi Paket Khusus ${p.name}`,
         posts: [
           {
             orderIndex: 0,
-            content: `Siapa cepat dia dapat! 🔥\n\nSlot promo khusus ${p.name} baru aja restock hari ini dengan kuota terbatas. Jangan sampai kehabisan lagi kayak minggu lalu ya gess 🧵👇`,
+            content: `Alokasi paket khusus ${p.name} kini kembali tersedia dengan kuota terbatas untuk periode ini 📌\n\nPastikan akun kerja Anda tetap aktif dan stabil 🧵👇`,
           },
           {
             orderIndex: 1,
-            content: `Keunggulan jaminan kami:\n${getUspBulletList(p)}\n\n📦 Paket yang lagi ready:\n${getVariantListText(p)}`,
+            content: `Jaminan layanan:\n${getUspBulletList(p)}\n\n📦 Paket yang tersedia:\n${getVariantListText(p)}`,
           },
           {
             orderIndex: 2,
-            content: `Admin fast response siap bantu aktivasi dalam hitungan menit.\n\n🚀 ${cta}`,
+            content: `Aktivasi cepat dan dipandu hingga siap digunakan.\n\n🚀 ${cta}`,
           },
         ],
       };
@@ -343,79 +339,79 @@ const HUMANIZED_HOOK_ARCHETYPES = [
   },
 ];
 
-// Organic & Non-Product Content Archetypes for High-Engagement Threads
-const getOrganicArchetypes = (store?: HermesStoreInfo) => {
+// Organic & Knowledge Vault Content Archetypes for High-Signal Practitioner Threads
+export const getOrganicArchetypes = (store?: HermesStoreInfo) => {
   const handle = store?.username || 'tokodigital.id';
   return [
     {
-      title: '[Tips] 5 Shortcut Rahasia Buat yang Nugas & Kerja Seharian',
-      hookAngle: 'Edukasi & Produktivitas',
+      title: '[Workflow] 3 Praktik CLI & Terminal untuk Mempercepat Eksekusi',
+      hookAngle: 'Tech & Workflow Architecture',
       posts: [
         {
           orderIndex: 0,
-          content: 'Buat kamu yang tiap hari di depan laptop nugas atau kerja, ini 5 shortcut & trik rahasia yang bakal hemat waktu kamu berjam-jam 🧵👇',
+          content: 'Mengurangi pergantian context (context-switching) antara GUI dan editor adalah kunci menjaga flow state engineering 🛠️\n\n3 konfigurasi terminal yang langsung terasa dampaknya 🧵👇',
         },
         {
           orderIndex: 1,
-          content: '1. Ctrl/Cmd + Shift + T: Buka tab browser yang gak sengaja ketutup.\n2. Win + V / Mac Clipboard: Akses riwayat copy-paste banyak item.\n3. Pakai AI tools buat summarising dokumen tebal dalam 10 detik.\n4. Dual monitor virtual (Win + Ctrl + D) biar gak semrawut.\n5. Bookmark bar khusus folder shortcut kerjaan.',
+          content: '1. Aliases & Shell Functions: Singkat perintah git & docker berulang menjadi 2-3 karakter.\n2. Fuzzy Finder (fzf): Navigasi ribuan file dalam hitungan milidetik tanpa mouse.\n3. Session Persistence: Gunakan tmux / zellij agar workspace selalu siap pakai saat terminal dibuka kembali.',
         },
         {
           orderIndex: 2,
-          content: `Save thread ini biar gak lupa pas butuh nanti! ✨\n\nFollow @${handle} buat tips produktivitas & rekomendasi tools digital bermanfaat lainnya 🚀`,
+          content: `Simpan thread ini untuk referensi setup workstation Anda! 📌\n\nFollow @${handle} untuk insight arsitektur software dan optimasi tools digital 🚀`,
         },
       ],
     },
     {
-      title: '[Insight] Formula Prompt AI Anti-Gagal Buat Nugas & Kerja',
+      title: '[AI Engineering] Mental Model Context Engineering untuk LLM Agent',
       hookAngle: 'Tech & AI Insights',
       posts: [
         {
           orderIndex: 0,
-          content: 'Tahun 2026 tapi masih pakai AI cuma buat ketik "buatkan ide"? 🤯\n\nPadahal AI bisa jadi personal assistant yang handle 70% kerjaan rutin kamu kalau prompt-nya bener. Simak formulanya 🧵👇',
+          content: 'Prompt engineering bukan sekadar menyusun kata mutiara, melainkan merancang arsitektur context yang deterministic untuk model AI 🧠\n\n3 komponen context payload yang terbukti memangkas halusinasi 🧵👇',
         },
         {
           orderIndex: 1,
-          content: 'Formula 4 langkah:\n1. Role: Tentukan peran AI (e.g. "Kamu Senior Copywriter").\n2. Context: Kasih background masalah & audiens jelas.\n3. Constraint: Batasi gaya bahasa ("Bahasa Indonesia kasual & to the point").\n4. Examples: Kasih 1 contoh output yang kamu mau.',
+          content: '1. System Directives: Definisikan batasan peran, constraint output, dan format strictly JSON.\n2. Grounding Context: Suntikkan data spesifik atau RAG chunk relevan sebelum query utama.\n3. Few-shot Demonstrations: Berikan 1-2 contoh pasangan input-output riil sebagai acuan struktur.',
         },
         {
           orderIndex: 2,
-          content: `Cobain formula ini di tugas atau project kerjaan selanjutnya gess!\n\n🔗 Follow @${handle} untuk update tools pro & trik digital harian.`,
+          content: `Bagaimana pendekatan context engineering di pipeline Anda saat ini? Diskusi di replies yuk! 👇\n\nFollow @${handle} untuk wawasan AI systems & software craft.`,
         },
       ],
     },
     {
-      title: '[Relate] Fase Realita Kerja Digital & Cara Tetap Waras',
-      hookAngle: 'Storytelling & Curhat Relate',
+      title: '[Engineering Practice] Review Loop & Automated Verification',
+      hookAngle: 'Software Engineering & Best Practices',
       posts: [
         {
           orderIndex: 0,
-          content: 'Pernah gak ngerasa seharian buka laptop tapi pas malem berasa "tadi gue ngerjain apa aja ya?" 😩💻\n\nIni bukan salah kamu, tapi manajemen fokus digital yang bocor. Yuk benerin 🧵👇',
+          content: 'Bottleneck terbesar dalam shipping software berkualitas bukanlah kecepatan mengetik kode, melainkan loop verifikasi yang lambat ⚙️\n\nCara membangun feedback loop cepat sebelum commit 🧵👇',
         },
         {
           orderIndex: 1,
-          content: 'Tips anti-burnout harian:\n• Terapkan aturan 90-20 (90 menit deep work, 20 menit istirahat tanpa layar).\n• Matikan notifikasi grup non-urgent pas jam produktif.\n• Investasi di tools digital yang automate hal repetitif biar gak buang energi.',
+          content: '• Pre-commit hooks: Jalankan linting, typechecking, dan security scan otomatis secara lokal.\n• Targeted unit tests: Verifikasi boundary conditions pada pure functions dalam < 2 detik.\n• Isolated environments: Pisahkan dev, staging, dan prod database agar tidak terjadi cross-contamination.',
         },
         {
           orderIndex: 2,
-          content: 'Kalian tim kerja pagi atau ngalong tengah malem nih gess? Drop cerita kalian di replies yuk! 👇',
+          content: `Disiplin verifikasi lokal menghemat jam debugging di production.\n\nSimpan thread ini 📌 dan follow @${handle} untuk artikel sistem & engineering practices.`,
         },
       ],
     },
     {
-      title: '[List] 4 Tools Esensial Penunjang Karir & Freelance',
+      title: '[Architecture] 4 Kategori Tools Esensial untuk Modern Developer Stack',
       hookAngle: 'Rekomendasi Tools Digital',
       posts: [
         {
           orderIndex: 0,
-          content: 'Mau naikin produktivitas kerja & freelance tapi bingung mulai dari mana? 🛠️✨\n\nIni 4 jenis tools esensial yang wajib ada di workflow kamu di tahun 2026 🧵👇',
+          content: 'Membangun workstation yang lean memerlukan pemilihan tools dengan rasio utility-to-overhead terbaik 🛠️\n\n4 pilar stack digital untuk meningkatkan output kerja harian 🧵👇',
         },
         {
           orderIndex: 1,
-          content: 'Daftar tools wajib:\n1. AI Assistant (Brainstorming ide, riset cepat, & drafting).\n2. Cloud Music (Playlist fokus tanpa gangguan iklan).\n3. Design Platform (Visual asset & presentasi instan).\n4. Cloud Workspace (Backup data & kolaborasi dokumen).',
+          content: '1. AI Coding Assistant: Mempercepat prototyping dan eksplorasi boilerplate.\n2. Local Container Runtime: Isolasi dependencies tanpa mengotori host OS.\n3. Structured Note Vault: Dokumentasikan mental model dan arsitektur keputusan teknis.\n4. Automated CI/CD Runner: Validasi build dan deployment tanpa intervensi manual.',
         },
         {
           orderIndex: 2,
-          content: `Pastikan semua akun kerja kamu stabil & bergaransi resmi biar gak drama pas deadline.\n\n👉 Cek rekomendasi tools lengkap di bio profil @${handle} ya! 🚀`,
+          content: `Pastikan semua dependensi dan akun kerja Anda menggunakan lisensi resmi untuk kelancaran jangka panjang.\n\n👉 Cek rekomendasi tools pendukung di bio @${handle} ya! 🚀`,
         },
       ],
     },
@@ -502,7 +498,7 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
             posts: generatedData.posts,
             metadata: {
               runner: 'hermes-cron-runner-ts',
-              skill: 'ecommerce-copy-humanizer-id',
+              persona: 'CLEAN_COMMERCIAL_PROMO',
               contentType: 'PRODUCT_PROMO',
               storeUsername: store.username,
               generatedAt: new Date().toISOString(),
@@ -570,6 +566,7 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
         posts: orgGenerated.posts,
         metadata: {
           runner: 'hermes-cron-runner-ts',
+          persona: 'TECH_SYSTEMS_PRACTITIONER',
           contentType: 'ORGANIC_ENGAGEMENT',
           storeUsername: store.username,
           generatedAt: new Date().toISOString(),
