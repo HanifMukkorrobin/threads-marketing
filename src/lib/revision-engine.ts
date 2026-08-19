@@ -1,7 +1,7 @@
 /**
  * AI Revision Engine
  * Powered by Hermes AI Agent (ag/gemini-3.6-flash-high)
- * Adheres to /ecommerce-copy-humanizer-id
+ * Adheres to Dual Persona Architecture (Tech Systems Practitioner & Clean Commercial Promo)
  * Enables human-in-the-loop interactive feedback & real-time re-generation
  */
 

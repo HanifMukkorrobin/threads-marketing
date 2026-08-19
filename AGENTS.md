@@ -72,9 +72,10 @@ To prevent automated unit tests from truncating or resetting live production pro
 
 ---
 
-## 4. Hermes AI Copywriting & Skill Guidelines
-Hermes Agent uses the **`ecommerce-copy-humanizer-id`** copywriting standard:
-- **Natural, Casual Indonesian**: Authentic slang (`gess`, `sat-set`, `boncos`, `worth it`, `nugas`), balanced without cringe, strictly avoiding robotic stiff translation phrasing.
+## 4. Hermes AI Persona & Copywriting Standard (Tech Systems Practitioner & Clean Commercial Promo)
+Hermes Agent uses a **Dual Persona** copywriting standard:
+- **A. Organic & Tech Knowledge Stream (`productId: null`)**: Senior Software & AI Systems Architect persona. Deep technical breakdowns, architectural trade-offs, tangible tool/CLI mechanics, edge case failure scenarios, and community engineering discussion. Zero forced slang, zero e-commerce sales tone.
+- **B. Commercial Product Promos (`productId != null`)**: Digital Specialist & Solutions Consultant persona. Clear value proposition, transparent pricing variants, official guarantee, and clear transactional CTA without cringe or cheap hype words.
 - **500 Character Limit**: Every single thread post must be under 500 characters.
 - **Multi-Part Structure**:
   - **Post 1 (Hook)**: Engaging problem, relate/curhat question, or curiosity gap with thread indicator (`🧵👇`).

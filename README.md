@@ -16,7 +16,7 @@ Threads Marketing Engine is a high-performance marketing pipeline designed for d
 - [Hermes Agent Integration](#-hermes-agent-integration)
   - [Runner Scripts (TS & Python)](#runner-scripts-typescript--python)
   - [Automated Crontab Scheduling](#automated-crontab-scheduling)
-  - [Hermes Copywriting Framework](#hermes-copywriting-frameworks)
+  - [Hermes Copywriting Standard (Dual Persona)](#hermes-copywriting-standard-dual-persona)
 - [REST API Reference](#-rest-api-reference)
   - [Store Owner & Management APIs](#1-store-owner--management-apis)
   - [Hermes Autonomous Agent APIs](#2-hermes-autonomous-agent-apis)
@@ -227,15 +227,23 @@ hermes cron list
 
 ---
 
-### Hermes Copywriting Framework (`/ecommerce-copy-humanizer-id`)
+### Hermes Copywriting Standard (Dual Persona)
 
-When generating threads, Hermes adheres strictly to the Indonesian e-commerce copywriting standard:
+When generating threads, Hermes operates using a **Dual Persona Architecture** to keep content authentic, substantive, and effective:
 
-1. **🎭 Storytelling & Curhat Relate**: Relatable daily friction (e.g. ad interruptions, account limits) solved by affordable subscriptions.
-2. **💡 Solusi Cerdas & Anti-Boncos**: Price-to-value comparisons with warranty highlights and savings calculation.
-3. **⚡️ Productivity & Feature Hack**: Workflow enhancement tips showcasing premium capabilities in action.
-4. **🔥 FOMO & Slot Terbatas**: Scarcity-driven urgency for flash deals and limited activation slots.
-5. **🌱 Organic & Non-Product Content (`productId: null`)**: High-value tips, tech insights, and AI prompting formulas that drive bookmarks, shares, and brand authority.
+1. **🛠️ Organic & Tech Knowledge Stream (`productId: null`)**:
+   - **Persona**: Senior Software & AI Systems Architect.
+   - **Focus**: Deep technical breakdowns, architectural trade-offs, tangible tool/CLI mechanics, edge case failure scenarios, and community engineering discussions.
+   - **Tone**: Pragmatic, substantive, and professional Indonesian without forced slang or sales pitches.
+
+2. **🛍️ Commercial Product Promos (`productId != null`)**:
+   - **Persona**: Digital Specialist & Solutions Consultant.
+   - **Focus**: Clear value propositions, transparent pricing variants, official guarantee terms, and clear transactional CTAs.
+   - **Tone**: Clean, authentic, solution-driven copywriting without cringe hype words or forced slang.
+
+3. **Dynamic Generation Angles**:
+   - **Product Promos**: *Contrarian / Unpopular Opinion*, *Micro-Story & Curhat Relate*, *Value & Coffee Comparison*, *Productivity & Workflow Hack*, *FOMO & Slot Promo Terbatas*, *Kesalahan Fatal Pemula*.
+   - **Organic Threads**: *Edukasi & Produktivitas Organik*, *Tech & AI Insights*, *Storytelling & Curhat Relate*, *Rekomendasi Tools Digital*.
 
 ---
 

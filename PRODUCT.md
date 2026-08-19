@@ -34,10 +34,12 @@
 - **Authentic Threads Simulator**: Live rendering displaying dynamic store profile (`STORE_NAME`, `@STORE_USERNAME`).
 
 ### C. Autonomous Hermes Agent Engine (`scripts/hermes-runner`)
-- Integrated with skill **`ecommerce-copy-humanizer-id`** for natural casual Indonesian copywriting.
+- **Dual Persona Architecture**:
+  - **Organic & Tech Knowledge (`productId: null`)**: Senior Software & AI Systems Architect persona focusing on deep technical breakdowns, architecture trade-offs, and tool workflows. Zero forced slang or sales pitches.
+  - **Commercial Product Promos (`productId != null`)**: Digital Specialist & Solutions Consultant persona with clear value propositions, transparent pricing variants, official guarantees, and clean CTAs.
 - **Balanced Content Strategy**:
-  - **Product Promotions**: Highlights product benefits, price advantages, and custom CTAs.
-  - **Organic Engagement**: Educational tips, tech insights, and relate threads without products (`productId: null`).
+  - **Product Promotions**: Highlights product benefits, price advantages, and custom CTAs without cringe marketing slang.
+  - **Organic Engagement**: Educational tips, tech insights, and architecture breakdowns without products (`productId: null`).
 - **Hermes Gateway Scheduler (`hermes cron`)**:
   - `threads-marketing-post`: Publishes approved drafts every 1 minute.
   - `threads-marketing-generate`: Generates fresh drafts every 2 hours.
