@@ -65,6 +65,51 @@ Konten shortcut Mac...`
     if (fs.existsSync(topic1Path)) fs.unlinkSync(topic1Path);
   });
 
+  it('strictly ignores raw/ directory, SCHEMA.md, index.md, and log.md', async () => {
+    const rawDir = path.join(testKnowledgeDir, 'raw', 'articles');
+    fs.mkdirSync(rawDir, { recursive: true });
+    const rawArticle = path.join(rawDir, 'long-article.md');
+    fs.writeFileSync(rawArticle, '# Long Raw Article');
+
+    const schemaPath = path.join(testKnowledgeDir, 'SCHEMA.md');
+    fs.writeFileSync(schemaPath, '# Schema Definition');
+
+    const indexPath = path.join(testKnowledgeDir, 'index.md');
+    fs.writeFileSync(indexPath, '# Index Catalog');
+
+    const logPath = path.join(testKnowledgeDir, 'log.md');
+    fs.writeFileSync(logPath, '# Log Actions');
+
+    const conceptDir = path.join(testKnowledgeDir, 'concepts');
+    fs.mkdirSync(conceptDir, { recursive: true });
+    const conceptPath = path.join(conceptDir, 'doubt-driven.md');
+    fs.writeFileSync(
+      conceptPath,
+      `---
+id: "doubt-driven"
+title: "Doubt-Driven Dev"
+category: "Content & Hooks"
+---
+Concept content`
+    );
+
+    const topics = await loadAllKnowledgeTopics(testKnowledgeDir);
+    const ids = topics.map((t) => t.id);
+
+    expect(ids).toContain('doubt-driven');
+    expect(ids).not.toContain('long-article');
+    expect(ids).not.toContain('schema');
+    expect(ids).not.toContain('index');
+    expect(ids).not.toContain('log');
+
+    // Clean up
+    fs.rmSync(path.join(testKnowledgeDir, 'raw'), { recursive: true, force: true });
+    fs.rmSync(path.join(testKnowledgeDir, 'concepts'), { recursive: true, force: true });
+    if (fs.existsSync(schemaPath)) fs.unlinkSync(schemaPath);
+    if (fs.existsSync(indexPath)) fs.unlinkSync(indexPath);
+    if (fs.existsSync(logPath)) fs.unlinkSync(logPath);
+  });
+
   it('selects the least-recently used (LRU) knowledge topic based on draft history', () => {
     const topics: KnowledgeTopic[] = [
       { id: 't1', title: 'Topik 1', category: 'AI', content: '', tags: [] },

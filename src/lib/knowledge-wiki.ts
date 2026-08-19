@@ -116,6 +116,10 @@ export async function loadAllKnowledgeTopics(customDir?: string): Promise<Knowle
       // Ignore hidden directories like .git or .obsidian
       if (entry.name.startsWith('.')) continue;
 
+      // Ignore raw/ directory (raw articles/papers) and root meta files
+      if (entry.name.toLowerCase() === 'raw') continue;
+      if (['schema.md', 'index.md', 'log.md'].includes(entry.name.toLowerCase())) continue;
+
       const fullPath = path.join(currentDir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
