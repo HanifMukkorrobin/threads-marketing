@@ -30,18 +30,36 @@ if (!process.env.DATABASE_URL) {
   loadLocalEnv();
 }
 
+function normalizeDatabaseUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('file:.')) {
+    const relPath = url.replace(/^file:/, '');
+    const directPath = path.resolve(process.cwd(), relPath);
+    if (!fs.existsSync(directPath)) {
+      const inPrismaDir = path.resolve(process.cwd(), 'prisma', relPath);
+      if (fs.existsSync(inPrismaDir)) {
+        return `file:${inPrismaDir}`;
+      }
+    }
+    return `file:${directPath}`;
+  }
+  return url;
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+const resolvedUrl = normalizeDatabaseUrl(process.env.DATABASE_URL);
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient(
-    process.env.DATABASE_URL
+    resolvedUrl
       ? {
           datasources: {
             db: {
-              url: process.env.DATABASE_URL,
+              url: resolvedUrl,
             },
           },
         }
