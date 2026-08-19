@@ -1,23 +1,24 @@
-# Phase 2: Standalone Obsidian Markdown Knowledge Vault Integration Specification
+# Phase 2: Standalone Obsidian & Hermes LLM-Wiki Knowledge Vault Integration Specification
 
 **Document ID**: `SPEC-2026-08-18-WIKI-001`  
-**Phase**: Phase 2 (Educational Content Sourcing & Multi-Repo Obsidian Vault)  
-**Date**: 2026-08-18  
-**Status**: DRAFT — READY FOR REVIEW  
-**Target Platform**: Next.js 14 App Router, TypeScript, Multi-Repo Git Architecture, Obsidian Markdown Vault, Hermes AI Agent (`ag/gemini-3.6-flash-high`)
+**Revision**: `2.0.0` (Aligned with Karpathy LLM-Wiki Pattern & Multi-Repo Architecture)  
+**Date**: 2026-08-19  
+**Status**: APPROVED — IMPLEMENTATION READY  
+**Target Platform**: Next.js 14 App Router, TypeScript, Multi-Repo Git Architecture, Obsidian Markdown Vault, Hermes Autonomous Agent (`ag/gemini-3.6-flash-high`)
 
 ---
 
 ## 1. Executive Summary & Vision
 
-### 1.1 Motivation
-Currently, non-product organic / educational threads rely on generic fallback archetypes. To scale high-authority educational content sustainably, we introduce a **Markdown Knowledge Vault** where deep research notes, frameworks, tool breakdowns, and industry insights are organized in **Obsidian**.
+### 1.1 Motivation & Purpose
+To generate high-converting, authentic, and non-generic Threads marketing content (both product promos and high-authority organic educational streams), the system integrates a dedicated **Markdown Knowledge Base (Karpathy's LLM-Wiki Pattern)** housed in a separate repository (`threads-marketing-knowledge`).
 
-### 1.2 Multi-Repo Isolation Strategy
-To prevent git merge conflicts, dirty working trees, and bloat in the main Next.js codebase, the Obsidian Vault is housed in a **dedicated, separate GitHub repository** (e.g. `threads-marketing-vault`):
-* **Local Workflow**: The user clones the Vault repository onto their laptop and edits notes seamlessly using Obsidian (with graph views, tags, wikilinks, and templates).
-* **Server Workflow**: The server clones the Vault repository into an isolated directory (e.g. `/home/ubuntu/knowledge-vault`) and accesses it via a configurable path environment variable (`KNOWLEDGE_VAULT_PATH`).
-* **Clean Boundaries**: Main app code commits (`feat:`, `fix:`) remain 100% isolated from daily marketing research notes.
+### 1.2 Separation of Concerns & Roles
+* **Database (`Product` Catalog in SQLite)**: Stores official product listings, active pricing variants, USPs, target audiences, and CTA templates managed via the Web UI (`/products`).
+* **Knowledge Vault (`threads-marketing-knowledge` repo)**: Stores deep research notes, hook formulas, buyer psychology triggers, tool teardowns, and industry case studies.
+* **Single-Writer / Read-Only Consumer Model**:
+  - **Local Workstation (User / Single Writer)**: Ingests raw articles, curates concepts, manages `[[wikilinks]]`, and validates notes using Obsidian + Hermes CLI (`llm-wiki` skill), then pushes to GitHub.
+  - **Production/Dev Server (VPS / Read-Only Consumer)**: Clones the vault repository into a local path (configured via `KNOWLEDGE_VAULT_PATH`) and pulls updates. The Next.js app and Hermes generation cron read local markdown files with zero write-conflict risk.
 
 ---
 
@@ -25,140 +26,167 @@ To prevent git merge conflicts, dirty working trees, and bloat in the main Next.
 
 ```mermaid
 flowchart TD
-    subgraph UserMachine [User Laptop / Mobile]
-        U1[Obsidian App: Write & Edit Notes in Vault] -->|Git Commit & Push| GH1[(GitHub Repo: threads-marketing-vault)]
+    subgraph LocalMachine [User Laptop / Local Dev]
+        A[Raw Sources: Articles / Papers / Case Studies] -->|Manual Ingest via Hermes llm-wiki| B[Obsidian Vault: threads-marketing-knowledge]
+        B -->|Human Review & Wikilinks| B
+        B -->|Git Commit & Push| GH[(GitHub: threads-marketing-knowledge)]
     end
 
-    subgraph VPS [Production / Dev VPS]
-        GH1 -->|Git Pull / Cron Sync| L1[Local Directory: /home/ubuntu/knowledge-vault]
+    subgraph ProductionVPS [VPS Environment]
+        GH -->|Git Pull / Read-Only Sync| L1[Local Directory: /home/ubuntu/knowledge-vault]
         
-        subgraph AppServer [Next.js App & Hermes Agent]
+        subgraph AppRuntime [Next.js App & Hermes Generation Cron]
             ENV1[Env: KNOWLEDGE_VAULT_PATH] --> W1[src/lib/knowledge-wiki.ts]
-            L1 -.->|Local Disk Read < 5ms| W1
-            W1 -->|Select LRU Topic| P1[Build Educational Prompt]
-            P1 --> P2[Hermes LLM ag/gemini-3.6-flash-high]
-            P2 --> P3[Generate 3-Part Threads Draft]
-            P3 --> D1[(SQLite ContentDraft: PENDING_REVIEW)]
+            L1 -.->|Filtered Disk Read: concepts/ entities/ comparisons/| W1
+            
+            DB1[(SQLite: Product Catalog)] --> G1[Generation Engine]
+            W1 -->|Select LRU Knowledge Topic| G1
+            
+            G1 -->|Construct Dual-Track Prompt| H1[Hermes AI LLM ag/gemini-3.6-flash-high]
+            H1 -->|Generate 3-Part Threads Post| D1[(SQLite: ContentDraft PENDING_REVIEW)]
         end
     end
 ```
 
 ---
 
-## 3. Obsidian Markdown Standard & Frontmatter Schema
+## 3. Karpathy 3-Layer Vault Structure & Frontmatter Schema
 
-### 3.1 Vault Organization
-Notes can be placed at the root or in organized subfolders inside the Vault:
+### 3.1 Vault Directory Organization
+The knowledge repository follows the Karpathy LLM-Wiki standard:
 ```
-threads-marketing-vault/
-├── ai-tools/
-│   ├── 2026-top-ai-coding-assistants.md
-│   └── prompt-engineering-framework.md
-├── productivity/
-│   ├── deep-work-90-20-rule.md
-│   └── essential-freelance-tools.md
-└── security/
-    └── official-vs-mod-account-safety.md
-```
-
-### 3.2 Frontmatter Schema (YAML)
-Every note intended for Hermes content sourcing MUST include standard YAML frontmatter:
-
-```markdown
----
-id: "prompt-engineering-framework"
-title: "Formula 4 Langkah Prompting AI untuk Mahasiswa & Freelancer"
-category: "AI & Tech"
-tags: ["ai", "prompting", "productivity", "mahasiswa"]
-targetAudience: "Mahasiswa & Profesional Muda"
-summary: "Cara membuat prompt AI yang menghasilkan output presisi tanpa gaya bahasa robotik."
-priority: "HIGH" # "HIGH" | "NORMAL" | "LOW"
-sourceUrl: "https://example.com/research-notes"
-isActive: true
----
-
-# Ringkasan Materi & Fakta Utama:
-- Problem: Banyak orang pakai AI cuma ketik 'buatkan artikel', hasilnya generik dan kaku.
-- Solusi: Formula Role + Context + Constraint + Few-Shot Example.
-
-## Poin Inti untuk Thread:
-1. **Role**: Tetapkan persona ahli secara spesifik.
-2. **Context**: Jelaskan siapa target pembaca dan situasinya.
-3. **Constraint**: Larang kata klise seperti 'di era modern ini'.
-4. **Example**: Kasih 1 contoh struktur output yang diinginkan.
-
-## Ajakan Diskusi / CTA Organik:
-- Tanya audiens: "Prompt apa yang paling sering kalian pakai sehari-hari?"
-- Ajak follow @store_username untuk tips workflow digital lainnya.
+threads-marketing-knowledge/
+├── SCHEMA.md                 # Layer 3: Conventions, rules, and tag taxonomy
+├── index.md                  # Layer 3: Sectioned content catalog with one-line summaries
+├── log.md                    # Layer 3: Chronological action log (append-only)
+├── raw/                      # Layer 1: Immutable raw source articles & papers (SKIPPED BY ENGINE)
+│   ├── articles/
+│   ├── papers/
+│   └── transcripts/
+├── entities/                 # Layer 2: Digital products, tools, platforms, & frameworks
+├── concepts/                 # Layer 2: Copywriting hooks, psychology triggers, & actionable tactics
+├── comparisons/              # Layer 2: Head-to-head teardowns & comparison matrices
+└── queries/                  # Layer 2: Synthesized deep research answers
 ```
 
+### 3.2 Dual-Compatible Frontmatter Schema (YAML)
+Every note in `entities/`, `concepts/`, `comparisons/`, and `queries/` uses a standardized YAML frontmatter parsed seamlessly by Hermes `llm-wiki` and `src/lib/knowledge-wiki.ts`:
+
+```yaml
+---
+id: "doubt-driven-development"
+title: "Doubt-Driven Development"
+created: 2026-08-19
+updated: 2026-08-19
+type: concept # entity | concept | comparison | query
+category: "Content & Hooks" # Product Intelligence | Content & Hooks | Audience Psychology | Platform Dynamics | Industry Case Studies
+tags: [frameworks, pattern-interrupt, anti-patterns, quality-assurance]
+targetAudience: "Software Engineers, Tech Leads, Quality Engineers"
+summary: "Pola peninjauan AI agent dengan mendispatch subagent netral yang bertugas khusus membuktikan celah/kegagalan kode."
+priority: "HIGH" # HIGH | NORMAL | LOW
+sources: [raw/articles/source-file.md]
+sourceUrl: "https://example.com/source"
+confidence: high # high | medium | low
+contested: false
+contradictions: []
 ---
 
-## 4. Component Architecture & Modules
+# Doubt-Driven Development
+
+## Definisi & Mekanisme Inti
+...
+
+## Kenapa Efektif di Threads ID
+...
+
+## Formula / Struktur Eksekusi
+...
+
+## Contoh Kontras (Anti-Generic Check)
+- ❌ Contoh Buruk / Klise AI: ...
+- ✅ Contoh Bagus / Natural: ...
+
+## Entitas Terkait
+- [[addyosmani-agent-skills]]
+- [[source-driven-development]]
+```
+
+---
+
+## 4. Component Architecture & Engine Specifications
 
 ### 4.1 `src/lib/knowledge-wiki.ts`
 * **Configuration**:
-  - `KNOWLEDGE_VAULT_PATH`: Configured in `.env` (defaults to `./knowledge` if not set).
-* **Functions**:
-  - `getKnowledgeVaultPath(): string`: Resolves absolute path to the active vault.
-  - `loadAllKnowledgeTopics(): Promise<KnowledgeTopic[]>`:
-    Scans vault directory recursively, reads `.md` files, parses frontmatter using `gray-matter`. Ignores `.git` and `.obsidian` configuration folders.
-  - `getKnowledgeTopicById(id: string): Promise<KnowledgeTopic | null>`:
-    Retrieves a specific topic by its slug ID.
-  - `selectLRUKnowledgeTopic(topics: KnowledgeTopic[], recentDrafts: ContentDraft[]): KnowledgeTopic`:
-    Cross-references topic IDs with the `metadata.sourceTopicId` of recent drafts in SQLite to pick the least-recently used educational topic.
+  - `KNOWLEDGE_VAULT_PATH`: Configured in `.env` (defaults to `./knowledge` or sibling directory).
+* **Scan & Filter Rules (`loadAllKnowledgeTopics`)**:
+  - **Included Folders**: Recursively scans only `concepts/`, `entities/`, `comparisons/`, and `queries/`.
+  - **Excluded Folders & Files**:
+    - Ignores `raw/` completely (prevents long, unformatted source articles from bloating LLM context).
+    - Ignores hidden folders (`.git`, `.obsidian`).
+    - Ignores root schema/meta files (`SCHEMA.md`, `index.md`, `log.md`).
+* **Parser (`parseMarkdownFrontmatter`)**:
+  - Zero-dependency lightweight YAML frontmatter parser extracting `id`, `title`, `category`, `tags`, `targetAudience`, `summary`, `priority`, `sourceUrl`, and markdown body content.
+* **LRU Selection (`selectLRUKnowledgeTopic`)**:
+  - Compares topic `id` against `metadata.sourceTopicId` in recent `ContentDraft` records.
+  - Prioritizes unvisited topics first, then least-recently used topics.
 
-### 4.2 Prompt Synthesis in `src/lib/generation-engine.ts`
-When an educational topic is selected for generation:
-1. `GenerationInput` receives `knowledgeTopic: KnowledgeTopic`.
-2. `buildGenerationPrompt` injects the topic's title, category, summary, target audience, and key insight points into the context.
-3. Hermes LLM synthesizes the research note into a humanized, engaging 3-part Thread with thread hook indicator (`🧵👇`), value points, and soft community CTA.
+### 4.2 Dual-Track Generation in `src/lib/generation-engine.ts`
+1. **Commercial Product Promo Track (`product != null`)**:
+   - Ingests product details from SQLite `Product` catalog (variants, USP, target audience).
+   - Injects commercial marketing angle (e.g. `unpopular_truth`, `workflow_teardown`, `cost_math_contrast`).
+   - Produces high-converting promo threads with pricing and CTA referencing store username (`@hades.zshrc`).
+2. **Organic Educational Track (`product == null`, `knowledgeTopic != null`)**:
+   - Ingests `KnowledgeTopic` from `knowledge-wiki.ts`.
+   - Injects topic summary, core insights, contrast examples, and target persona.
+   - Applies organic copywriting angles (zero hard-selling, pure high-utility education + soft discussion CTA).
 
-### 4.3 Draft Record Metadata
-The created draft is saved to SQLite with:
-* `ContentDraft.productId`: `null` (marks it as organic/educational)
+### 4.3 ContentDraft Persistence & Metadata
+The generated organic draft is saved to SQLite with:
+* `ContentDraft.productId`: `null`
 * `ContentDraft.source`: `'HERMES_AI'`
-* `ContentDraft.hookAngle`: Topic category (e.g. `'AI & Tech'`)
-* `ContentDraft.metadata`: JSON string containing:
+* `ContentDraft.hookAngle`: `knowledgeTopic.category`
+* `ContentDraft.metadata`: JSON string:
   ```json
   {
     "generatedFrom": "OBSIDIAN_KNOWLEDGE_VAULT",
-    "sourceTopicId": "prompt-engineering-framework",
-    "sourceTopicTitle": "Formula 4 Langkah Prompting AI...",
-    "sourceCategory": "AI & Tech",
-    "generatedAt": "2026-08-18T15:00:00.000Z"
+    "sourceTopicId": "doubt-driven-development",
+    "sourceTopicTitle": "Doubt-Driven Development",
+    "sourceCategory": "Content & Hooks",
+    "generatedAt": "2026-08-19T08:30:00.000Z"
   }
   ```
 
 ---
 
-## 5. Synchronization & Deployment Strategy
+## 5. Synchronization & Deployment Protocol
 
-### 5.1 Local Development (Laptop)
-* Set `KNOWLEDGE_VAULT_PATH` in `.env.local` pointing directly to your local Obsidian vault folder (e.g. `/Users/username/Documents/Obsidian/MarketingVault`).
-* Any note added or edited in Obsidian is immediately available to the local Next.js dev server without any build steps.
+### 5.1 Local Development (Mac / Workstation)
+* Set in `.env`:
+  ```env
+  KNOWLEDGE_VAULT_PATH="/Users/tra-mac-020423/Documents/TraspacGitlab/research/threads-marketing-knowledge"
+  ```
+* Ingestion of raw materials and Obsidian editing happens locally.
 
-### 5.2 Production Server (VPS)
-1. Clone the vault repo on the server:
+### 5.2 Production Server (Ubuntu VPS)
+1. Clone knowledge repo once:
    ```bash
-   git clone git@github.com:HanifMukkorrobin/threads-marketing-vault.git /home/ubuntu/knowledge-vault
+   git clone git@github.com:HanifMukkorrobin/threads-marketing-knowledge.git /home/ubuntu/knowledge-vault
    ```
-2. Set in `.env`:
+2. Set in production `.env`:
    ```env
    KNOWLEDGE_VAULT_PATH="/home/ubuntu/knowledge-vault"
    ```
-3. A lightweight periodic sync (or webhook) executes `git pull` inside `/home/ubuntu/knowledge-vault` so new notes published from your laptop are instantly ingested by Hermes AI.
+3. Periodic pull (or deployment webhook) executes `git pull` in `/home/ubuntu/knowledge-vault` (clean read-only pull without local merge conflicts).
 
 ---
 
-## 6. Verification & Testing Plan
+## 6. Verification & Test Plan
 
-1. **`knowledge-wiki.test.ts`**:
-   - Verify scanning and recursive parsing of markdown files with YAML frontmatter.
-   - Verify graceful handling when `.obsidian` internal files or non-markdown files exist.
-   - Verify LRU topic selection when recent SQLite drafts already used specific topic IDs.
-2. **Generation Synthesis Tests**:
-   - Test generating an educational thread from a mock knowledge topic.
-   - Verify the output conforms to the 3-part thread format under 500 characters per post.
-3. **Multi-Repo Path Isolation**:
-   - Verify fallback behavior when `KNOWLEDGE_VAULT_PATH` points to a non-existent directory (graceful warning without crash).
+1. **Unit Tests (`tests/knowledge-wiki.test.ts`)**:
+   - Verify that `loadAllKnowledgeTopics()` correctly scans `concepts/`, `entities/`, and `comparisons/`.
+   - Verify that `raw/`, `SCHEMA.md`, `index.md`, and `log.md` are **strictly excluded**.
+   - Verify frontmatter parsing with and without quotes/arrays.
+   - Verify LRU rotation logic against mocked draft histories.
+2. **Generation Engine Tests (`tests/generation-engine.test.ts`)**:
+   - Verify dual-track generation (commercial promo vs organic wiki topic).
+   - Verify draft metadata formatting and 500-char-per-post limits.

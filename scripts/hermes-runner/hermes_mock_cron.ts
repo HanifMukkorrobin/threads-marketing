@@ -13,6 +13,7 @@
 
 import { selectLRUProduct, selectRotatedAngle } from '../../src/lib/rotation-engine';
 import { generateDraftWithHermes, GENERATION_ANGLES } from '../../src/lib/generation-engine';
+import { loadAllKnowledgeTopics, selectLRUKnowledgeTopic, KnowledgeTopic } from '../../src/lib/knowledge-wiki';
 
 export interface RunnerOptions {
   baseUrl?: string;
@@ -500,24 +501,27 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
         }
       }
 
-      // 2. Generate Organic / Non-Product Engagement Draft (productId: null)
-      const organicTopics = [
-        '5 ekstensi AI browser penunjang kerja & nugas 2026',
-        'Cara maintain ritme fokus & anti-burnout kerja digital',
-        'Trik prompt AI anti-gagal buat riset & copywriting',
-        'Mitos tools bajakan vs keuntungan akun legal bergaransi',
-        'Shortcut esensial keyboard laptop hemat waktu berjam-jam',
-      ];
-      const selectedTopic = organicTopics[Math.floor(Math.random() * organicTopics.length)];
-      console.log(`✍️  [AI Organic Generator] Menghasilkan konten edukasi non-produk: "${selectedTopic}"...`);
+      // 2. Generate Organic / Non-Product Engagement Draft (productId: null) from Knowledge Vault
+      let chosenTopic: KnowledgeTopic | null = null;
+      try {
+        const vaultTopics = await loadAllKnowledgeTopics();
+        if (vaultTopics.length > 0) {
+          chosenTopic = selectLRUKnowledgeTopic(vaultTopics, []);
+        }
+      } catch (err) {
+        console.warn('[Knowledge Vault Loader] Fallback to dynamic topics:', err);
+      }
+
+      const topicLabel = chosenTopic ? chosenTopic.title : 'Wawasan Digital & Tips Produktivitas';
+      console.log(`✍️  [AI Organic Generator] Menghasilkan konten edukasi non-produk: "${topicLabel}"...`);
 
       let orgGenerated;
       try {
         orgGenerated = await generateDraftWithHermes({
           product: null,
           store,
-          angle: 'Edukasi & Produktivitas Organik',
-          customTopic: selectedTopic,
+          knowledgeTopic: chosenTopic,
+          angle: chosenTopic ? chosenTopic.category : 'Edukasi & Produktivitas Organik',
         });
       } catch {
         const organicArchetypes = getOrganicArchetypes(store);
@@ -538,12 +542,18 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
         posts: orgGenerated.posts,
         metadata: {
           runner: 'hermes-cron-runner-ts',
-          skill: 'ecommerce-copy-humanizer-id',
           contentType: 'ORGANIC_ENGAGEMENT',
           storeUsername: store.username,
           generatedAt: new Date().toISOString(),
           model: 'ag/gemini-3.6-flash-high',
-          customTopic: selectedTopic,
+          ...(chosenTopic
+            ? {
+                sourceTopicId: chosenTopic.id,
+                sourceTopicTitle: chosenTopic.title,
+                sourceCategory: chosenTopic.category,
+                generatedFrom: 'OBSIDIAN_KNOWLEDGE_VAULT',
+              }
+            : {}),
           ...(orgGenerated.metadata || {}),
         },
       };
