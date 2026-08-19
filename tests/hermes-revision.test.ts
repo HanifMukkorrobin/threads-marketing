@@ -1,8 +1,22 @@
-import { describe, it, expect, vi } from 'vitest';
-import { parseHermesJsonResponse, buildRevisionPrompt } from '../src/lib/hermes-client';
+import { describe, it, expect } from 'vitest';
+import {
+  parseHermesJsonResponse,
+  buildRevisionPrompt,
+  HERMES_TECH_PRACTITIONER_SYSTEM_PROMPT,
+  HERMES_COMMERCIAL_PROMO_SYSTEM_PROMPT,
+  HERMES_SYSTEM_PROMPT,
+} from '../src/lib/hermes-client';
 import { reviseDraftContent } from '../src/lib/revision-engine';
 
 describe('Hermes Client & Response Parser', () => {
+  it('exports tech practitioner and commercial promo system prompts', () => {
+    expect(HERMES_TECH_PRACTITIONER_SYSTEM_PROMPT).toBeDefined();
+    expect(HERMES_COMMERCIAL_PROMO_SYSTEM_PROMPT).toBeDefined();
+    expect(HERMES_SYSTEM_PROMPT).toBe(HERMES_TECH_PRACTITIONER_SYSTEM_PROMPT);
+    expect(HERMES_TECH_PRACTITIONER_SYSTEM_PROMPT).not.toContain('ecommerce-copy-humanizer-id');
+    expect(HERMES_COMMERCIAL_PROMO_SYSTEM_PROMPT).not.toContain('ecommerce-copy-humanizer-id');
+  });
+
   it('parses pure JSON string correctly', () => {
     const raw = JSON.stringify({
       posts: [
@@ -55,17 +69,35 @@ describe('Hermes Client & Response Parser', () => {
         name: 'Toko Digital ID',
         username: 'tokodigital.id',
       },
-      instruction: 'Ubah post 1 jadi hook curhat relate mahasiswa nugas',
+      instruction: 'Ubah post 1 jadi hook lebih terarah dan profesional',
     });
 
     expect(prompt).toContain('YouTube Premium');
     expect(prompt).toContain('Full Garansi');
-    expect(prompt).toContain('Ubah post 1 jadi hook curhat relate mahasiswa nugas');
+    expect(prompt).toContain('Ubah post 1 jadi hook lebih terarah dan profesional');
     expect(prompt).toContain('tokodigital.id');
+    expect(prompt).toContain('Digital Specialist & Solution Consultant');
+    expect(prompt).not.toContain('ecommerce-copy-humanizer-id');
+  });
+
+  it('builds prompt with tech practitioner persona when product is null', () => {
+    const prompt = buildRevisionPrompt({
+      posts: [
+        { orderIndex: 0, content: 'Microservices vs Monolith di era AI 🧵👇' },
+        { orderIndex: 1, content: 'Arsitektur modular lebih scalable' },
+        { orderIndex: 2, content: 'Bagaimana arsitektur di tim kamu?' },
+      ],
+      product: null,
+      instruction: 'Jelaskan tradeoff latency dan resource cost',
+    });
+
+    expect(prompt).toContain('Senior Tech Practitioner & Systems Architect');
+    expect(prompt).toContain('Jelaskan tradeoff latency dan resource cost');
+    expect(prompt).not.toContain('ecommerce-copy-humanizer-id');
   });
 });
 
-describe('Hermes Revision Engine (Async & Humanizer ID)', () => {
+describe('Hermes Revision Engine (Async & Persona Directives)', () => {
   const initialPosts = [
     { orderIndex: 0, content: 'Post 1 awal 🧵👇' },
     { orderIndex: 1, content: 'Post 2 value awal' },
@@ -84,7 +116,7 @@ describe('Hermes Revision Engine (Async & Humanizer ID)', () => {
         name: 'Toko Digital ID',
         username: 'tokodigital.id',
       },
-      instruction: 'bikin post 3 lebih santai ajak DM dan sebut kuota 5 slot',
+      instruction: 'bikin post 3 to the point ajak DM dan sebut kuota 5 slot',
     });
 
     expect(result.posts.length).toBe(3);

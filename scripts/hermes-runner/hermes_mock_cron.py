@@ -77,40 +77,40 @@ def gen_storytelling(p, s=None):
     audience = f"buat {p.get('targetAudience').lower()}" if p.get('targetAudience') else "buat harian"
     cta = p.get('ctaTemplate') or f"Yuk amankan slot promo kamu sekarang, langsung DM @{handle} atau cek link di bio ya! 🚀"
     return {
-        "title": f"[Story] Rahasia Hemat {p.get('name')} Tanpa Boncos",
+        "title": f"[Kasus Nyata] Efisiensi Biaya {p.get('name')} untuk Workflow Harian",
         "posts": [
             {
                 "orderIndex": 0,
-                "content": f"Lagi seru-serunya nugas, kerja, atau dengerin playlist favorit, tiba-tiba kepotong iklan atau kena limit akun? 😤\n\nPadahal ada cara cerdas langganan {p.get('name')} legal dan bergaransi yang {get_price_preview(p)} doang. Simak ceritanya di bawah 🧵👇"
+                "content": f"Sering mengalami limit akun atau kendala akses saat mengejar deadline penting? 💡\n\nAda cara berlangganan {p.get('name')} resmi dan bergaransi dengan biaya terjangkau ({get_price_preview(p)}). Simak pembahasannya di bawah 🧵👇"
             },
             {
                 "orderIndex": 1,
-                "content": f"Nih benefit yang kamu dapetin di {store_name}:\n{get_usp_bullet_list(p)}\n\nPilihan paket ready:\n{get_variant_list_text(p)}\n\nCocok banget {audience} yang pengen serba sat-set tanpa ribet! ✨"
+                "content": f"Keunggulan layanan di {store_name}:\n{get_usp_bullet_list(p)}\n\nPilihan paket tersedia:\n{get_variant_list_text(p)}\n\nDirancang untuk {audience} yang membutuhkan stabilitas akun tanpa kendala teknis."
             },
             {
                 "orderIndex": 2,
-                "content": f"Gak perlu kartu kredit luar negeri atau setup VPN aneh-aneh. Akun langsung aktif tinggal pakai.\n\n{cta}"
+                "content": f"Proses aktivasi langsung dan transparan tanpa perlu setup rumit.\n\n{cta}"
             }
         ]
     }
 
-def gen_anti_boncos(p, s=None):
+def gen_cost_efficiency(p, s=None):
     handle = get_store_handle(s)
     cta = p.get('ctaTemplate') or "Stok slot terbatas, amankan sekarang sebelum kehabisan!"
     return {
-        "title": f"[Hemat] Tips Upgrade {p.get('name')} Paling Masuk Akal",
+        "title": f"[Efisiensi] Optimasi Biaya Berlangganan {p.get('name')}",
         "posts": [
             {
                 "orderIndex": 0,
-                "content": f"Kenapa harus bayar ratusan ribu kalau fitur {p.get('name')} yang kamu dapet 100% sama dengan harga jauh lebih hemat? 💡\n\nBuat yang mau cerdas atur pengeluaran digital bulanan, baca ini 🧵👇"
+                "content": f"Memaksimalkan anggaran digital bulanan bisa dimulai dari memilih paket langganan {p.get('name')} yang tepat dan bergaransi 💡\n\nBerikut perbandingan nilai dan opsi paket resmi 🧵👇"
             },
             {
                 "orderIndex": 1,
-                "content": f"Bandingin keuntungannya:\n{get_usp_bullet_list(p)}\n\n💰 Varian harga terbaik:\n{get_variant_list_text(p)}\n\nSemua paket include garansi replace & full support admin ramah 24/7."
+                "content": f"Benefit utama:\n{get_usp_bullet_list(p)}\n\n💰 Varian paket resmi:\n{get_variant_list_text(p)}\n\nSetiap paket mencakup garansi replace dan bantuan teknis."
             },
             {
                 "orderIndex": 2,
-                "content": f"Jangan nunggu harga normal naik lagi gess.\n\n👉 {cta} (Link pemesanan resmi ada di bio profil @{handle})"
+                "content": f"Optimalkan workflow digital Anda hari ini.\n\n👉 {cta} (Detail pemesanan resmi tersedia di bio profil @{handle})"
             }
         ]
     }
@@ -119,140 +119,136 @@ def gen_productivity(p, s=None):
     handle = get_store_handle(s)
     cta = p.get('ctaTemplate') or f"Langsung order via link di bio @{handle} untuk aktivasi instan!"
     return {
-        "title": f"[Hack] Maksimalkan Fitur Pro {p.get('name')}",
+        "title": f"[Optimasi] Maksimalkan Fitur Pro {p.get('name')}",
         "posts": [
             {
                 "orderIndex": 0,
-                "content": f"Trik rahasia biar kerjaan, konten, dan riset kamu selesai 3x lebih cepet pakai {p.get('name')} di tahun 2026! ✨\n\nBikin workflow harian makin smooth tanpa drama 🧵👇"
+                "content": f"Memanfaatkan fitur pro pada {p.get('name')} secara optimal dapat meningkatkan kecepatan eksekusi kerja secara signifikan ⚡️\n\nTips integrasi fitur ke dalam workflow harian 🧵👇"
             },
             {
                 "orderIndex": 1,
-                "content": f"Kenapa order di kami paling recommended?\n{get_usp_bullet_list(p)}\n\nKatalog paket tersedia ({get_price_preview(p)}):\n{get_variant_list_text(p)}"
+                "content": f"Kenapa memilih layanan kami?\n{get_usp_bullet_list(p)}\n\nKatalog paket tersedia ({get_price_preview(p)}):\n{get_variant_list_text(p)}"
             },
             {
                 "orderIndex": 2,
-                "content": f"Upgrade akun kamu sekarang dan rasain bedanya produktif pakai akun premium.\n\n⚡️ {cta}"
+                "content": f"Tingkatkan produktivitas kerja dengan akun resmi bergaransi.\n\n⚡️ {cta}"
             }
         ]
     }
 
 def gen_fomo(p, s=None):
-    cta = p.get('ctaTemplate') or "Slot rebutan, langsung amankan sebelum kehabisan promo hari ini!"
+    cta = p.get('ctaTemplate') or "Slot kuota terbatas, langsung amankan sebelum periode promo berakhir!"
     return {
-        "title": f"[Limited] Slot Promo Spesial {p.get('name')}",
+        "title": f"[Informasi] Alokasi Paket Khusus {p.get('name')}",
         "posts": [
             {
                 "orderIndex": 0,
-                "content": f"Siapa cepat dia dapat! 🔥\n\nSlot promo khusus {p.get('name')} baru aja restock hari ini dengan kuota terbatas. Jangan sampai kehabisan lagi kayak minggu lalu ya gess 🧵👇"
+                "content": f"Alokasi paket khusus {p.get('name')} kini kembali tersedia dengan kuota terbatas untuk periode ini 📌\n\nPastikan akun kerja Anda tetap aktif dan stabil 🧵👇"
             },
             {
                 "orderIndex": 1,
-                "content": f"Keunggulan jaminan kami:\n{get_usp_bullet_list(p)}\n\n📦 Paket yang lagi ready:\n{get_variant_list_text(p)}"
+                "content": f"Jaminan layanan:\n{get_usp_bullet_list(p)}\n\n📦 Paket yang tersedia:\n{get_variant_list_text(p)}"
             },
             {
                 "orderIndex": 2,
-                "content": f"Admin fast response siap bantu aktivasi dalam hitungan menit.\n\n🚀 {cta}"
+                "content": f"Aktivasi cepat dan dipandu hingga siap digunakan.\n\n🚀 {cta}"
             }
         ]
     }
 
-# Copy generator adhering strictly to /ecommerce-copy-humanizer-id
+# Commercial Promo Hook Archetypes (Clean, Professional, and Value-Driven)
 HUMANIZED_HOOK_ARCHETYPES = [
     {
-        "angle": "Storytelling & Curhat Relate",
-        "skill": "ecommerce-copy-humanizer-id",
+        "angle": "Storytelling & Real Case",
         "generate": gen_storytelling,
     },
     {
-        "angle": "Solusi Cerdas & Anti-Boncos",
-        "skill": "ecommerce-copy-humanizer-id",
-        "generate": gen_anti_boncos,
+        "angle": "Solusi Cerdas & Efisiensi Biaya",
+        "generate": gen_cost_efficiency,
     },
     {
-        "angle": "Productivity & Feature Hack",
-        "skill": "ecommerce-copy-humanizer-id",
+        "angle": "Productivity & Feature Optimization",
         "generate": gen_productivity,
     },
     {
-        "angle": "FOMO & Slot Terbatas",
-        "skill": "ecommerce-copy-humanizer-id",
+        "angle": "Slot & Kuota Promo Terbatas",
         "generate": gen_fomo,
     }
 ]
 
-# Organic & Non-Product Content Archetypes for High-Engagement Threads
+# Organic & Knowledge Vault Content Archetypes for High-Signal Practitioner Threads
 def get_organic_archetypes(s={}):
     handle = s.get("username") or "tokodigital.id"
     return [
         {
-            "title": "[Tips] 5 Shortcut Rahasia Buat yang Nugas & Kerja Seharian",
-            "hookAngle": "Edukasi & Produktivitas",
+            "title": "[Workflow] 3 Praktik CLI & Terminal untuk Mempercepat Eksekusi",
+            "hookAngle": "Tech & Workflow Architecture",
             "posts": [
                 {
                     "orderIndex": 0,
-                    "content": "Buat kamu yang tiap hari di depan laptop nugas atau kerja, ini 5 shortcut & trik rahasia yang bakal hemat waktu kamu berjam-jam 🧵👇"
+                    "content": "Mengurangi pergantian context (context-switching) antara GUI dan editor adalah kunci menjaga flow state engineering 🛠️\n\n3 konfigurasi terminal yang langsung terasa dampaknya 🧵👇"
                 },
                 {
                     "orderIndex": 1,
-                    "content": "1. Ctrl/Cmd + Shift + T: Buka tab browser yang gak sengaja ketutup.\n2. Win + V / Mac Clipboard: Akses riwayat copy-paste banyak item.\n3. Pakai AI tools buat summarising dokumen tebal dalam 10 detik.\n4. Dual monitor virtual (Win + Ctrl + D) biar gak semrawut.\n5. Bookmark bar khusus folder shortcut kerjaan."
+                    "content": "1. Aliases & Shell Functions: Singkat perintah git & docker berulang menjadi 2-3 karakter.\n2. Fuzzy Finder (fzf): Navigasi ribuan file dalam hitungan milidetik tanpa mouse.\n3. Session Persistence: Gunakan tmux / zellij agar workspace selalu siap pakai saat terminal dibuka kembali."
                 },
                 {
                     "orderIndex": 2,
-                    "content": f"Save thread ini biar gak lupa pas butuh nanti! ✨\n\nFollow @{handle} buat tips produktivitas & rekomendasi tools digital bermanfaat lainnya 🚀"
+                    "content": f"Simpan thread ini untuk referensi setup workstation Anda! 📌\n\nFollow @{handle} untuk insight arsitektur software dan optimasi tools digital 🚀"
                 }
             ]
         },
         {
-            "title": "[Insight] Formula Prompt AI Anti-Gagal Buat Nugas & Kerja",
+            "title": "[AI Engineering] Mental Model Context Engineering untuk LLM Agent",
             "hookAngle": "Tech & AI Insights",
             "posts": [
                 {
                     "orderIndex": 0,
-                    "content": "Tahun 2026 tapi masih pakai AI cuma buat ketik \"buatkan ide\"? 🤯\n\nPadahal AI bisa jadi personal assistant yang handle 70% kerjaan rutin kamu kalau prompt-nya bener. Simak formulanya 🧵👇"
+                    "content": "Prompt engineering bukan sekadar menyusun kata mutiara, melainkan merancang arsitektur context yang deterministic untuk model AI 🧠\n\n3 komponen context payload yang terbukti memangkas halusinasi 🧵👇"
                 },
                 {
                     "orderIndex": 1,
-                    "content": "Formula 4 langkah:\n1. Role: Tentukan peran AI (e.g. \"Kamu Senior Copywriter\").\n2. Context: Kasih background masalah & audiens jelas.\n3. Constraint: Batasi gaya bahasa (\"Bahasa Indonesia kasual & to the point\").\n4. Examples: Kasih 1 contoh output yang kamu mau."
+                    "content": "1. System Directives: Definisikan batasan peran, constraint output, dan format strictly JSON.\n2. Grounding Context: Suntikkan data spesifik atau RAG chunk relevan sebelum query utama.\n3. Few-shot Demonstrations: Berikan 1-2 contoh pasangan input-output riil sebagai acuan struktur."
                 },
                 {
                     "orderIndex": 2,
-                    "content": f"Cobain formula ini di tugas atau project kerjaan selanjutnya gess!\n\n🔗 Follow @{handle} untuk update tools pro & trik digital harian."
+                    "content": f"Bagaimana pendekatan context engineering di pipeline Anda saat ini? Diskusi di replies yuk! 👇\n\nFollow @{handle} untuk wawasan AI systems & software craft."
                 }
             ]
         },
         {
-            "title": "[Relate] Fase Realita Kerja Digital & Cara Tetap Waras",
-            "hookAngle": "Storytelling & Curhat Relate",
+            "title": "[Engineering Practice] Review Loop & Automated Verification",
+            "hookAngle": "Software Engineering & Best Practices",
             "posts": [
                 {
                     "orderIndex": 0,
-                    "content": "Pernah gak ngerasa seharian buka laptop tapi pas malem berasa \"tadi gue ngerjain apa aja ya?\" 😩💻\n\nIni bukan salah kamu, tapi manajemen fokus digital yang bocor. Yuk benerin 🧵👇"
+                    "content": "Bottleneck terbesar dalam shipping software berkualitas bukanlah kecepatan mengetik kode, melainkan loop verifikasi yang lambat ⚙️\n\nCara membangun feedback loop cepat sebelum commit 🧵👇"
                 },
                 {
                     "orderIndex": 1,
-                    "content": "Tips anti-burnout harian:\n• Terapkan aturan 90-20 (90 menit deep work, 20 menit istirahat tanpa layar).\n• Matikan notifikasi grup non-urgent pas jam produktif.\n• Investasi di tools digital yang automate hal repetitif biar gak buang energi."
+                    "content": "• Pre-commit hooks: Jalankan linting, typechecking, dan security scan otomatis secara lokal.\n• Targeted unit tests: Verifikasi boundary conditions pada pure functions dalam < 2 detik.\n• Isolated environments: Pisahkan dev, staging, dan prod database agar tidak terjadi cross-contamination."
                 },
                 {
                     "orderIndex": 2,
-                    "content": "Kalian tim kerja pagi atau ngalong tengah malem nih gess? Drop cerita kalian di replies yuk! 👇"
+                    "content": f"Disiplin verifikasi lokal menghemat jam debugging di production.\n\nSimpan thread ini 📌 dan follow @{handle} untuk artikel sistem & engineering practices."
                 }
             ]
         },
         {
-            "title": "[List] 4 Tools Esensial Penunjang Karir & Freelance",
+            "title": "[Architecture] 4 Kategori Tools Esensial untuk Modern Developer Stack",
             "hookAngle": "Rekomendasi Tools Digital",
             "posts": [
                 {
                     "orderIndex": 0,
-                    "content": "Mau naikin produktivitas kerja & freelance tapi bingung mulai dari mana? 🛠️✨\n\nIni 4 jenis tools esensial yang wajib ada di workflow kamu di tahun 2026 🧵👇"
+                    "content": "Membangun workstation yang lean memerlukan pemilihan tools dengan rasio utility-to-overhead terbaik 🛠️\n\n4 pilar stack digital untuk meningkatkan output kerja harian 🧵👇"
                 },
                 {
                     "orderIndex": 1,
-                    "content": "Daftar tools wajib:\n1. AI Assistant (Brainstorming ide, riset cepat, & drafting).\n2. Cloud Music (Playlist fokus tanpa gangguan iklan).\n3. Design Platform (Visual asset & presentasi instan).\n4. Cloud Workspace (Backup data & kolaborasi dokumen)."
+                    "content": "1. AI Coding Assistant: Mempercepat prototyping dan eksplorasi boilerplate.\n2. Local Container Runtime: Isolasi dependencies tanpa mengotori host OS.\n3. Structured Note Vault: Dokumentasikan mental model dan arsitektur keputusan teknis.\n4. Automated CI/CD Runner: Validasi build dan deployment tanpa intervensi manual."
                 },
                 {
                     "orderIndex": 2,
-                    "content": f"Pastikan semua akun kerja kamu stabil & bergaransi resmi biar gak drama pas deadline.\n\n👉 Cek rekomendasi tools lengkap di bio profil @{handle} ya! 🚀"
+                    "content": f"Pastikan semua dependensi dan akun kerja Anda menggunakan lisensi resmi untuk kelancaran jangka panjang.\n\n👉 Cek rekomendasi tools pendukung di bio @{handle} ya! 🚀"
                 }
             ]
         }
@@ -285,25 +281,33 @@ def generate_via_hermes_llm(product=None, store=None, angle=None, custom_topic=N
 
     if product:
         context_str = f"PRODUK: {product.get('name')} ({product.get('category', 'Digital Service')})\nUSP: {get_usp_bullet_list(product)}\nHARGA:\n{get_variant_list_text(product)}"
-    else:
-        context_str = f"KONTEN ORGANIK / EDUKASI: {custom_topic or 'Tips produktivitas kerja digital, tools AI, atau tips freelance 2026'}"
-
-    system_prompt = f"""You are Hermes AI Agent specializing in copywriting for Threads (Meta).
-Adheres strictly to /ecommerce-copy-humanizer-id standard.
-Generate fresh, non-generic, creative 3-part thread.
+        system_prompt = f"""You are a Digital Specialist & Solution Consultant writing clear, high-converting product showcases for Threads.
+Generate fresh, non-generic, professional 3-part thread.
 RULES:
-1. Natural, casual Indonesian (gess, sat-set, boncos, worth it, nugas, gak pake ribet).
-2. Avoid generic cliche openings like "Lagi asik nugas...". Be creative and diverse!
+1. Professional, honest, direct, value-driven, and consultative Indonesian.
+2. NO cheap marketing hype or forced cheesy slang.
 3. Strictly UNDER 500 characters per post.
 4. Post 1 (Hook + 🧵👇), Post 2 (Value / Benefit / Price proof), Post 3 (CTA to @{store_handle}).
 5. Output JSON ONLY:
-{{"title": "...", "hookAngle": "{angle or 'Dynamic AI Angle'}", "posts": [{{"orderIndex": 0, "content": "..."}}, {{"orderIndex": 1, "content": "..."}}, {{"orderIndex": 2, "content": "..."}}]}}
+{{"title": "...", "hookAngle": "{angle or 'Clean Commercial Promo'}", "posts": [{{"orderIndex": 0, "content": "..."}}, {{"orderIndex": 1, "content": "..."}}, {{"orderIndex": 2, "content": "..."}}]}}
+"""
+    else:
+        context_str = f"KONTEN ORGANIK / EDUKASI: {custom_topic or 'Framework arsitektur AI agent, terminal workflow, atau efisiensi tools software 2026'}"
+        system_prompt = f"""You are a Senior Software & AI Systems Architect and hands-on Tech Practitioner writing for Threads.
+Generate fresh, high-signal, authentic 3-part thread.
+RULES:
+1. Senior tech practitioner tone: pragmatic, direct, systems-thinking, and intellectually honest.
+2. NO cringe marketing slang (no gess, sat-set, boncos, nugas).
+3. Strictly UNDER 500 characters per post.
+4. Post 1 (Technical hook + 🧵👇), Post 2 (Concrete workflow / mental model / architecture), Post 3 (Technical discussion or follow @{store_handle}).
+5. Output JSON ONLY:
+{{"title": "...", "hookAngle": "{angle or 'Tech Systems Practitioner'}", "posts": [{{"orderIndex": 0, "content": "..."}}, {{"orderIndex": 1, "content": "..."}}, {{"orderIndex": 2, "content": "..."}}]}}
 """
 
     user_prompt = f"""TOKO: {store_name} (@{store_handle})
 {context_str}
 ANGLE: {angle or 'Contrarian / Fresh Insight'}
-Buat 1 rangkaian thread baru yang fresh, menarik, dan berkonversi tinggi. Output JSON only."""
+Buat 1 rangkaian thread baru yang fresh, menarik, dan berbobot tinggi. Output JSON only."""
 
     url = os.getenv("HERMES_AI_BASE_URL", "http://168.110.198.40:20128/v1/chat/completions")
     payload = {
@@ -539,7 +543,7 @@ def run_hermes_cron(base_url: str, api_key: str, action: str, threads_token: str
                     "posts": final_posts,
                     "metadata": {
                         "runner": "hermes-cron-runner-py",
-                        "skill": "ecommerce-copy-humanizer-id",
+                        "persona": "CLEAN_COMMERCIAL_PROMO",
                         "contentType": "PRODUCT_PROMO",
                         "storeUsername": store.get("username"),
                         "model": "ag/gemini-3.6-flash-high",
@@ -565,18 +569,18 @@ def run_hermes_cron(base_url: str, api_key: str, action: str, threads_token: str
 
             # 2. Generate Organic / Non-Product Engagement Draft (productId: None)
             organic_topics = [
-                "5 ekstensi AI browser penunjang kerja & nugas 2026",
-                "Cara maintain ritme fokus & anti-burnout kerja digital",
-                "Trik prompt AI anti-gagal buat riset & copywriting",
-                "Mitos tools bajakan vs keuntungan akun legal bergaransi",
-                "Shortcut esensial keyboard laptop hemat waktu berjam-jam"
+                "Praktik context engineering memangkas halusinasi LLM agent",
+                "Arsitektur feedback loop dan local verification sebelum deployment",
+                "Optimasi workflow terminal dan CLI untuk modern software engineer",
+                "Pentingnya isolasi environment dev, test, dan prod database",
+                "4 pilar workstation lean developer stack 2026"
             ]
             selected_topic = random.choice(organic_topics)
             org_llm = generate_via_hermes_llm(product=None, store=store, angle="Edukasi & Produktivitas Organik", custom_topic=selected_topic)
 
             if org_llm and org_llm.get("posts"):
-                final_org_title = org_llm.get("title", f"[Tips] {selected_topic}")
-                final_org_angle = org_llm.get("hookAngle", "Edukasi & Produktivitas")
+                final_org_title = org_llm.get("title", f"[Insight] {selected_topic}")
+                final_org_angle = org_llm.get("hookAngle", "Tech Systems Practitioner")
                 final_org_posts = org_llm["posts"]
                 org_source = "hermes-ai-llm"
             else:
@@ -596,7 +600,7 @@ def run_hermes_cron(base_url: str, api_key: str, action: str, threads_token: str
                 "posts": final_org_posts,
                 "metadata": {
                     "runner": "hermes-cron-runner-py",
-                    "skill": "ecommerce-copy-humanizer-id",
+                    "persona": "TECH_SYSTEMS_PRACTITIONER",
                     "contentType": "ORGANIC_ENGAGEMENT",
                     "storeUsername": store.get("username"),
                     "model": "ag/gemini-3.6-flash-high",
