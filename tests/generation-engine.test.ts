@@ -4,6 +4,7 @@ import {
   parseHermesGenerationResponse,
   generateDraftWithHermes,
   GENERATION_ANGLES,
+  ORGANIC_BLUEPRINTS,
 } from '../src/lib/generation-engine';
 import * as hermesClient from '../src/lib/hermes-client';
 
@@ -19,6 +20,23 @@ describe('Hermes Content Generation Engine Overhaul', () => {
       // Should NOT contain fill-in-the-blank templates
       expect(angle.directive).not.toContain('padahal aslinya ...');
       expect(angle.directive).not.toContain('Pernah gak lagi asik ...');
+    });
+  });
+
+  it('defines 4 distinct organic practitioner blueprints', () => {
+    expect(ORGANIC_BLUEPRINTS.length).toBe(4);
+    const blueprintIds = ORGANIC_BLUEPRINTS.map((b) => b.id);
+    expect(blueprintIds).toContain('incident_autopsy');
+    expect(blueprintIds).toContain('config_cli_teardown');
+    expect(blueprintIds).toContain('architecture_tradeoff');
+    expect(blueprintIds).toContain('contrarian_paradigm');
+
+    ORGANIC_BLUEPRINTS.forEach((b) => {
+      expect(b.name).toBeTruthy();
+      expect(b.hookGuidance).toBeTruthy();
+      expect(b.bodyGuidance).toBeTruthy();
+      expect(b.closingGuidance).toBeTruthy();
+      expect(b.bodyGuidance).toContain('DILARANG');
     });
   });
 
@@ -48,7 +66,7 @@ describe('Hermes Content Generation Engine Overhaul', () => {
     expect(prompt).not.toContain('gaya e-commerce santai');
   });
 
-  it('builds a 100% pure educational prompt with deep practitioner directives when product is null', () => {
+  it('builds a 100% pure educational prompt with deep practitioner directives and anti-listicle guard', () => {
     const prompt = buildGenerationPrompt({
       product: null,
       store: {
@@ -56,19 +74,20 @@ describe('Hermes Content Generation Engine Overhaul', () => {
         username: 'tokodigital.id',
       },
       angle: 'actionable_framework',
+      blueprint: 'incident_autopsy',
       customTopic: '4 Langkah Mengatur Workspace Digital Biar Bebas Distraksi',
     });
 
     expect(prompt).toContain('KONTEN ORGANIK MURNI (100% EDUKASI & INSIGHT BERBOBOT)');
     expect(prompt).toContain('Senior Software Engineer & AI Systems Architect');
-    expect(prompt).toContain('problem arsitektur nyata');
-    expect(prompt).toContain('alur kerja operasional, mental model arsitektur, atau mekanisme teknis konkret');
-    expect(prompt).toContain('pertanyaan teknis terbuka yang memicu diskusi engineering berkualitas antar-praktisi');
+    expect(prompt).toContain('CETAK BIRU KONTEN (CONTENT BLUEPRINT)');
+    expect(prompt).toContain('Incident Autopsy & Debugging Post-Mortem');
+    expect(prompt).toContain('DILARANG MEMAKAI FORMAT LISTICLE NOMOR 1-2-3');
+    expect(prompt).toContain('DILARANG PEMBUKA KLISE');
+    expect(prompt).toContain('DILARANG PENUTUP ROBOTIK SERAGAM');
     expect(prompt).toContain('DILARANG KERAS BERJUALAN');
     expect(prompt).toContain('DILARANG menyebut harga');
     expect(prompt).toContain('4 Langkah Mengatur Workspace Digital');
-    // Ensure CTA is soft-community and practitioner-focused
-    expect(prompt).toContain('Bookmark / save thread');
   });
 
   it('injects rich knowledge vault notes into prompt when knowledgeTopic is provided', () => {
