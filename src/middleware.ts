@@ -25,7 +25,10 @@ export async function middleware(req: NextRequest) {
   // 2. Always allow Hermes Autonomous Agent APIs (auth handled by Bearer token validator)
   const authHeader = req.headers.get('authorization');
   const apiKeyHeader = req.headers.get('x-api-key');
-  if (pathname.startsWith('/api/hermes') || ((authHeader || apiKeyHeader) && pathname.startsWith('/api/settings'))) {
+  if (
+    pathname.startsWith('/api/hermes') ||
+    ((authHeader || apiKeyHeader) && (pathname.startsWith('/api/settings') || pathname.startsWith('/api/drafts')))
+  ) {
     return NextResponse.next();
   }
 
