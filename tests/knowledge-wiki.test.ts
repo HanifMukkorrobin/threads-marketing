@@ -157,4 +157,34 @@ Langkah 1...`;
     const chosen = selectLRUKnowledgeTopic(topics, recentDrafts);
     expect(chosen?.id).toBe('t3');
   });
+
+  it('cycles through all topics consecutively as new drafts are created', () => {
+    const topics: KnowledgeTopic[] = [
+      { id: 't1', title: 'Topik 1', category: 'AI', content: '', tags: [] },
+      { id: 't2', title: 'Topik 2', category: 'Productivity', content: '', tags: [] },
+      { id: 't3', title: 'Topik 3', category: 'Security', content: '', tags: [] },
+    ];
+
+    const history: Array<{ id: string; metadata?: string | null; createdAt: Date }> = [];
+
+    // 1st run: t1 (first unvisited)
+    const pick1 = selectLRUKnowledgeTopic(topics, history);
+    expect(pick1?.id).toBe('t1');
+    history.push({ id: 'd1', metadata: JSON.stringify({ sourceTopicId: pick1?.id }), createdAt: new Date('2026-08-20T01:00:00Z') });
+
+    // 2nd run: t2 (second unvisited)
+    const pick2 = selectLRUKnowledgeTopic(topics, history);
+    expect(pick2?.id).toBe('t2');
+    history.push({ id: 'd2', metadata: JSON.stringify({ sourceTopicId: pick2?.id }), createdAt: new Date('2026-08-20T02:00:00Z') });
+
+    // 3rd run: t3 (third unvisited)
+    const pick3 = selectLRUKnowledgeTopic(topics, history);
+    expect(pick3?.id).toBe('t3');
+    history.push({ id: 'd3', metadata: JSON.stringify({ sourceTopicId: pick3?.id }), createdAt: new Date('2026-08-20T03:00:00Z') });
+
+    // 4th run: all have history, oldest is t1 (created at 01:00)
+    const pick4 = selectLRUKnowledgeTopic(topics, history);
+    expect(pick4?.id).toBe('t1');
+  });
 });
+
