@@ -442,8 +442,20 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
 
   // ACTION: GENERATE
   if (action === 'generate' || action === 'all') {
-    console.log('📥 [Step 1] Mengambil katalog produk aktif...');
+    console.log('📥 [Step 1] Mengambil katalog produk aktif & riwayat draft...');
     try {
+      // Fetch recent draft history to drive intelligent LRU topic/product/angle rotation
+      let recentDrafts: any[] = [];
+      try {
+        const draftsRes = await fetch(`${baseUrl}/api/drafts`, { headers });
+        if (draftsRes.ok) {
+          const draftsData = await draftsRes.json();
+          recentDrafts = draftsData.drafts || draftsData.data || [];
+        }
+      } catch {
+        recentDrafts = [];
+      }
+
       const prodRes = await fetch(`${baseUrl}/api/hermes/products/active`, { headers });
       if (!prodRes.ok) {
         throw new Error(`Gagal fetch produk aktif: HTTP ${prodRes.status} ${prodRes.statusText}`);
@@ -453,91 +465,101 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
       const store: HermesStoreInfo = prodData.store || { name: 'Toko Digital ID', username: 'tokodigital.id' };
       console.log(`   Ditemukan ${products.length} produk aktif.`);
       console.log(`   Store Profile: ${store.name} (@${store.username})`);
+      console.log(`   Riwayat Draft Terdaftar: ${recentDrafts.length} item.`);
 
-      // 1. Generate Product Drafts with LRU Product and Angle Rotation
+      // 1. Generate Product Drafts with LRU Product and Angle Rotation (if products available)
       if (products.length > 0) {
-        const targetProducts = products.slice(0, 2);
-        for (const product of targetProducts) {
-          const allAngles = GENERATION_ANGLES.map((a) => a.name);
-          const chosenAngle = selectRotatedAngle(allAngles, []);
-          console.log(`✍️  [AI Product Generator] Menghasilkan draft untuk "${product.name}" (${chosenAngle})...`);
+        const targetProduct = selectLRUProduct(products, recentDrafts) || products[0];
+        const allAngleNames = GENERATION_ANGLES.map((a) => a.name);
+        const recentProductAngles = recentDrafts
+          .filter((d: any) => d.productId === targetProduct.id)
+          .map((d: any) => d.hookAngle)
+          .filter(Boolean);
+        const chosenAngle = selectRotatedAngle(allAngleNames, recentProductAngles);
+        console.log(`✍️  [AI Product Generator] Menghasilkan draft untuk "${targetProduct.name}" (${chosenAngle})...`);
 
-          let generatedData;
-          try {
-            generatedData = await generateDraftWithHermes({
-              product: {
-                id: product.id,
-                name: product.name,
-                category: product.category,
-                description: product.description,
-                variants: product.variants,
-                usp: product.usp,
-                targetAudience: product.targetAudience,
-                toneOfVoice: product.toneOfVoice,
-                ctaTemplate: product.ctaTemplate,
-              },
-              store,
-              angle: chosenAngle,
-            });
-          } catch {
-            const matchedArchetype = HUMANIZED_HOOK_ARCHETYPES.find((a) => a.angle === chosenAngle) || HUMANIZED_HOOK_ARCHETYPES[0];
-            const fallback = matchedArchetype.generate(product, store);
-            generatedData = {
-              title: fallback.title,
-              hookAngle: matchedArchetype.angle,
-              posts: fallback.posts,
-              metadata: { generatorSource: 'hermes-archetype-fallback' },
-            };
-          }
-
-          const draftPayload = {
-            productId: product.id,
-            title: generatedData.title,
-            type: generatedData.posts.length > 1 ? 'THREAD_CHAIN' : 'SINGLE',
-            hookAngle: generatedData.hookAngle,
-            posts: generatedData.posts,
-            metadata: {
-              runner: 'hermes-cron-runner-ts',
-              persona: 'CLEAN_COMMERCIAL_PROMO',
-              contentType: 'PRODUCT_PROMO',
-              storeUsername: store.username,
-              generatedAt: new Date().toISOString(),
-              model: 'ag/gemini-3.6-flash-high',
-              ...(generatedData.metadata || {}),
+        let generatedData;
+        try {
+          generatedData = await generateDraftWithHermes({
+            product: {
+              id: targetProduct.id,
+              name: targetProduct.name,
+              category: targetProduct.category,
+              description: targetProduct.description,
+              variants: targetProduct.variants,
+              usp: targetProduct.usp,
+              targetAudience: targetProduct.targetAudience,
+              toneOfVoice: targetProduct.toneOfVoice,
+              ctaTemplate: targetProduct.ctaTemplate,
             },
-          };
-
-          const createRes = await fetch(`${baseUrl}/api/hermes/drafts`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(draftPayload),
+            store,
+            angle: chosenAngle,
           });
-
-          if (!createRes.ok) {
-            const errJson = await createRes.json().catch(() => ({}));
-            throw new Error(`Gagal membuat draft produk: ${errJson.error || createRes.statusText}`);
-          }
-
-          const createdJson = await createRes.json();
-          const draft = createdJson.draft || createdJson.data;
-          console.log(`   ✅ Draft produk tersimpan (ID: ${draft.id}) — Status: PENDING_REVIEW`);
-          results.generatedCount++;
+        } catch {
+          const matchedArchetype = HUMANIZED_HOOK_ARCHETYPES.find((a) => a.angle === chosenAngle) || HUMANIZED_HOOK_ARCHETYPES[0];
+          const fallback = matchedArchetype.generate(targetProduct, store);
+          generatedData = {
+            title: fallback.title,
+            hookAngle: matchedArchetype.angle,
+            posts: fallback.posts,
+            metadata: { generatorSource: 'hermes-archetype-fallback' },
+          };
         }
+
+        const draftPayload = {
+          productId: targetProduct.id,
+          title: generatedData.title,
+          type: generatedData.posts.length > 1 ? 'THREAD_CHAIN' : 'SINGLE',
+          hookAngle: generatedData.hookAngle,
+          posts: generatedData.posts,
+          metadata: {
+            runner: 'hermes-cron-runner-ts',
+            persona: 'CLEAN_COMMERCIAL_PROMO',
+            contentType: 'PRODUCT_PROMO',
+            storeUsername: store.username,
+            generatedAt: new Date().toISOString(),
+            model: 'ag/gemini-3.6-flash-high',
+            ...(generatedData.metadata || {}),
+          },
+        };
+
+        const createRes = await fetch(`${baseUrl}/api/hermes/drafts`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(draftPayload),
+        });
+
+        if (!createRes.ok) {
+          const errJson = await createRes.json().catch(() => ({}));
+          throw new Error(`Gagal membuat draft produk: ${errJson.error || createRes.statusText}`);
+        }
+
+        const createdJson = await createRes.json();
+        const draft = createdJson.draft || createdJson.data;
+        console.log(`   ✅ Draft produk tersimpan (ID: ${draft.id}) — Status: PENDING_REVIEW`);
+        results.generatedCount++;
       }
 
-      // 2. Generate Organic / Non-Product Engagement Draft (productId: null) from Knowledge Vault
+      // 2. Generate Organic / Non-Product Engagement Draft (productId: null) from Knowledge Vault with LRU Rotation
       let chosenTopic: KnowledgeTopic | null = null;
       try {
         const vaultTopics = await loadAllKnowledgeTopics();
         if (vaultTopics.length > 0) {
-          chosenTopic = selectLRUKnowledgeTopic(vaultTopics, []);
+          chosenTopic = selectLRUKnowledgeTopic(vaultTopics, recentDrafts);
         }
       } catch (err) {
         console.warn('[Knowledge Vault Loader] Fallback to dynamic topics:', err);
       }
 
+      const allOrganicAngleNames = GENERATION_ANGLES.map((a) => a.name);
+      const recentOrganicAngles = recentDrafts
+        .filter((d: any) => !d.productId)
+        .map((d: any) => d.hookAngle)
+        .filter(Boolean);
+      const chosenOrganicAngle = selectRotatedAngle(allOrganicAngleNames, recentOrganicAngles);
+
       const topicLabel = chosenTopic ? chosenTopic.title : 'Wawasan Digital & Tips Produktivitas';
-      console.log(`✍️  [AI Organic Generator] Menghasilkan konten edukasi non-produk: "${topicLabel}"...`);
+      console.log(`✍️  [AI Organic Generator] Menghasilkan konten edukasi non-produk: "${topicLabel}" (${chosenOrganicAngle})...`);
 
       let orgGenerated;
       try {
@@ -545,7 +567,7 @@ export async function runHermesRunner(options: RunnerOptions = {}) {
           product: null,
           store,
           knowledgeTopic: chosenTopic,
-          angle: chosenTopic ? chosenTopic.category : 'Edukasi & Produktivitas Organik',
+          angle: chosenOrganicAngle,
         });
       } catch {
         const organicArchetypes = getOrganicArchetypes(store);

@@ -505,7 +505,12 @@ def run_hermes_cron(base_url: str, api_key: str, action: str, threads_token: str
 
     # 1. ACTION: GENERATE
     if action in ("generate", "all"):
-        print(f"{BOLD}📥 [Step 1] Mengambil katalog produk aktif...{RESET}")
+        print(f"{BOLD}📥 [Step 1] Mengambil katalog produk aktif & riwayat draft...{RESET}")
+        
+        # Fetch recent drafts to prevent duplicate topic and angle loops
+        d_status, d_data = make_request(f"{base_url}/api/drafts", headers=headers)
+        recent_drafts = (d_data.get("drafts") or d_data.get("data") or []) if d_status == 200 else []
+
         status, data = make_request(f"{base_url}/api/hermes/products/active", headers=headers)
         if status != 200:
             err_msg = data.get("error", f"HTTP {status}")
@@ -516,21 +521,29 @@ def run_hermes_cron(base_url: str, api_key: str, action: str, threads_token: str
             store = data.get("store") or {"name": "Toko Digital ID", "username": "tokodigital.id"}
             print(f"   Ditemukan {len(products)} produk aktif.")
             print(f"   Store Profile: {store.get('name')} (@{store.get('username')})")
+            print(f"   Riwayat Draft Terdaftar: {len(recent_drafts)} item.")
 
-            # 1. Generate Product Drafts
-            for product in products[:2]:
-                archetype = random.choice(HUMANIZED_HOOK_ARCHETYPES)
-                llm_gen = generate_via_hermes_llm(product=product, store=store, angle=archetype["angle"])
+            # 1. Generate Product Drafts (if products available)
+            if products:
+                # Select least recently drafted product
+                product = products[0]
+                available_angles = [a["angle"] for a in HUMANIZED_HOOK_ARCHETYPES]
+                used_product_angles = [d.get("hookAngle") for d in recent_drafts if d.get("productId") == product.get("id")]
+                remaining_angles = [a for a in available_angles if a not in used_product_angles[:len(available_angles)-1]]
+                chosen_angle = random.choice(remaining_angles) if remaining_angles else random.choice(available_angles)
+                
+                matched_archetype = next((a for a in HUMANIZED_HOOK_ARCHETYPES if a["angle"] == chosen_angle), HUMANIZED_HOOK_ARCHETYPES[0])
+                llm_gen = generate_via_hermes_llm(product=product, store=store, angle=chosen_angle)
                 
                 if llm_gen and llm_gen.get("posts"):
                     final_title = llm_gen.get("title", f"[Promo] {product.get('name')}")
-                    final_angle = llm_gen.get("hookAngle", archetype["angle"])
+                    final_angle = llm_gen.get("hookAngle", chosen_angle)
                     final_posts = llm_gen["posts"]
                     gen_source = "hermes-ai-llm"
                 else:
-                    gen = archetype["generate"](product, store)
+                    gen = matched_archetype["generate"](product, store)
                     final_title = gen["title"]
-                    final_angle = archetype["angle"]
+                    final_angle = matched_archetype["angle"]
                     final_posts = gen["posts"]
                     gen_source = "hermes-archetype-fallback"
 
@@ -573,14 +586,33 @@ def run_hermes_cron(base_url: str, api_key: str, action: str, threads_token: str
                 "Arsitektur feedback loop dan local verification sebelum deployment",
                 "Optimasi workflow terminal dan CLI untuk modern software engineer",
                 "Pentingnya isolasi environment dev, test, dan prod database",
-                "4 pilar workstation lean developer stack 2026"
+                "4 pilar workstation lean developer stack 2026",
+                "Model Context Protocol (MCP) sebagai standar integrasi tools AI",
+                "Doubt-Driven Development: Pola adversarial verification pada autonomous coding",
+                "Mental model spec-driven development untuk memangkas iterasi gagal",
             ]
-            selected_topic = random.choice(organic_topics)
-            org_llm = generate_via_hermes_llm(product=None, store=store, angle="Edukasi & Produktivitas Organik", custom_topic=selected_topic)
+            
+            # Rotate topic by filtering out recent organic titles
+            recent_organic_titles = [d.get("title", "") for d in recent_drafts if not d.get("productId")]
+            available_topics = [t for t in organic_topics if not any(t.lower() in rt.lower() for rt in recent_organic_titles[:len(organic_topics)-1])]
+            selected_topic = random.choice(available_topics) if available_topics else random.choice(organic_topics)
+            
+            organic_angles = [
+                "Unpopular Industry Truth",
+                "Real Case & Breakdown Skenario",
+                "Workflow & Tool Teardown",
+                "Actionable Framework / Step-by-Step",
+                "Curation & High-Utility Insights",
+            ]
+            recent_org_angles = [d.get("hookAngle") for d in recent_drafts if not d.get("productId")]
+            avail_org_angles = [a for a in organic_angles if a not in recent_org_angles[:len(organic_angles)-1]]
+            selected_angle = random.choice(avail_org_angles) if avail_org_angles else random.choice(organic_angles)
+
+            org_llm = generate_via_hermes_llm(product=None, store=store, angle=selected_angle, custom_topic=selected_topic)
 
             if org_llm and org_llm.get("posts"):
                 final_org_title = org_llm.get("title", f"[Insight] {selected_topic}")
-                final_org_angle = org_llm.get("hookAngle", "Tech Systems Practitioner")
+                final_org_angle = org_llm.get("hookAngle", selected_angle)
                 final_org_posts = org_llm["posts"]
                 org_source = "hermes-ai-llm"
             else:
@@ -591,7 +623,7 @@ def run_hermes_cron(base_url: str, api_key: str, action: str, threads_token: str
                 final_org_posts = organic["posts"]
                 org_source = "hermes-archetype-fallback"
 
-            print(f"✍️  [AI Organic Generator] Menghasilkan konten edukasi non-produk: \"{final_org_title}\" [{org_source}]...")
+            print(f"✍️  [AI Organic Generator] Menghasilkan konten edukasi non-produk: \"{final_org_title}\" ({final_org_angle}) [{org_source}]...")
             organic_payload = {
                 "productId": None,
                 "title": final_org_title,
@@ -607,6 +639,7 @@ def run_hermes_cron(base_url: str, api_key: str, action: str, threads_token: str
                     "generatorSource": org_source,
                 }
             }
+
 
             org_status, org_data = make_request(
                 f"{base_url}/api/hermes/drafts",

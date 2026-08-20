@@ -348,13 +348,46 @@ describe('Task 7: Dashboard Overview, Settings API & Hermes Runner Integration',
             } as any;
           }
 
-          if (url.includes('/status') && method === 'PATCH') {
+          if (url.includes('/api/drafts')) {
             return {
               ok: true,
               status: 200,
               json: async () => ({
                 success: true,
-                draft: { id: 'draft-approved-1', status: 'PUBLISHED' },
+                count: 1,
+                drafts: [
+                  {
+                    id: 'draft-history-1',
+                    productId: null,
+                    title: 'Wawasan Context Engineering',
+                    hookAngle: 'Unpopular Industry Truth',
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              }),
+            } as any;
+          }
+
+          if (url.includes('/chat/completions')) {
+            return {
+              ok: true,
+              status: 200,
+              json: async () => ({
+                choices: [
+                  {
+                    message: {
+                      content: JSON.stringify({
+                        title: 'Generated Thread Title',
+                        hookAngle: 'Real Case & Breakdown Skenario',
+                        posts: [
+                          { orderIndex: 0, content: 'Hook wawasan 🧵👇' },
+                          { orderIndex: 1, content: 'Mekanisme & value' },
+                          { orderIndex: 2, content: 'Diskusi open question' },
+                        ],
+                      }),
+                    },
+                  },
+                ],
               }),
             } as any;
           }
