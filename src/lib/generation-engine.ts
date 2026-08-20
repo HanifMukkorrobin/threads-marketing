@@ -73,6 +73,50 @@ export const GENERATION_ANGLES: GenerationAngle[] = [
   },
 ];
 
+export interface OrganicBlueprint {
+  id: string;
+  name: string;
+  description: string;
+  hookGuidance: string;
+  bodyGuidance: string;
+  closingGuidance: string;
+}
+
+export const ORGANIC_BLUEPRINTS: OrganicBlueprint[] = [
+  {
+    id: 'incident_autopsy',
+    name: 'Incident Autopsy & Debugging Post-Mortem',
+    description: 'Cerita insiden kegagalan nyata / debugging breakdown di production dan mitigasi arsitekturnya.',
+    hookGuidance: 'Buka langsung dengan kegagalan nyata, error tak terduga, atau bottleneck performa saat menjalankan sistem/AI (tanpa pembuka klise) + 🧵👇.',
+    bodyGuidance: 'Jelaskan alur investigasi konkret (misal: Gejala ➔ Titik Rusak ➔ Solusi Arsitektur) atau mekanisme mitigasi teknis. DILARANG menggunakan listicle nomor 1-2-3.',
+    closingGuidance: 'Tutup dengan pertanyaan reflektif tentang skenario edge case serupa atau takeaway praktis tanpa slogan promosi kaku.',
+  },
+  {
+    id: 'config_cli_teardown',
+    name: 'Hands-On Config & CLI Workflow Teardown',
+    description: 'Bedah konfigurasi file (.cursorrules, MCP, flag CLI, shell script, atau DevTools flow).',
+    hookGuidance: 'Tunjukkan snippet config/perintah kritis yang sering disalahpahami atau memangkas waktu kerja secara nyata + 🧵👇.',
+    bodyGuidance: 'Jelaskan alur eksekusi atau parameter kunci secara mengalir dengan diagram panah (Input ➔ Filter ➔ Handler) atau blok pseudocode. DILARANG menggunakan listicle nomor 1-2-3.',
+    closingGuidance: 'Ajak praktisi berbagi setup/konfigurasi favorit mereka di replies atau bagikan catatan referensi.',
+  },
+  {
+    id: 'architecture_tradeoff',
+    name: 'Architecture Trade-Off & Matrix Breakdown',
+    description: 'Perbandingan tajam antara dua pendekatan teknik dan batas kegagalannya.',
+    hookGuidance: 'Sorot dilema arsitektur yang sering diperdebatkan (misal: single large prompt vs chained subagents) + 🧵👇.',
+    bodyGuidance: 'Bandingkan pro-kontra nyata, latensi, konsumsi token, dan titik di mana salah satu pendekatan akan gagal total. DILARANG format listicle kamus 1-2-3.',
+    closingGuidance: 'Buka polling/pertanyaan terbuka: pendekatan mana yang dipakai tim pembaca di production saat ini.',
+  },
+  {
+    id: 'contrarian_paradigm',
+    name: 'Contrarian Practitioner Thesis',
+    description: 'Membongkar tren/kebiasaan engineering yang keliru atau hype dangkal dengan penalaran tajam.',
+    hookGuidance: 'Pernyataan tajam yang menentang konsensus umum berdasarkan pengalaman praktik nyata + 🧵👇.',
+    bodyGuidance: 'Bangun argumen dengan fakta teknis, kegagalan umum di industri, dan mental model yang benar secara naratif mengalir. DILARANG format listicle nomor 1-2-3.',
+    closingGuidance: 'Ajakan diskusi sehat untuk praktisi yang punya pandangan berbeda atau ingin berbagi perspektif.',
+  },
+];
+
 export interface GenerationInput {
   product?: {
     id?: string;
@@ -91,6 +135,7 @@ export interface GenerationInput {
   } | null;
   knowledgeTopic?: KnowledgeTopic | null;
   angle?: string | null;
+  blueprint?: string | null;
   customTopic?: string | null;
   targetAudience?: string | null;
   historyHooksToAvoid?: string[];
@@ -212,28 +257,41 @@ KONTEN ORGANIK MURNI (100% EDUKASI & INSIGHT BERBOBOT):
 `.trim();
   }
 
+  const selectedBlueprint =
+    ORGANIC_BLUEPRINTS.find((b) => b.id === input.blueprint || b.name === input.blueprint) ||
+    ORGANIC_BLUEPRINTS[Math.floor(Math.random() * ORGANIC_BLUEPRINTS.length)];
+
   return `
 PANDUAN PEMBUATAN THREAD ORGANIK EDUKASI (THREADS META):
-Kamu adalah Senior Software Engineer & AI Systems Architect / Tech Practitioner yang membagikan wawasan teknis berbobot tinggi. Gaya bahasa: Lugas, berbasis pengalaman praktik nyata, sistemik, dan zero slang/jargon murahan.
+Kamu adalah Senior Software Engineer & AI Systems Architect / Tech Practitioner yang membagikan wawasan teknis berbobot tinggi di Threads.
+Gaya bahasa: Percakapan lugas sesama praktisi, mengalir, berbasis pengalaman praktik nyata, sistemik, dan zero marketing hype / zero corporate speak.
 
 ${topicContext}
 
-ARAHAN SUDUT PANDANG (ANGLE):
+CETAK BIRU KONTEN (CONTENT BLUEPRINT):
+- Format Blueprint: ${selectedBlueprint.name}
+- Deskripsi: ${selectedBlueprint.description}
+- Panduan Hook (Post #1): ${selectedBlueprint.hookGuidance}
+- Panduan Daging Materi (Post #2): ${selectedBlueprint.bodyGuidance}
+- Panduan Penutup (Post #3): ${selectedBlueprint.closingGuidance}
+
+SUDUT PANDANG (ANGLE):
 - Angle: ${angleName}
 - Taktik Eksekusi: ${angleDirective}
 
-${negativeContextSection ? `${negativeContextSection}\n\n` : ''}${collisionWarningSection ? `${collisionWarningSection}\n\n` : ''}ATURAN PENULISAN KETAT:
-1. DILARANG KERAS BERJUALAN:
-   - DILARANG menyebut harga produk jualan, stok, promo akun, atau embel-embel jualan.
-   - Konten ini 100% murni edukasi, insight teknis, atau tips praktis yang langsung bisa dicoba.
-2. DILARANG MEMAKAI PEMBUKA KLISE:
-   - JANGAN mulai dengan: "Banyak orang ngira...", "Pernah gak sih...", "Tahukah kamu...", "Di era modern...", "Siapa sangka...".
-   - Buka langsung dari problem arsitektur nyata, paradoxical reality, bottleneck di production, atau skenario kegagalan sistem. JANGAN gunakan pertanyaan retoris klise atau gaya e-commerce.
-3. Struktur 3 Post Thread:
-   - Post #1 (Hook Wawasan): Masalah arsitektur / konsep teknis menohok yang memicu rasa ingin tahu praktisi + diakhiri "🧵👇".
-   - Post #2 (Daging Materi / Tangible Execution): Wajib menjelaskan alur kerja operasional, mental model arsitektur, atau mekanisme teknis konkret (misal: Input ➔ Eksekusi Tool CLI/API ➔ Validasi Error) alih-alih sekadar listicle 5 butir definisi kata atau rangkuman kamus.
-   - Post #3 (Diskusi Komunitas / Open Technical Question): Akhiri dengan pertanyaan teknis terbuka yang memicu diskusi engineering berkualitas antar-praktisi, ajakan bookmark referensi (Bookmark / save thread buat referensi nanti), dan mention @${storeHandle} untuk update arsitektur AI harian.
-4. Setiap post HARUS DI BAWAH 500 KARAKTER.
+${negativeContextSection ? `${negativeContextSection}\n\n` : ''}${collisionWarningSection ? `${collisionWarningSection}\n\n` : ''}ATURAN PENULISAN KETAT (ANTI-ROBOTIC & ANTI-LISTICLE):
+1. DILARANG MEMAKAI FORMAT LISTICLE NOMOR 1-2-3 DI POST #2:
+   - JANGAN membuat format kaku seperti: "1. Judul: Penjelasan\n2. Judul: Penjelasan\n3. Judul: Penjelasan".
+   - TULIS dalam bentuk narasi teknis mengalir, diagram panah proses (misal: "Source ➔ Context Ingestion ➔ LLM Guard ➔ Output"), atau perbandingan langsung yang hidup.
+2. DILARANG PEMBUKA KLISE:
+   - JANGAN mulai dengan: "Kebanyakan engineering team terjebak ilusi...", "Banyak yang mengira...", "Di era modern...", "Pernahkah Anda...", "Saat refactoring 50K LOC...".
+   - Buka langsung dari masalah nyata, anomali data, atau realita lapangan.
+3. DILARANG PENUTUP ROBOTIK SERAGAM DI POST #3:
+   - JANGAN selalu memakai kalimat template: "Bookmark thread ini untuk referensi... Follow @${storeHandle} untuk update arsitektur AI harian."
+   - Buat penutup yang bervariasi sesuai blueprint (misal: pertanyaan teknis langsung ke pembaca, ajakan diskusi arsitektur, atau kesimpulan santai). Mention @${storeHandle} secara natural jika relevan.
+4. DILARANG KERAS BERJUALAN:
+   - DILARANG menyebut harga, stok, promo akun, atau embel-embel jualan.
+5. Setiap post HARUS DI BAWAH 500 KARAKTER (Batas Threads).
 
 KEMBALIKAN OUTPUT HANYA DALAM FORMAT JSON BERIKUT (TANPA MARKDOWN FENCES / TEKS LAIN):
 {
@@ -241,11 +299,12 @@ KEMBALIKAN OUTPUT HANYA DALAM FORMAT JSON BERIKUT (TANPA MARKDOWN FENCES / TEKS 
   "hookAngle": "${angleName}",
   "posts": [
     { "orderIndex": 0, "content": "Teks post 1 (Hook wawasan)... 🧵👇" },
-    { "orderIndex": 1, "content": "Teks post 2 (Langkah & Value)..." },
+    { "orderIndex": 1, "content": "Teks post 2 (Isi narasi/alur)..." },
     { "orderIndex": 2, "content": "Teks post 3 (Penutup & Diskusi)..." }
   ]
 }
 `.trim();
+
 }
 
 /**
